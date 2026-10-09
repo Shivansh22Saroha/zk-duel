@@ -9,7 +9,38 @@ Every entry that changes the circuit must state: new constraint count per varian
 ## [Unreleased]
 
 ### Planned (see TODO.md)
-- Phase 1: playable game without ZK.
+- Phase 2: circuit, tested offline against Phase 1 tick logs.
+
+### Phase 1 — Playable game, no ZK — 2026-10-09
+#### Added
+- `shared/sim.ts`: integer rules exactly per ARCHITECTURE §3 (movement, aim, weapon table W1–W5), `checkTick`/`checkSequence` (JS mirror of the circuit's per-tick constraints), `holdTick` (gap fill / padding), `truncateAndPad` + public variant (round-end window), `TickRecord` = WindowRecorder shape (public + private per tick), FNV state hash.
+- `shared/trig.ts` integer sin/cos table (scale 1024; test proves no entry sits on a rounding boundary → engine-independent). `shared/poseidon.ts` (circomlibjs; matches the reference vector Poseidon([1,2])), `shared/matchField.ts`, `shared/ticklog.ts` (JSONL log format), `shared/rng.ts`.
+- Server: Fastify 5 + helmet CSP + CORS + rate limits; zod-validated env; SQLite migration `001_init` (players, sessions, matches incl. `end_reason 'forfeit'`, match_players, rounds); guest JWT auth with revocable `jti`; REST `/api/health`, `/api/auth/guest`, `/api/auth/logout`, `/api/circuit/info` (all constants + `constantsHash`), `/api/matches/:id` (participants only).
+- WS gateway: Origin check, hello-within-5 s, strikes → 4400, rate limits → 4429, one socket per player → 4409, `VERSION_MISMATCH` on constants-hash mismatch, maxPayload 64 KB.
+- `MatchRoom`: snapshot-driven tick processing (both snapshots in, or leader ≥ `STALL_TICKS` ahead → hold, `stalled`), integer ray-vs-circle hits, simultaneous-lethal tie rule, rounds with `endTick` + `prevSnapshot` + `initialCommit` in `round_end`, `ROUND_PAUSE_TICKS` pause, best-of-5, forfeit, disconnect/silence > 10 s → forfeit, ready timeout → abort. Fixed-step 60 Hz wall loop (performance.now accumulator). Server snapshot logs (`LOG_SNAPSHOTS`).
+- Client (vanilla TS + Canvas): DOM-free `GameSession` (local sim, recorder, local gap fill identical to the server's hold, desync counter) shared with the Node bots; keyboard + pointer-lock input with queued turn (never loses mouse input to the MAX_TURN clamp); renderer (5:3 letterbox, grid, aim line, tracers, hit flash); landing, queue, match HUD, results screens; settings overlay (sensitivity, forfeit); debug overlay; dev-only tick-log download.
+- Tooling: `npm run dev`, `dev:lan`, `db:migrate`, `bots`, `perf:frame` (Playwright + installed Chrome), `test:int`.
+- Tests: 144 unit (sim every W-row, trig, poseidon, matchField, protocol, hit detection, JWT, MatchRoom with fake clock, client interp/frame stats) + 15 integration (10 concurrent bot best-of-5 matches; handshake/auth/origin/strikes/rate limits/fuzz/queue/REST/CSP).
+
+#### Measured
+- 10 concurrent bot matches (20 bot clients + server in one process): all ended by rounds, 0 desync ticks, client logs pass `checkSequence` for every round, server log values = client values for every tick, 0 hidden keys in 15,950 client→server frames (wire keys: `angle, artefactSha256, clientVersion, constantsHash, fired, t, tick, token, x, y`).
+- Server tick processing (same run): p50 0.14 ms, p95 0.36 ms, p99 0.54 ms, max 2.3 ms (n = 7,944). Across all runs today p99 ranged 0.54–0.80 ms; max ranged 2.3–6.6 ms (single outliers, likely GC). NFR-1 (< 2 ms) holds at p99, not for every single tick.
+- Client frame time, real Chrome 154, two bot-driven pages, 1366×768: headed — frame interval p50 7.0 ms, p95 13.8 ms, max 48.8 ms (≈ 135 fps, display-limited), per-frame work p50 0.3 ms, p95 1.0–1.3 ms; headless — interval p95 7.2 ms, work p95 1.4 ms.
+
+#### Fixed (found by tests during the phase)
+- `totalTicks` double-counted the final round when a match ended by rounds.
+- Debug overlay sorted 3,600 samples per frame (work p50 3.8 ms → 0.3 ms after throttling to 4 Hz).
+- `FrameStats` ignored a frame timestamp of 0.
+- Poseidon is now built at server boot; a cold build inside the first `match_found` caused one intermittent integration-test timeout under load.
+
+#### Deviations / decisions to confirm
+- `LOG_SNAPSHOTS` cannot contain private state (the server never sees it). Server logs stay public-only; logs with private state are written client-side (bots → `server/data/logs/clients/`, browser → `VITE_LOG_TICKS` download). New env var `VITE_LOG_TICKS`.
+- `VITE_API_URL` / `VITE_WS_URL` empty by default → derived from the page's host (LAN works without edits).
+- `ready.artefactSha256` is not checked yet (no zkey until Phase 3); clients send 64 zeros; matches store `circuit_hash = 'none'`.
+- Snapshot tick bound: only ticks from the future (> server tick + `STALL_TICKS`) are rejected (strike). Late ticks are accepted, so the SECURITY §4 "±6" lower bound is not enforced: rejecting late snapshots would drop honest data at RTT > 100 ms.
+- Reconnect into a running match is Phase 3; in Phase 1 a dropped player forfeits after 10 s.
+- Dev-only `?bot=<seed>` URL parameter (only in `vite dev` builds) lets a browser tab play itself, for frame-time measurement.
+- `room_join` replies `FORBIDDEN` until Phase 4; `window_proof`/`proof_failed` are accepted and ignored until Phase 3.
 
 ### Phase 0 — Repo setup — 2026-10-09
 #### Added

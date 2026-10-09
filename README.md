@@ -91,9 +91,11 @@ npm run db:migrate
 ```bat
 npm run dev
 ```
-Starts the server on :8080 and the client on :5173.
+Starts the server on :8080 and the client on :5173. For LAN play use `npm run dev:lan` (also exposes the client on the network) and add `http://<host-ip>:5173` to `ALLOWED_ORIGINS` in `server\.env`.
 
-Open `http://localhost:5173` in **two browser windows** (or two machines on the same LAN), enter a name in each, press **Find Match**.
+Open `http://localhost:5173` in **two browser windows** (or two machines on the same LAN), enter a name in each, press **Find Match**. Each tab has its own guest session (`sessionStorage`), so two tabs or two windows both work — but keep both *visible* (side by side): browsers throttle hidden tabs, and a hidden player stalls.
+
+Generate bot matches with full (public + private) tick logs for offline circuit tests: `npm run bots -- --matches 3` (server must be running).
 
 ## Run benchmarks
 
@@ -110,8 +112,12 @@ Results are written to the `benchmark_results` table and exported to `bench/out/
 | Script | Does |
 |---|---|
 | `npm run dev` | Server + client with hot reload |
+| `npm run dev:lan` | Same, with the client exposed on the LAN |
 | `npm run build` | Production build of client, server, circuits |
 | `npm test` | Unit + circuit tests |
+| `npm run test:int` | Server integration tests (real sockets; includes 10 bot matches) |
+| `npm run bots -- --matches N` | Bot matches against a running server; writes tick logs |
+| `npm run perf:frame` | Client frame-time measurement in Chrome (needs `npm run dev`) |
 | `npm run test:e2e` | Playwright two-player match |
 | `npm run circuits:build` | Build the default circuit |
 | `npm run bench` | Benchmark suite |

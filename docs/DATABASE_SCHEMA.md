@@ -53,7 +53,7 @@ Index: `idx_sessions_player (player_id)`.
 | `circuit_hash` | TEXT | NOT NULL — sha256 of the zkey used |
 | `status` | TEXT | NOT NULL, CHECK IN ('active','finished','aborted') |
 | `winner_index` | INTEGER | NULL, CHECK IN (0,1) |
-| `end_reason` | TEXT | NULL, CHECK IN ('rounds','forfeit_proof','disconnect','abort') |
+| `end_reason` | TEXT | NULL, CHECK IN ('rounds','forfeit_proof','forfeit','disconnect','abort') — `forfeit` = player sent the WS `forfeit` message |
 | `room_code` | TEXT | NULL |
 | `started_at` | INTEGER | NOT NULL |
 | `ended_at` | INTEGER | NULL |

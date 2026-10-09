@@ -25,7 +25,7 @@ Circuit artefacts are **build outputs, not source**: they are not committed. CI 
 :: On the host laptop (Windows cmd)
 copy server\.env.example server\.env   & :: set ALLOWED_ORIGINS to include http://<laptop-ip>:5173
 npm run db:migrate
-npm run dev -- --host                  & :: server :8080, client :5173 exposed on LAN
+npm run dev:lan                        & :: server :8080, client :5173 exposed on LAN
 ```
 Both players open `http://<laptop-ip>:5173`. Before the demo: disable sleep, plug in power (proving is CPU-heavy and slows on battery), close other heavy apps, and pre-load the zkey once in each browser so it is cached.
 

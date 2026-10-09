@@ -33,7 +33,7 @@ ZK-Duel is a research prototype run on localhost or a LAN for demos and benchmar
 
 - Every REST body and WS message validated with **zod** schemas from `shared/protocol.ts`; unknown fields stripped.
 - Snapshots: `x`, `y`, `angle`, `fired`, `tick` must be integers (wrong types / non-integers → rejected as malformed). `tick` must be round-relative, monotonic and within ±`STALL_TICKS` of the server tick. Integer values outside the legal ranges (`x ∈ [0, ARENA_W]`, `y ∈ [0, ARENA_H]`, `angle ∈ [0, 3599]`, `fired ∈ {0,1}`) are **accepted into the digest as sent** and counted as a strike — the digest reflects what was actually sent, so the proof fails on the bounds constraints. Hit detection clamps such values to the legal range before ray-casting. All integers are bounded to a safe range (|v| < 2^31) by the schema so field encoding is unambiguous.
-- Field elements: decimal strings, `/^[0-9]{1,78}$/`, value `< p` (BN254 scalar field), parsed with `BigInt`.
+- Field elements: decimal strings, `/^[0-9]{1,78}$/`, parsed with `BigInt`. Public signals, commitments, digests, salts and PLONK evaluations must be `< p` (BN254 scalar field). Proof curve-point coordinates (`pi_a`, `pi_b`, `pi_c`, PLONK commitments) are base-field elements and must be `< q` (BN254 base field, slightly larger than p) — checking them against p would wrongly reject valid proofs.
 - Proof objects: exact shape for the scheme (Groth16: `pi_a[3]`, `pi_b[3][2]`, `pi_c[3]`, `protocol`, `curve`); payload ≤ 64 KB.
 - Display names: `^[A-Za-z0-9_]{3,16}$`. Rendered as text, never as HTML.
 - Room codes: `^[A-HJ-NP-Z2-9]{6}$` (no ambiguous characters).

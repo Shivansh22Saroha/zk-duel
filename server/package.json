@@ -3,7 +3,13 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "scripts": {},
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "db:migrate": "tsx src/migrate.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "bots": "tsx scripts/bots.ts"
+  },
   "dependencies": {
     "@fastify/cors": "11.3.1",
     "@fastify/helmet": "13.1.2",

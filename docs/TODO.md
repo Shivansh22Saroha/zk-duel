@@ -17,15 +17,15 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **P0** must-have · **P
 - [x] Record pinned versions in CHANGELOG.md
 
 ## Phase 1 — Playable game, no ZK (Weeks 1–2) — P0
-- [ ] `shared/sim.ts`: movement, aim, weapon rules + unit tests
-- [ ] Integer sin/cos table (scale 1024) for rays and aim line
-- [ ] Client: fixed-step loop, input (pointer lock), renderer, interpolation
-- [ ] Server: Fastify + ws, guest auth, queue, `MatchRoom` tick loop
-- [ ] Server hit detection + rounds + match end
-- [ ] SQLite migrations: players, sessions, matches, match_players, rounds
-- [ ] Landing, queue, match HUD (no proof strip yet), results screens
-- [ ] `LOG_SNAPSHOTS` to produce input logs for later testing
-- [ ] **Exit check:** automated bot-driven matches (≥ 10 full matches over real sockets) with no desync, plus a manual playtest by the owner before approval
+- [x] `shared/sim.ts`: movement, aim, weapon rules + unit tests
+- [x] Integer sin/cos table (scale 1024) for rays and aim line
+- [x] Client: fixed-step loop, input (pointer lock), renderer, interpolation
+- [x] Server: Fastify + ws, guest auth, queue, `MatchRoom` tick loop
+- [x] Server hit detection + rounds + match end
+- [x] SQLite migrations: players, sessions, matches, match_players, rounds
+- [x] Landing, queue, match HUD (no proof strip yet), results screens
+- [x] `LOG_SNAPSHOTS` to produce input logs for later testing (server: public only; client-side logs with private state via `npm run bots` / `VITE_LOG_TICKS`)
+- [~] **Exit check:** automated bot-driven matches (≥ 10 full matches over real sockets) with no desync ✅ — manual playtest by the owner pending
 
 ## Phase 2 — Circuit (Weeks 3–4) — P0
 - [ ] `circuits/window.circom` with templates: `DigestChain`, `MoveCheck`, `TurnCheck`, `WeaponStep`, `Commit`

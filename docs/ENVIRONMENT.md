@@ -21,7 +21,7 @@ Two env files: `server/.env` (secret, never committed) and `client/.env` (public
 | `VERIFY_TIMEOUT_MS` | no | `2000` | Per-proof verify timeout |
 | `DEV_CHEATS` | no | `false` | Accept `cheat_toggle`. **Must be false in production** |
 | `STORE_PROOFS` | no | `false` | Persist proof JSON in `proof_windows` |
-| `LOG_SNAPSHOTS` | no | `false` | Write snapshot JSONL logs (used to create benchmark input logs) |
+| `LOG_SNAPSHOTS` | no | `false` | Write snapshot JSONL logs of what the server received (public only — see "Tick logs" below) |
 | `PUBLIC_MATCHES` | no | `false` | Let anyone read match summaries |
 | `BENCH_TOKEN` | yes (if bench uploads used) | — | Shared secret for `POST /api/bench/runs` |
 | `LOG_LEVEL` | no | `info` | pino level |
@@ -56,20 +56,25 @@ Generate secrets: `node -e "console.log(require('crypto').randomBytes(32).toStri
 
 | Variable | Default | Description |
 |---|---|---|
-| `VITE_API_URL` | `http://localhost:8080` | REST base |
-| `VITE_WS_URL` | `ws://localhost:8080/ws` | WebSocket URL |
+| `VITE_API_URL` | `http://<page host>:8080` | REST base. Empty = derived from the host the page was loaded from, so LAN play works without edits |
+| `VITE_WS_URL` | `ws://<page host>:8080/ws` | WebSocket URL. Empty = derived like `VITE_API_URL` |
 | `VITE_ZK_BASE` | `/zk` | Base path for artefacts |
 | `VITE_DEV_CHEATS` | `false` | Include the cheat panel in the bundle |
-| `VITE_SHOW_DEBUG` | `false` | FPS / tick / RTT overlay |
+| `VITE_SHOW_DEBUG` | `false` | FPS / frame-time / tick / RTT overlay |
+| `VITE_LOG_TICKS` | `false` | Dev only: keep this player's per-tick log (public **and private** state) in browser memory and offer "Download tick log (dev)" on the results screen. Never sent over the network. Used to produce real-match logs for offline circuit tests |
 
 ### `client/.env.example`
 ```dotenv
-VITE_API_URL=http://localhost:8080
-VITE_WS_URL=ws://localhost:8080/ws
+VITE_API_URL=
+VITE_WS_URL=
 VITE_ZK_BASE=/zk
 VITE_DEV_CHEATS=true
 VITE_SHOW_DEBUG=true
+VITE_LOG_TICKS=true
 ```
+
+### Tick logs (Phase 2 inputs)
+The server never sees hidden state, so `LOG_SNAPSHOTS=true` server logs (`server/data/logs/<matchId>.jsonl`) contain **public snapshots only** (received values plus `held` fills). Logs with private state are written on the client side only: Node bots (`npm run bots`) write `server/data/logs/clients/<matchId>-p<i>-<name>.jsonl`; browsers with `VITE_LOG_TICKS=true` offer a download. Format: `shared/ticklog.ts`.
 
 In dev, Vite serves `circuits/build/*` at `/zk/*` via a small `server.fs.allow` + middleware entry in `vite.config.ts`. Large artefacts must be served with `Content-Type: application/octet-stream` and long cache headers.
 

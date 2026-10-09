@@ -5,10 +5,7 @@
   "type": "module",
   "description": "Single source of truth: game constants, protocol schemas, deterministic rules",
   "exports": {
-    "./constants": "./constants.ts",
-    "./protocol": "./protocol.ts",
-    "./field": "./field.ts",
-    "./canonical": "./canonical.ts"
+    "./*": "./*.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

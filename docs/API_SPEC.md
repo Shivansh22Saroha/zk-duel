@@ -136,7 +136,7 @@ Envelope: `{ "t": "<type>", ...fields }`. Every message is validated against a z
 | `resume` | `roundNo`, `nextWindowIndex`, `chainStatus: 'intact' \| 'broken'` — sent after a reconnecting `hello`, followed by a `state` |
 | `cheat_flag` | `playerIndex`, `cheat`, `enabled` (broadcast so both see the `CHEAT` tag) |
 | `opponent_status` | `status: 'connected' \| 'reconnecting' \| 'stalled'` |
-| `match_end` | `winnerIndex`, `reason`, `score`, `resultsUrl` |
+| `match_end` | `winnerIndex`, `reason` (`rounds` \| `forfeit_proof` \| `forfeit` \| `disconnect` \| `abort`), `score`, `resultsUrl` |
 | `pong` | `ts`, `serverTime` |
 | `error` | `code`, `message` — `code` ∈ `INVALID_BODY`, `INVALID_ROOM_CODE`, `ROOM_NOT_FOUND`, `ROOM_FULL`, `ALREADY_IN_MATCH`, `UNAUTHORIZED`, `FORBIDDEN`, `VERSION_MISMATCH`, `RATE_LIMITED`, `INTERNAL` |
 

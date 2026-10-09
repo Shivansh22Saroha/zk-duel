@@ -46,6 +46,7 @@ function setup() {
       scheme: 'groth16',
       windowTicks: 60,
       constantsHash: 'h',
+      proofGraceWindows: 2,
     },
     [
       {
@@ -161,6 +162,17 @@ describe('MatchRoom', () => {
     t.snap(0, 0);
     expect(t.snap(0, 0)).toBe('drop');
     expect(t.snap(0, 1000)).toBe('strike_future');
+  });
+
+  it('accepts late ticks up to PROOF_GRACE_WINDOWS × WINDOW_TICKS behind; older → strike_late', () => {
+    t.goLive();
+    expect(t.room.lateLimitTicks).toBe(2 * 60);
+    t.advance((t.room.lateLimitTicks + 30) * MS);
+    const wall = t.room.wallTick();
+    const oldest = wall - t.room.lateLimitTicks;
+    expect(t.snap(1, oldest - 1)).toBe('strike_late'); // one tick past the bound
+    expect(t.snap(1, oldest)).toBe('ok'); // exactly at the bound (lastRecv now = oldest)
+    expect(t.snap(0, oldest + 1)).toBe('ok');
   });
 
   it('accepts integer out-of-range values but flags them for a strike', () => {

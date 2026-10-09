@@ -7,12 +7,11 @@ import { MAG_SIZE, MAX_HP, RELOAD_TICKS, type PlayerIndex } from '@zkduel/shared
 import type { ServerMessage } from '@zkduel/shared/protocol';
 import type { FrameStats } from '../game/frameStats';
 import type { KeyboardMouseInput } from '../game/input';
-import { lerpPose, opponentPose } from '../game/interp';
-import { ArenaRenderer } from '../game/renderer';
+import { createRenderer } from '../game/renderer';
 import type { GameSession } from '../game/session';
+import { FrameBuilder, type GameRenderer } from '../game/view';
 import { h, mono, setText } from './dom';
 
-const OPPONENT_DELAY_MS = 50;
 const ROUND_BANNER_MS = 1500;
 /** The debug overlay sorts the sample buffers; refresh it at 4 Hz, not every frame. */
 const DEBUG_REFRESH_MS = 250;
@@ -138,17 +137,13 @@ export function matchScreen(o: MatchScreenOptions): {
     ),
   );
 
-  const renderer = new ArenaRenderer(canvas);
+  const renderer: GameRenderer = createRenderer(canvas);
+  const frames = new FrameBuilder(game);
   let bannerUntil = 0;
   let bannerText = '';
 
   const off = game.onMessage((m: ServerMessage) => {
-    if (m.t === 'state' && m.phase === 'live') {
-      const op = game.opponentIndex;
-      const s = m.players[op];
-      if (s.fired === 1) renderer.addTracer({ x: s.x, y: s.y, angle: s.angle, player: op });
-      for (const hit of m.hits) renderer.hit(hit.target);
-    } else if (m.t === 'round_end') {
+    if (m.t === 'round_end') {
       bannerText = `Round to ${o.names[m.winnerIndex]}`;
       bannerUntil = performance.now() + ROUND_BANNER_MS;
     }
@@ -169,34 +164,14 @@ export function matchScreen(o: MatchScreenOptions): {
   const shownHp: [number, number] = [-1, -1];
   let shownAmmo = -1;
   let shownReload = -1;
-  let lastTick = -1;
-  let lastRound = 0;
   const frame = (now: number): void => {
     raf = requestAnimationFrame(frame);
     o.stats.frame(now);
     const t0 = performance.now();
 
     game.update(now);
-    // own shot tracers straight from the local sim
-    if (game.roundNo !== lastRound) {
-      lastRound = game.roundNo;
-      lastTick = -1;
-    }
-    for (const r of game.records.slice(Math.max(0, lastTick + 1))) {
-      if (r.fired === 1) renderer.addTracer({ x: r.x, y: r.y, angle: r.angle, player: me });
-    }
-    lastTick = game.tick;
-
     renderer.resize();
-    const live = game.phase === 'live';
-    const mine = live ? lerpPose(game.prevSelf.pub, game.self.pub, game.alpha(now)) : game.self.pub;
-    const st = game.lastState?.players[game.opponentIndex];
-    const theirs = live
-      ? opponentPose(game.opponentBuffer, now, OPPONENT_DELAY_MS)
-      : st
-        ? { x: st.x, y: st.y, angle: st.angle }
-        : null;
-    renderer.draw(me === 0 ? [mine, theirs] : [theirs, mine]);
+    renderer.draw(frames.build(now));
 
     // HUD — DOM is only touched when a value changed
     for (const p of [0, 1] as const) {
@@ -258,6 +233,8 @@ export function matchScreen(o: MatchScreenOptions): {
     dispose: () => {
       cancelAnimationFrame(raf);
       off();
+      frames.dispose();
+      renderer.dispose();
       document.removeEventListener('pointerlockchange', onLockChange);
     },
   };

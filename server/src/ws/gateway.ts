@@ -202,6 +202,8 @@ export class Gateway {
         const v = room.onSnapshot(p, m);
         if (v === 'strike_future')
           this.strike(c, 'INVALID_BODY', 'snapshot tick is ahead of the server');
+        else if (v === 'strike_late')
+          this.strike(c, 'INVALID_BODY', 'snapshot tick is older than the proof grace period');
         else if (v === 'strike_range')
           this.strike(c, 'INVALID_BODY', 'snapshot value out of range');
         return;

@@ -42,6 +42,7 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **P0** must-have · **P
 - [ ] WindowRecorder + partial-window padding
 - [ ] Proof Worker (snarkjs in Web Worker), queue cap 2
 - [ ] Server `DigestBuilder`, commitment chain store, `VerifierPool` (worker_threads)
+- [ ] Digest finalisation waits for late honest snapshots: window k's digest is finalised only when the snapshot for its last tick has arrived **or** the grace deadline (end of window k + PROOF_GRACE_WINDOWS) passes, so a late honest snapshot never causes `mismatch_digest` (ARCHITECTURE §4). Late snapshots older than PROOF_GRACE_WINDOWS × WINDOW_TICKS are already rejected with a strike (Phase 1 follow-up)
 - [ ] Status pipeline: chain_broken → malformed → bind → digest → commit → verify; `proof_failed` → unprovable; timeout sweep; window-order decisions
 - [ ] `proof_windows` table + `proof_result` messages
 - [ ] Proof strip HUD + tooltips
@@ -69,6 +70,7 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **P0** must-have · **P
 - [ ] Limitations section (smooth-aim / input provenance, single-party phase-2 setup, no walls in circuit)
 - [ ] Update final PPT with live-demo screenshots and benchmark charts
 - [ ] Demo checklist (TESTING.md §9) run twice
+- [ ] 3D renderer (Three.js), 2D rules unchanged — a new `GameRenderer` implementation behind the seam in `client/src/game/view.ts` (draws `RenderFrame`); sim, input and networking untouched
 - [ ] CHANGELOG entry for v1.0.0
 
 ---

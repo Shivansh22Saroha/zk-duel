@@ -32,4 +32,25 @@ export default tseslint.config(
       eqeqeq: ['error', 'always'],
     },
   },
+  {
+    // Renderer seam (client/src/game/view.ts): renderers draw a RenderFrame and nothing else.
+    files: ['client/src/game/renderer*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@zkduel/shared/sim', '@zkduel/shared/protocol'],
+              message: 'Renderers must not depend on game rules or the protocol.',
+            },
+            {
+              group: ['./session', './input', './bot', '../net/*', '../api'],
+              message: 'Renderers only consume RenderFrame (view.ts).',
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

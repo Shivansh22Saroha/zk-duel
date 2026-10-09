@@ -95,6 +95,7 @@ export async function buildApp(cfg: Config, opts: BuildOptions = {}): Promise<Ap
     logSnapshots: cfg.LOG_SNAPSHOTS,
     snapshotLogDir: cfg.snapshotLogDir,
     constantsHash: hash,
+    proofGraceWindows: cfg.PROOF_GRACE_WINDOWS,
     now: () => performance.now(),
   });
   ref.manager = manager;

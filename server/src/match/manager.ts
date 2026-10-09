@@ -14,6 +14,7 @@ export interface ManagerOptions {
   logSnapshots: boolean;
   snapshotLogDir: string;
   constantsHash: string;
+  proofGraceWindows: number;
   now: () => number;
 }
 
@@ -109,6 +110,7 @@ export class MatchManager {
         scheme: this.opts.scheme,
         windowTicks: this.opts.windowTicks,
         constantsHash: this.opts.constantsHash,
+        proofGraceWindows: this.opts.proofGraceWindows,
       },
       [0, 1].map((i) => {
         const pid = players[i] as string;

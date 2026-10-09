@@ -54,6 +54,8 @@ export interface RoomOptions {
   scheme: Scheme;
   windowTicks: number;
   constantsHash: string;
+  /** Snapshots may lag the server tick by at most proofGraceWindows × windowTicks. */
+  proofGraceWindows: number;
 }
 
 export interface RoomDeps {
@@ -65,7 +67,7 @@ export interface RoomDeps {
 }
 
 /** Result of offering a snapshot to the room. */
-export type SnapshotVerdict = 'ok' | 'drop' | 'strike_future' | 'strike_range';
+export type SnapshotVerdict = 'ok' | 'drop' | 'strike_future' | 'strike_late' | 'strike_range';
 
 const MS_PER_TICK = 1000 / TICK_RATE;
 const other = (p: PlayerIndex): PlayerIndex => (p === 0 ? 1 : 0);
@@ -104,6 +106,11 @@ export class MatchRoom {
 
   get id(): string {
     return this.opts.id;
+  }
+
+  /** Oldest acceptable snapshot age, in ticks behind the server's wall tick. */
+  get lateLimitTicks(): number {
+    return this.opts.proofGraceWindows * this.opts.windowTicks;
   }
 
   /** Current processed tick of the live round (−1 before the first). */
@@ -183,7 +190,10 @@ export class MatchRoom {
   ): SnapshotVerdict {
     if (this.phase !== 'live') return 'drop'; // e.g. ticks the client ran past round end
     if (m.tick <= this.lastRecv[p]) return 'drop'; // duplicate / out of order
-    if (m.tick > this.wallTick() + STALL_TICKS) return 'strike_future';
+    const wall = this.wallTick();
+    if (m.tick > wall + STALL_TICKS) return 'strike_future';
+    // Late ticks are accepted (honest data at high RTT) up to the proof grace period; older → strike.
+    if (m.tick < wall - this.lateLimitTicks) return 'strike_late';
 
     const snap: PublicSnap = { x: m.x, y: m.y, angle: m.angle, fired: m.fired };
     const inRange =
@@ -209,7 +219,8 @@ export class MatchRoom {
     return inRange ? 'ok' : 'strike_range';
   }
 
-  private wallTick(): number {
+  /** Round-relative tick by the server wall clock. */
+  wallTick(): number {
     return Math.floor((this.deps.now() - this.roundStartWall) / MS_PER_TICK);
   }
 

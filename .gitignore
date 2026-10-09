@@ -22,3 +22,6 @@ bench/out/
 # test artefacts
 playwright-report/
 test-results/
+
+# generated from shared/constants.ts by circuits/scripts/gen-main.ts
+circuits/main_*.circom

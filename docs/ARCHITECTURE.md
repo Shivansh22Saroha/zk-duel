@@ -35,7 +35,7 @@ The server is **authoritative for hits and damage**. The client is authoritative
 | `shared/protocol.ts` | WebSocket message types + zod schemas |
 | `shared/sim.ts` | Pure, deterministic rule functions: `stepMovement`, `stepWeapon`, `turnDelta`. Used by client sim, server sanity checks, test vector generator. |
 | `shared/poseidon.ts` | Wrapper around `circomlibjs` Poseidon so JS and circuit hashes match |
-| `client/src/game/` | Input, sim loop, interpolation, renderer |
+| `client/src/game/` | Input, sim loop (`GameSession`, DOM-free, shared with bots), interpolation, renderer. Renderer seam: `view.ts` — `FrameBuilder.build(now)` → `RenderFrame` → `GameRenderer.draw(frame)`; renderers never import sim/session/input/net (lint-enforced), so a Three.js renderer can replace Canvas 2D without touching game logic |
 | `client/src/zk/` | `WindowRecorder`, `proofWorker.ts`, artefact loader |
 | `client/src/ui/` | Screens and HUD (see UI_UX_SPEC.md) |
 | `server/src/ws/` | Gateway, auth handshake, message validation |
@@ -118,6 +118,8 @@ end of window k on the client — proving starts when the server's `state` for t
 The client keeps playing window k+1 while window k is being proven. A window's proof is late if not received before the end of window `k + PROOF_GRACE_WINDOWS`.
 
 **Round end.** `round_end` carries `endTick` (the last tick of the round). Both sides build the window containing `endTick` the same way: ticks `> endTick` are dropped and the window is padded up to N ticks by repeating the snapshot at `endTick` with `fired = 0`; hidden state is rolled forward over the padding with `fired = 0, rp = 0` using the table above. Windows that start after `endTick` do not exist.
+
+**Late snapshots (Phase 1 follow-up, binding for Phase 3).** The server accepts a snapshot up to `PROOF_GRACE_WINDOWS × WINDOW_TICKS` ticks behind its wall-clock tick; anything older is rejected and counts as a strike. Window k's digest must **not** be finalised until either the snapshot for its last tick has arrived or the grace deadline (end of window k + `PROOF_GRACE_WINDOWS`) has passed — only then are still-missing ticks filled (previous snapshot, `fired = 0`). This guarantees a late but honest snapshot is always part of the digest and never causes `mismatch_digest`. (Hit detection may still have used a held value for that tick; that only affects gameplay, not proofs.)
 
 **Commitment chain.** No rewinds. The chain starts each round from the public `initialCommit`. The first non-`valid` result in a round breaks the chain for the rest of that round: every later window of the round gets `chain_broken` (observe mode keeps playing; strict mode has already forfeited). The next round starts a fresh chain.
 

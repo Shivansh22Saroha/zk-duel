@@ -11,6 +11,13 @@ Every entry that changes the circuit must state: new constraint count per varian
 ### Planned (see TODO.md)
 - Phase 2: circuit, tested offline against Phase 1 tick logs.
 
+### Phase 1 follow-ups — 2026-10-09
+- **Late snapshots bounded:** accepted up to `PROOF_GRACE_WINDOWS × WINDOW_TICKS` ticks behind the server's wall tick; older → rejected + strike (`strike_late`). Boundary unit test (exactly at the bound → ok, one past → strike). SECURITY §4 updated.
+- **Phase 3 rule written down** (ARCHITECTURE §4, TODO Phase 3): a window's digest is finalised only when its last tick's snapshot has arrived or the grace deadline has passed, so a late honest snapshot never causes `mismatch_digest`.
+- **Integration stress:** `npm run test:int` ×10 in a row — 10/10 passed (150/150 tests), 24–57 s per run; full output in `server/data/test-reports/int-stress.txt`.
+- **Renderer seam for the future 3D renderer:** `client/src/game/view.ts` — `FrameBuilder.build(now)` → `RenderFrame` (plain, already interpolated) → `GameRenderer.draw(frame)`. Canvas 2D renderer reimplemented behind it (`createRenderer`); tracers/flash bookkeeping moved out of the renderer. ESLint `no-restricted-imports` forbids renderer files from importing sim, protocol, session, input, bot, net or api. TODO Phase 6: "3D renderer (Three.js), 2D rules unchanged".
+- Accepted by owner: client-written private logs (deviation 1) and dev-only `?bot=` (deviation 6).
+
 ### Phase 1 — Playable game, no ZK — 2026-10-09
 #### Added
 - `shared/sim.ts`: integer rules exactly per ARCHITECTURE §3 (movement, aim, weapon table W1–W5), `checkTick`/`checkSequence` (JS mirror of the circuit's per-tick constraints), `holdTick` (gap fill / padding), `truncateAndPad` + public variant (round-end window), `TickRecord` = WindowRecorder shape (public + private per tick), FNV state hash.

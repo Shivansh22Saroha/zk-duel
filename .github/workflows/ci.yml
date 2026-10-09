@@ -1,0 +1,74 @@
+# CI gates (docs/TESTING.md §8, docs/DEPLOYMENT.md §5).
+# Blocking: lint, typecheck, unit + circuit tests (N=4), circomspect, integration, npm audit high/critical.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CIRCOM_VERSION: v2.2.3
+  CIRCOMSPECT_VERSION: 0.9.0
+
+jobs:
+  ci:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install circom (pinned release binary)
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL -o "$HOME/.local/bin/circom" \
+            "https://github.com/iden3/circom/releases/download/${CIRCOM_VERSION}/circom-linux-amd64"
+          chmod +x "$HOME/.local/bin/circom"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Cache circomspect
+        id: circomspect-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/circomspect
+          key: circomspect-${{ env.CIRCOMSPECT_VERSION }}-${{ runner.os }}
+
+      - name: Install circomspect
+        if: steps.circomspect-cache.outputs.cache-hit != 'true'
+        run: cargo install --locked circomspect --version "${CIRCOMSPECT_VERSION}"
+
+      - run: npm ci
+
+      - name: Toolchain check
+        run: npm run circuits:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Phase 2 adds: build the groth16_4 test circuit (needs a small ptau) before this step.
+      - name: Unit + circuit tests
+        run: npm test
+
+      - name: Integration tests
+        run: npm run test:int -- --passWithNoTests
+
+      - name: circomspect (fail on warnings)
+        if: hashFiles('circuits/*.circom') != ''
+        # Phase 2 confirms circomspect's exit code on warnings (wrap with a grep if it exits 0).
+        run: circomspect --level WARNING -L node_modules/circomlib/circuits circuits/window.circom
+
+      - name: npm audit (high/critical blocks)
+        run: npm audit --omit=dev --audit-level=high

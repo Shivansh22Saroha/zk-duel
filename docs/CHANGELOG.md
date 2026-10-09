@@ -11,6 +11,28 @@ Every entry that changes the circuit must state: new constraint count per varian
 ### Planned (see TODO.md)
 - Phase 1: playable game without ZK.
 
+### Phase 0 — Repo setup — 2026-10-09
+#### Added
+- npm workspaces `shared`, `client`, `server`, `circuits`, `bench`; ESM; `.npmrc` with `save-exact` + `engine-strict`; `.node-version` = 22.
+- TypeScript strict (`strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`) via `tsconfig.base.json`; ESLint 9 flat config + typescript-eslint `strict`; Prettier 3 (LF line endings, `.gitattributes` forces LF).
+- `shared/constants.ts`: every PRD §5 constant plus the six added ones, protocol limits (rate limits, strikes, timeouts, name/room-code rules) and the aggregated `CONSTANTS` object that `/api/circuit/info` returns.
+- `shared/canonical.ts`: canonical JSON + `constantsHash` (WebCrypto SHA-256, identical in Node and browsers).
+- `shared/field.ts`: BN254 scalar modulus p **and base-field modulus q**. Proof curve coordinates are F_q elements, slightly larger than p, so they are range-checked against q; public signals and PLONK evaluations against p. (SECURITY §4 said "< p" for all field elements; applying that to proof coordinates would wrongly reject valid proofs.)
+- `shared/protocol.ts`: zod schemas for every WS message (both directions, incl. `proof_failed`, `resume`), Groth16 + PLONK proof shapes (`.strict()`), REST bodies (guest auth, rooms, bench upload), error formats. `window_proof` has a separate header schema so a malformed body can still be attributed to a window (→ `malformed`).
+- `circuits/build.config.json`: variants + Hermez ptau table (powers 8–20; URLs and blake2b-512 hashes generated from the snarkjs README, not retyped).
+- `circuits/scripts/ptau.ts` (`npm run circuits:ptau -- --power N`): download, verify blake2b against the README, record SHA-256. `circuits/scripts/check-tools.ts` (`npm run circuits:check`).
+- `.github/workflows/ci.yml` skeleton: toolchain check, lint, format, typecheck, unit + circuit tests, integration tests, circomspect (once `window.circom` exists), `npm audit --omit=dev --audit-level=high`.
+- Tests: 76 unit tests (constants, canonical JSON/hash, field bounds, protocol accept/reject cases).
+
+#### Security
+- npm `overrides`: `ws` → 8.22.0 (circomlibjs → ethers pulled ws 8.18.0, high: GHSA-58qx-3vcg-4xpx, GHSA-96hv-2xvq-fx4p) and `underscore` → 1.13.8 (snarkjs → bfj → jsonpath pulled 1.13.6, high: GHSA-qpx9-hpmf-5gmw). Same majors.
+- Remaining: 15 **low** advisories, all `elliptic` via circomlibjs → ethers 5 (unused at runtime by us; no fix available). `npm audit --omit=dev --audit-level=high` is clean.
+
+#### Notes
+- Version lines that moved past the docs' minimum: Vite 8 (docs: "6.x or later"), Vitest 5 (docs: "2.x+"). zod kept on 3.x, ESLint on 9.x, pino 9.x, dotenv 16.x, TypeScript 5.x as TECH_STACK specifies, although newer majors exist.
+- Ptau power 16 downloaded and verified for now; the final per-variant power is chosen from real constraint counts in Phase 2/5.
+- CI workflow has not run yet — there is no remote. It is syntax-only until pushed.
+
 ### Spec fixes (pre-Phase 0) — 2026-10-09
 Decided by the owner after the Step 2 doc review. Each item lists the docs changed.
 1. **Snapshot buffer → per-window digests.** Server finalises and stores each window's digest at window end, keeps only digests + the last snapshot (next window's seed). Timeout/unprovable/chain_broken rows use the stored digest. The digest uses the snapshot actually sent for each tick; a window finalises when its last tick's snapshot arrives or the player stalls. *(ARCHITECTURE §4/§6, FEATURES F6, SECURITY §6, DATABASE §2/§4, TESTING §2)*
@@ -64,17 +86,26 @@ Decided by the owner after the Step 2 doc review. Each item lists the docs chang
 - Run <id> on <device>: groth16_60 prove p50 612 ms, p95 740 ms
 ```
 
-## Exact dependency versions (fill at setup)
+## Exact dependency versions (pinned 2026-10-09, Phase 0)
 
 | Package | Pinned version |
 |---|---|
-| node | |
-| circom | |
-| snarkjs | |
-| circomlib | |
-| circomlibjs | |
-| vite | |
-| fastify | |
-| ws | |
-| better-sqlite3 | |
-| ptau file + sha256 | |
+| node | 22.23.3 (npm 10.9.9, via fnm 1.39.0) |
+| circom | 2.2.3 (built from tag `v2.2.3`, rustc 1.99.0 MSVC) |
+| circomspect | 0.9.0 |
+| snarkjs | 0.7.6 |
+| circomlib | 2.0.5 |
+| circomlibjs | 0.1.7 |
+| circom_tester | 0.0.24 |
+| vite | 8.3.4 |
+| fastify | 5.12.5 (`@fastify/helmet` 13.1.2, `/cors` 11.3.1, `/rate-limit` 11.2.1, `/static` 10.1.5) |
+| ws | 8.22.0 (also forced via `overrides`) |
+| better-sqlite3 | 13.0.3 (bundled SQLite 3.53.4) |
+| zod | 3.25.76 |
+| jsonwebtoken / pino / dotenv | 9.0.3 / 9.14.0 / 16.6.1 |
+| chart.js | 4.5.1 |
+| typescript / tsx | 5.9.3 / 4.23.15 |
+| eslint / typescript-eslint / prettier | 9.39.5 / 8.71.1 / 3.9.9 |
+| vitest / @vitest/coverage-v8 / fast-check | 5.0.3 / 5.0.3 / 4.10.2 |
+| @playwright/test | 1.64.0 (browsers not yet installed) |
+| ptau file + sha256 | `powersOfTau28_hez_final_16.ptau` (75,580,568 B) — blake2b-512 `6a6277a2…efec125` (matches snarkjs README), sha256 `1c401abb57c9ce531370f3015c3e75c0892e0f32b8b1e94ace0f6682d9695922` |

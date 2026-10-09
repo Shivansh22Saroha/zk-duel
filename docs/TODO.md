@@ -7,14 +7,14 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **P0** must-have · **P
 ---
 
 ## Phase 0 — Repo setup (Week 1, first 2 days) — P0
-- [ ] npm workspaces: `client`, `server`, `shared`, `circuits`, `bench`
-- [ ] TypeScript strict config, ESLint, Prettier
-- [ ] `shared/constants.ts` with every PRD §5 constant
-- [ ] `shared/protocol.ts` zod schemas for all WS messages and REST bodies
-- [ ] Install circom 2.2.x, snarkjs, circomlib; verify `circom --version`
-- [ ] Download and checksum the ptau file (power chosen per variant from real constraint counts in Phase 2/5; Phase 0 fetches the file needed for the test + N=60 builds)
-- [ ] GitHub Actions `ci.yml` skeleton (lint, typecheck, test)
-- [ ] Record pinned versions in CHANGELOG.md
+- [x] npm workspaces: `client`, `server`, `shared`, `circuits`, `bench`
+- [x] TypeScript strict config, ESLint, Prettier
+- [x] `shared/constants.ts` with every PRD §5 constant
+- [x] `shared/protocol.ts` zod schemas for all WS messages and REST bodies
+- [x] Install circom 2.2.x, snarkjs, circomlib; verify `circom --version`
+- [x] Download and checksum the ptau file (power chosen per variant from real constraint counts in Phase 2/5; Phase 0 fetches the file needed for the test + N=60 builds)
+- [x] GitHub Actions `ci.yml` skeleton (lint, typecheck, test)
+- [x] Record pinned versions in CHANGELOG.md
 
 ## Phase 1 — Playable game, no ZK (Weeks 1–2) — P0
 - [ ] `shared/sim.ts`: movement, aim, weapon rules + unit tests

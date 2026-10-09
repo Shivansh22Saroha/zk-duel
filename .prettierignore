@@ -1,0 +1,11 @@
+node_modules
+dist
+coverage
+package-lock.json
+circuits/build
+circuits/ptau
+circuits/test/build
+server/data
+bench/out
+docs
+*.md

@@ -1,0 +1,55 @@
+{
+  "name": "zk-duel",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "1v1 browser shooter with zero-knowledge rule-compliance proofs (CSC301 seminar prototype)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.12 <23",
+    "npm": ">=10"
+  },
+  "workspaces": [
+    "shared",
+    "client",
+    "server",
+    "circuits",
+    "bench"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run --project unit --project circuits",
+    "test:unit": "vitest run --project unit",
+    "test:watch": "vitest --project unit",
+    "test:coverage": "vitest run --project unit --coverage",
+    "test:circuits": "vitest run --project circuits",
+    "test:int": "vitest run --project integration",
+    "test:e2e": "playwright test",
+    "circuits:ptau": "npm run ptau --workspace circuits --",
+    "circuits:build": "npm run build --workspace circuits",
+    "circuits:build:all": "npm run build:all --workspace circuits",
+    "circuits:check": "npm run check --workspace circuits"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@playwright/test": "1.64.0",
+    "@types/node": "22.20.5",
+    "@vitest/coverage-v8": "5.0.3",
+    "concurrently": "10.0.6",
+    "eslint": "9.39.5",
+    "fast-check": "4.10.2",
+    "globals": "17.13.0",
+    "prettier": "3.9.9",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.1",
+    "vitest": "5.0.3"
+  },
+  "overrides": {
+    "ws": "8.22.0",
+    "underscore": "1.13.8"
+  }
+}

@@ -23,7 +23,7 @@ Each flow lists the steps, what the system does, and the failure branches.
 ## Flow 2 — Private room (demo with an examiner)
 
 1. Player A: Landing → **Private Room ▾ → Create room** → chooses enforcement `strict` → `POST /api/rooms`.
-2. Room screen shows code `K7QX2M` with copy button.
+2. Client A sends `room_join` with the returned code. Room screen shows code `K7QX2M` with copy button.
 3. Player B: Landing → **Private Room ▾ → Join with code** → enters code → `room_join`.
    - ✕ Unknown/expired code → inline error "Room not found or expired."
    - ✕ Room full → "Room already has two players."
@@ -33,12 +33,15 @@ Each flow lists the steps, what the system does, and the failure branches.
 
 1. Each tick, the client reads input, applies the rules (clamped to legal values), updates hidden weapon state, records `{public, private}` into the WindowRecorder, sends `input_snapshot`.
 2. Server buffers snapshots, resolves shots, broadcasts `state`. Client renders opponent with interpolation.
-3. At the last tick of the window the recorder hands the window to the Proof Worker. The HUD adds a ◌ pending cell.
+3. When the server's `state` for the window's last tick arrives, the recorder hands the window to the Proof Worker. The HUD adds a ◌ pending cell.
 4. Worker proves (target < 1 window duration) → client sends `window_proof`.
-5. Server checks bind → digest → commitIn → verify → sends `proof_result`.
+   - ✕ Witness generation throws → client sends `proof_failed` → server records `unprovable`.
+5. Server checks bind → digest → commitIn → verify (in window order) → sends `proof_result`.
 6. The pending cell turns ✓ (green) or ✕ (red) on both players' screens.
    - ✕ Proof not done by end of window k+2 → server marks `timeout`; cell shows –.
+   - ✕ After any non-valid window, the rest of that round's windows are `chain_broken` (⛓); the next round starts a fresh chain.
    - ✕ In `strict` mode any non-valid result → `match_end` reason `forfeit_proof`, red banner with window number and status.
+7. At round end, `round_end{endTick}` arrives; client and server truncate the window containing `endTick` and pad it identically, and that window is proven like any other.
 
 ## Flow 4 — Cheat demonstration (researcher, dev build)
 
@@ -46,16 +49,16 @@ Each flow lists the steps, what the system does, and the failure branches.
 2. Starts a private room in `strict` or `observe` mode with a second player.
 3. Mid-round presses **F9** → cheat drawer opens.
 4. Toggles **Speedhack** → client sends `cheat_toggle`; server records `cheat_events` and broadcasts `cheat_flag`; both screens show `CHEAT: speedhack` under the name.
-5. The player now moves 8 units/tick. The circuit's speed constraint can't be satisfied, so witness generation throws in the worker: **no valid proof exists**. The client sends nothing for that window and shows a local "proof could not be generated" note; the server marks the window `timeout` once the grace period ends.
-6. HUD turns red/grey within ≤ 3 windows of activation (window k fails → `timeout` declared at end of window k+2). In `strict` mode the match ends.
+5. The player now moves 8 units/tick. The circuit's speed constraint can't be satisfied, so witness generation throws in the worker: **no valid proof exists**. The honest (dev) client sends `proof_failed` for that window and shows a local "proof could not be generated" note; the server records `unprovable` immediately. (A real cheater would stay silent instead; the server then marks `timeout` at the end of window k+2 — that is the guarantee.)
+6. HUD turns red right after the cheating window ends (`unprovable`), and at the latest within 3 windows of activation (silent case: `timeout` at end of window k+2). Remaining windows of the round show `chain_broken`. In `strict` mode the match ends.
 7. Researcher toggles **Smooth aim** → proofs stay green → explains the input-provenance limitation.
 
 ## Flow 5 — Disconnect & reconnect
 
 1. Player's socket drops. Server marks `opponent_status: reconnecting` to the other player; that player's sim keeps running, and the disconnected player's last snapshot is held.
 2. Client auto-reconnects (backoff 0.5 s, 1 s, 2 s), sends `hello` with the same token.
-3. Server re-attaches the socket to the match, sends the current `state` and the next window index.
-   - Windows that fell inside the gap → `timeout`. The client resumes proving from the next full window, using the last server-acknowledged `commitOut` as its `commitIn`.
+3. Server re-attaches the socket to the match and sends `resume{roundNo, nextWindowIndex, chainStatus}` followed by the current `state`.
+   - Windows that fell inside the gap → `timeout`, so `chainStatus = 'broken'` and the rest of that round is `chain_broken` (no commitment rewinds). The client keeps playing and resumes proving at the next round's fresh `initialCommit`.
 4. ✕ No reconnect within 10 s → `match_end` reason `disconnect`, remaining player wins.
 
 ## Flow 6 — Results review
@@ -63,7 +66,7 @@ Each flow lists the steps, what the system does, and the failure branches.
 1. Results screen loads `GET /api/matches/:id`.
 2. Shows winner, score, per-player proof stats, full window timeline, cheat events.
 3. **Download match log** → `GET /api/matches/:id/log`.
-4. **Rematch** → both players must press it within 30 s → new match in the same room settings. **Back to lobby** → Landing.
+4. **Back to lobby** → Landing. (Rematch was dropped — not in PRD.)
 
 ## Flow 7 — Benchmark run (researcher)
 
@@ -78,7 +81,7 @@ Each flow lists the steps, what the system does, and the failure branches.
 3. On finish → uploads results → charts refresh with the new run selected.
    - ✕ Tab hidden during run → warn "Background tabs are throttled; results may be slower" and flag the run in `notes`.
 
-## Flow 8 — Viewing past matches
+## Flow 8 — Viewing past matches (P1 — after Phase 4)
 
 1. Landing → **My matches** (visible when a token exists).
 2. List from `GET /api/matches`; click a row → Results screen for that match.

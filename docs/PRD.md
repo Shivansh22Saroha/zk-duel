@@ -61,6 +61,12 @@ The game must be small, stable and fun enough to play a real match. Every featur
 | `ROUNDS_TO_WIN` | 3 | Best of 5 rounds |
 | `WINDOW_TICKS` | 60 | Default proof window (bench: 30, 60, 120) |
 | `PROOF_GRACE_WINDOWS` | 2 | Window k proof must arrive before window k+2 ends |
+| `SPAWNS` | P0 `(150,300)` angle 0; P1 `(850,300)` angle 1800 | Fixed round spawns (also each round's `prevSnapshot`, with `fired=0`) |
+| `RAY_LENGTH` | 1200 | Hit-scan ray length |
+| `TRIG_SCALE` | 1024 | Integer sin/cos table scale |
+| `ROUND_PAUSE_TICKS` | 90 | Pause between rounds (1.5 s) |
+| `STALL_TICKS` | 6 | Max ticks a missing snapshot is held before the player is `stalled` |
+| `RECONNECT_TIMEOUT_MS` | 10000 | Disconnect longer than this forfeits |
 
 All positions and angles are **integers**. No floats inside game state. Rendering may interpolate with floats, but state never does.
 
@@ -75,7 +81,7 @@ All positions and angles are **integers**. No floats inside game state. Renderin
 ### 6.2 Match
 - **FR-5** Server sends `match_found` with match ID, player index (0/1), spawn points and the public initial-state commitment.
 - **FR-6** Countdown 3-2-1, then the match starts at tick 0.
-- **FR-7** Controls: WASD move (one unit step per axis per tick up to `MAX_SPEED`), mouse aim, left-click fire, R reload.
+- **FR-7** Controls: WASD move (each held axis steps exactly `MAX_SPEED` units per tick, so a diagonal move is ≈ 5.66 units/tick — accepted as the rule), mouse aim, left-click fire, R reload.
 - **FR-8** Each tick the client sends a **public snapshot** `{tick, x, y, angle, fired}` to the server.
 - **FR-9** Server is authoritative for hits: on `fired=1` it ray-casts from the shooter's snapshot position along its angle against the opponent's circle; on hit it applies `DAMAGE`.
 - **FR-10** Server broadcasts the merged state to both clients each tick.
@@ -86,13 +92,13 @@ All positions and angles are **integers**. No floats inside game state. Renderin
 - **FR-13** At the end of every window, the client's proof worker generates a Groth16 proof (see ARCHITECTURE.md §5) over that window while play continues.
 - **FR-14** The client sends `window_proof` with the proof, public signals and the new hidden-state commitment.
 - **FR-15** The server recomputes the public snapshot digest from snapshots it received, checks it matches the proof's public signal, checks the commitment chain, and verifies the proof.
-- **FR-16** Result per window: `valid`, `invalid`, `mismatch` (digest/commitment doesn't match), or `timeout` (not received within grace).
+- **FR-16** Result per window (full list and order in API_SPEC.md §5): `valid`, `malformed`, `mismatch_bind`, `mismatch_digest`, `mismatch_commit`, `invalid`, `unprovable` (client reported that no proof could be generated), `timeout` (not received within grace), `chain_broken` (an earlier window in the same round was non-valid, so the commitment chain cannot continue).
 - **FR-17** Enforcement mode per match: `observe` (log only) or `strict` (first non-valid result forfeits the match). Default `observe` for benchmarking, `strict` for demos.
 - **FR-18** HUD shows a strip of the last 10 window results for both players.
 
 ### 6.4 Cheats (dev only)
 - **FR-19** When `DEV_CHEATS=true`, F9 opens a cheat panel with toggles: speedhack (×2 speed), rapid-fire (cooldown 0), snap-aimbot (instant turn to opponent), infinite ammo, smooth-aimbot (turns toward opponent at `MAX_TURN`).
-- **FR-20** Cheats modify the *client's real state*, so the proof is honestly generated over cheating data (and fails), not faked.
+- **FR-20** Cheats modify the *client's real state*, so the prover honestly runs over cheating data, not faked data. Because the rules are circuit constraints, witness generation fails and no proof exists: the honest client sends `proof_failed` and the server records `unprovable`. A cheater who stays silent instead gets `timeout` after the grace period — that timeout is the actual security guarantee.
 - **FR-21** Each cheat activation is recorded in `cheat_events` with the window it started in.
 
 ### 6.5 Results & benchmarks
@@ -121,7 +127,7 @@ All positions and angles are **integers**. No floats inside game state. Renderin
 
 ## 9. Assumptions & open questions
 
-- Browser proving speed is unknown until measured; estimate ~40–60k constraints for a 60-tick window. If proofs exceed the window duration, default to `WINDOW_TICKS=120`.
+- Browser proving speed is unknown until measured; estimate ~40–60k constraints for a 60-tick window. A bigger window does **not** fix a slow prover (prove time and play time both scale with N). If proving is slower than real time, that is a finding: proofs lag behind play, the result is framed as near-real-time / post-match audit, and the real prove/play ratio is reported.
 - Walls/obstacles are excluded from the circuit in v1 (bounds check only). Obstacles are a stretch goal (TODO.md).
 - Trusted setup for Groth16 uses a public Powers-of-Tau file plus a local phase-2 contribution — acceptable for a prototype, documented in SECURITY.md.
 

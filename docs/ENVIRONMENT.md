@@ -50,7 +50,7 @@ BENCH_TOKEN=change-me
 LOG_LEVEL=info
 SERVE_CLIENT=false
 ```
-Generate secrets: `openssl rand -hex 32`.
+Generate secrets: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` (works on Windows without OpenSSL).
 
 ## 2. Client (`client/.env`)
 
@@ -86,12 +86,12 @@ In dev, Vite serves `circuits/build/*` at `/zk/*` via a small `server.fs.allow` 
     { "scheme": "plonk",   "windowTicks": 120 }
   ],
   "ptau": {
-    "file": "powersOfTau28_hez_final_17.ptau",
-    "url": "<official Hermez/Polygon ptau URL — confirm current location at setup>",
-    "sha256": "<record after verifying>"
+    "baseUrl": "<official Hermez/Polygon ptau URL — confirm current location at setup>",
+    "files": { "<power>": { "file": "powersOfTau28_hez_final_<power>.ptau", "sha256": "<record after verifying>" } }
   }
 }
 ```
+The build script picks the smallest power that fits each variant's real constraint count (TECH_STACK §5), downloads/verifies that file if missing, and records `ptauPower`, `ptauFile`, `ptauSha256` in the variant's `info.json`. A `groth16_4` test variant is built by the test setup, not listed here.
 `npm run circuits:build` builds only `ACTIVE_VARIANT` (or the first entry); `circuits:build:all` builds all.
 
 ## 4. External services

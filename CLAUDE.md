@@ -1,6 +1,6 @@
 # CLAUDE.md — ZK-Duel
 
-1v1 browser shooter with zk-SNARK rule-compliance proofs (CSC301 seminar). Specs live in `docs/` (15 files). **Read the relevant spec before touching an area**; `docs/PRD.md` is the scope authority, `docs/TODO.md` is the work order.
+1v1 browser shooter with zk-SNARK rule-compliance proofs (CSC301 seminar). Specs live in `docs/` (14 files) plus the root `README.md`. Spec fixes agreed before Phase 0 are listed in `docs/CHANGELOG.md` → "Spec fixes (pre-Phase 0)" — e.g. weapon table W1–W5, round-relative ticks, `unprovable`/`chain_broken` statuses. **Read the relevant spec before touching an area**; `docs/PRD.md` is the scope authority, `docs/TODO.md` is the work order.
 
 ## Hard rules
 
@@ -26,6 +26,7 @@
 
 ## Environment (Windows)
 
+- Never rewrite UTF-8 files with Windows PowerShell 5.1 `Get-Content`/`Set-Content` (it mis-decodes them as ANSI); use the Edit tool or Node.
 - Shell is PowerShell/cmd: no `cp`, `export`, `openssl`. Use `copy`, `$env:X=`, `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
 - Target Node 22 LTS, npm workspaces (`client server shared circuits bench`), TypeScript strict + `noUncheckedIndexedAccess`.
 - Artefacts in `circuits/build/` are build outputs, not committed.

@@ -25,18 +25,22 @@ npm run lint && npm run typecheck
 **shared/sim.ts**
 - Movement clamp at all four arena edges; speed clamp per axis.
 - `turnDelta` wraps correctly: 3590→10 = 20, 10→3590 = 20, 0→1800 = 1800.
-- Weapon transitions: fire with ammo, fire at 0 ammo (blocked), cooldown decrement, reload start/finish, reload blocked while full, fire blocked while reloading.
+- Weapon transitions: every row W1–W5 of ARCHITECTURE §3; fire with ammo, fire at 0 ammo (blocked), cooldown decrement, next shot exactly 12 ticks after a shot (not 11, not 13), reload start/finish (ammo = MAG_SIZE exactly 90 ticks after the press), reload blocked while full, fire blocked while reloading, fire + reload press on the same tick (fire wins), reload press during a reload (ignored).
 - Determinism: same input log → same per-tick state hash, 1000 runs.
+- Round-end truncate + pad helper (shared by client and server).
+- `matchField` derivation and `constantsHash` canonical JSON are stable.
 
 **shared/protocol.ts**
-- Each message schema accepts a valid example and rejects: missing fields, floats where ints are required, out-of-range values, field elements ≥ p, oversized strings.
+- Each message schema accepts a valid example and rejects: missing fields, floats where ints are required, field elements ≥ p, oversized strings, out-of-range values for non-snapshot fields. `input_snapshot` with integer but out-of-range values is accepted by the schema (flagged as a strike by the server).
 
 **server**
 - Ray-circle hit: dead-center, tangent, just-miss, behind shooter, angle 0/900/1800/2700/3599.
 - Simultaneous lethal hits tie rule.
 - `DigestBuilder` output equals the JS reference Poseidon chain and the circuit's `digest` for the same window (cross-check with circom_tester).
-- Snapshot gap fill (≤ 6 ticks) and stall detection.
+- Snapshot gap fill (≤ `STALL_TICKS`) and stall detection; late snapshot replaces the held value in the digest.
+- Digest finalised at window end; only digests + last snapshot retained.
 - Timeout sweep marks exactly window k at end of window k+2.
+- Results decided in window order; first non-valid → later windows in the round `chain_broken`; chain resets next round.
 - JWT issue/verify/revoke; expired token rejected.
 
 **client**
@@ -87,18 +91,23 @@ Using two `ws` clients driven by scripted input logs and real proofs from the N=
 | Wrong `commitIn` | `mismatch_commit` |
 | Corrupted `pi_a` | `invalid` |
 | No proof sent | `timeout` at end of k+2 |
+| `proof_failed` sent for window k | `unprovable` immediately; windows k+1… of the round `chain_broken` |
+| Window k non-valid, valid-looking proof for k+1 | `chain_broken` (no rewind) |
+| Next round after a broken chain | Chain restarts from `initialCommit`; windows `valid` |
+| Round ends mid-window | Truncated + padded final window is `valid` |
+| Integer out-of-range snapshot | Accepted into digest, strike counted, proof fails |
 | Strict mode + invalid | `match_end` `forfeit_proof` within 1 tick |
 | Frame inspector over the whole match | No `ammo`, `cooldown`, `reload`, `salt` keys in any client→server frame |
 | 5 malformed messages | Socket closed `4400` |
 | 200 snapshots in 1 s | Rate-limited, strikes counted |
-| Reconnect within 10 s | Match resumes; gap windows `timeout`; later windows valid |
+| Reconnect within 10 s | Match resumes; `resume` sent with `chainStatus:'broken'`; gap windows `timeout`; rest of that round `chain_broken`; next round valid |
 | `cheat_toggle` with `DEV_CHEATS=false` | Rejected `FORBIDDEN` |
 
 ## 5. End-to-end (Playwright)
 
 - Two browser contexts, scripted keyboard/mouse via `page.keyboard`/`page.mouse`, `WINDOW_TICKS=30` variant.
 - **E2E-1:** queue → match → play 20 s → strip shows ≥ 30 ✓ per player.
-- **E2E-2:** private room with strict mode → enable speedhack in context A → match ends with forfeit banner within 3 windows.
+- **E2E-2:** private room with strict mode → enable speedhack in context A → match ends with forfeit banner within 3 windows (expected status `unprovable`, since the dev client reports `proof_failed`).
 - **E2E-3:** smooth-aim enabled → strip stays ✓.
 - **E2E-4:** results page numbers equal API values.
 - **E2E-5:** performance trace while proving → frame time p95 < 20 ms (run on the baseline machine, not in CI).

@@ -32,7 +32,7 @@ ZK-Duel is a research prototype run on localhost or a LAN for demos and benchmar
 ## 4. Input validation
 
 - Every REST body and WS message validated with **zod** schemas from `shared/protocol.ts`; unknown fields stripped.
-- Integers: `x ∈ [0, ARENA_W]`, `y ∈ [0, ARENA_H]`, `angle ∈ [0, 3599]`, `fired ∈ {0,1}`, `tick` monotonic and within ±6 of the server tick. Out-of-range values are rejected *and recorded* — they will also make the digest mismatch, so the proof fails.
+- Snapshots: `x`, `y`, `angle`, `fired`, `tick` must be integers (wrong types / non-integers → rejected as malformed). `tick` must be round-relative, monotonic and within ±`STALL_TICKS` of the server tick. Integer values outside the legal ranges (`x ∈ [0, ARENA_W]`, `y ∈ [0, ARENA_H]`, `angle ∈ [0, 3599]`, `fired ∈ {0,1}`) are **accepted into the digest as sent** and counted as a strike — the digest reflects what was actually sent, so the proof fails on the bounds constraints. Hit detection clamps such values to the legal range before ray-casting. All integers are bounded to a safe range (|v| < 2^31) by the schema so field encoding is unambiguous.
 - Field elements: decimal strings, `/^[0-9]{1,78}$/`, value `< p` (BN254 scalar field), parsed with `BigInt`.
 - Proof objects: exact shape for the scheme (Groth16: `pi_a[3]`, `pi_b[3][2]`, `pi_c[3]`, `protocol`, `curve`); payload ≤ 64 KB.
 - Display names: `^[A-Za-z0-9_]{3,16}$`. Rendered as text, never as HTML.
@@ -56,7 +56,7 @@ ZK-Duel is a research prototype run on localhost or a LAN for demos and benchmar
 | Expensive verify | Verification runs in a `worker_threads` pool with a 2 s timeout; timeout = `invalid` |
 | Snapshot spam | ≤ 70/s; excess dropped and counted as strikes |
 | Slow client | Snapshot gap > 6 ticks → `stalled`; 10 s → forfeit |
-| Memory | Snapshot buffer capped at 2 windows per player |
+| Memory | Only the current window's snapshots are kept per player; past windows keep just their digest and last snapshot |
 | Malformed frames | 5 strikes → close `4400` |
 
 ## 7. ZK-specific threat model
@@ -70,20 +70,21 @@ For each window, the prover knew private values such that: the public snapshots 
 |---|---|---|---|
 | A1 | Send snapshots that differ from what was proven | Server computes `digest` from snapshots it actually received; mismatch → `mismatch_digest` | Mitigated |
 | A2 | Replay an old valid proof | `bind = Poseidon(matchField, playerIndex, roundNo, windowIndex)` is a public input checked by the server | Mitigated |
-| A3 | Reset ammo by starting a window from a fake hidden state | `commitIn` must equal the server-stored previous `commitOut`; first window uses the public initial commitment | Mitigated |
+| A3 | Reset ammo by starting a window from a fake hidden state, or by withholding a proof and resuming from an older (fuller) commitment | `commitIn` must equal the server-stored `commitOut` of the immediately preceding window; first window uses the public initial commitment. **No rewinds:** the first non-`valid` window in a round marks every later window of that round `chain_broken`; the chain only restarts at the next round's public `initialCommit` | Mitigated |
 | A4 | Learn opponent's ammo from commitments | Commitments include a fresh random 248-bit salt per window (Poseidon hiding) | Mitigated |
 | A5 | Field overflow (e.g. negative Δx wrapping to a huge field element) | Every comparator input is range-checked with `Num2Bits` to a fixed bit width before `LessThan` | Must be tested (TESTING.md §3) |
 | A6 | Under-constrained circuit (a signal assigned with `<--` but never constrained) | Use `<==` everywhere except witness helpers (`turnD`, `k`), each of which gets explicit constraints; run circomspect; negative tests per rule | Must be tested |
-| A7 | Withhold proofs when cheating | `timeout` status after grace period; `strict` mode forfeits | Mitigated (detectable, not preventable) |
+| A7 | Withhold proofs when cheating | `timeout` status after grace period; `strict` mode forfeits. (`proof_failed` → `unprovable` is only a courtesy signal from honest clients for faster feedback; the guarantee is `timeout`, since a cheater can simply stay silent) | Mitigated (detectable, not preventable) |
 | A8 | Forge a Groth16 proof using setup toxic waste | Phase 1 uses the public Hermez Powers-of-Tau ceremony; phase 2 is a **single local contribution** — acceptable for a prototype but means whoever ran the setup could forge proofs. Production would need a multi-party phase 2. PLONK variant uses only the universal ptau, no circuit-specific toxic waste | Documented limitation |
 | A9 | Tamper with the proving artefacts served to the client | Server publishes `zkeySha256`; client checks hash before `ready`; vkey lives only on the server | Mitigated |
 | A10 | Smooth aimbot that stays under `MAX_TURN` | **Not detectable by this circuit.** The proof shows the rules were obeyed, not that a human produced the inputs | Accepted limitation — core seminar finding |
 | A11 | Wallhack (seeing the opponent through walls) | Out of scope in v1: opponent positions are public snapshots anyway; no walls in circuit v1 | Out of scope |
 | A12 | Lie about `proveMs` | Client-reported, informational only; never used for enforcement or published as verified data | Accepted |
 | A13 | Desync between JS sim and circuit (honest player fails proofs) | Shared `sim.ts` + test vectors run through both JS rules and the circuit in CI | Must be tested |
+| A14 | Infer the opponent's hidden ammo from public data | **Partially possible.** `fired` is public every tick, so shot counts are public and ammo is roughly inferable (`MAG_SIZE` − shots since the last reload). Cooldown is likewise inferable from the last public shot. What stays truly hidden is reload timing (when R was pressed / whether a reload is in progress, hence the exact ammo after a manual reload) and the salts | Accepted limitation — hidden state is *partially inferable* |
 
 ### 7.3 Honest framing for the report
-ZK-Duel demonstrates **verifiable rule compliance over committed hidden state**. It is not anti-cheat in the industry sense: it does not stop memory reading, input automation or information leaks outside the proven rules. The hybrid recommendation (Objective 4) is: ZKPs for auditable rule claims; existing server-side and behavioural detection for input provenance.
+ZK-Duel demonstrates **verifiable rule compliance over committed hidden state**. The hidden state is only *partially* hidden (A14): the commitments never reveal it, but the public shot stream lets an observer estimate ammo. It is not anti-cheat in the industry sense: it does not stop memory reading, input automation or information leaks outside the proven rules. The hybrid recommendation (Objective 4) is: ZKPs for auditable rule claims; existing server-side and behavioural detection for input provenance.
 
 ## 8. Secrets management
 

@@ -45,11 +45,11 @@ Index: `idx_sessions_player (player_id)`.
 | Column | Type | Constraints |
 |---|---|---|
 | `id` | TEXT | PK, UUID v4 |
-| `match_field` | TEXT | NOT NULL — match ID reduced to a field element (decimal string), used in the proof `bind` |
+| `match_field` | TEXT | NOT NULL — first 31 bytes of SHA-256(match ID UUID string) as a big-endian integer (decimal string, always < p), used in the proof `bind` |
 | `mode` | TEXT | NOT NULL, CHECK IN ('queue','private','bench') |
 | `enforcement` | TEXT | NOT NULL, CHECK IN ('observe','strict') |
 | `scheme` | TEXT | NOT NULL, CHECK IN ('groth16','plonk') |
-| `window_ticks` | INTEGER | NOT NULL, CHECK IN (30,60,120) |
+| `window_ticks` | INTEGER | NOT NULL, CHECK IN (4,30,60,120) — 4 is the test variant |
 | `circuit_hash` | TEXT | NOT NULL — sha256 of the zkey used |
 | `status` | TEXT | NOT NULL, CHECK IN ('active','finished','aborted') |
 | `winner_index` | INTEGER | NULL, CHECK IN (0,1) |
@@ -57,7 +57,7 @@ Index: `idx_sessions_player (player_id)`.
 | `room_code` | TEXT | NULL |
 | `started_at` | INTEGER | NOT NULL |
 | `ended_at` | INTEGER | NULL |
-| `total_ticks` | INTEGER | NOT NULL DEFAULT 0 |
+| `total_ticks` | INTEGER | NOT NULL DEFAULT 0 — match-absolute, computed server-side |
 
 Indexes: `idx_matches_started (started_at DESC)`, `idx_matches_status (status)`.
 
@@ -79,11 +79,11 @@ PK `(match_id, player_index)`. Unique `(match_id, player_id)`. Index `idx_mp_pla
 |---|---|---|
 | `match_id` | TEXT | FK → matches.id ON DELETE CASCADE |
 | `round_no` | INTEGER | CHECK ≥ 1 |
-| `start_tick` | INTEGER | NOT NULL |
-| `end_tick` | INTEGER | NULL |
+| `start_tick` | INTEGER | NOT NULL — match-absolute |
+| `end_tick` | INTEGER | NULL — match-absolute |
 | `winner_index` | INTEGER | NULL, CHECK IN (0,1) |
 
-PK `(match_id, round_no)`.
+PK `(match_id, round_no)`. (The protocol and sim use round-relative ticks; only these columns and `matches.total_ticks` are match-absolute.)
 
 ### `proof_windows`
 One row per player per window. The core research table.
@@ -95,9 +95,10 @@ One row per player per window. The core research table.
 | `player_index` | INTEGER | NOT NULL, CHECK IN (0,1) |
 | `round_no` | INTEGER | NOT NULL, CHECK ≥ 1 |
 | `window_index` | INTEGER | NOT NULL, CHECK ≥ 0 — restarts at 0 each round |
-| `start_tick` | INTEGER | NOT NULL |
-| `status` | TEXT | NOT NULL, CHECK IN ('valid','invalid','mismatch_digest','mismatch_commit','mismatch_bind','timeout','malformed') |
-| `digest` | TEXT | NOT NULL — server-computed digest (decimal string) |
+| `start_tick` | INTEGER | NOT NULL — round-relative (= window_index × N) |
+| `status` | TEXT | NOT NULL, CHECK IN ('valid','invalid','mismatch_digest','mismatch_commit','mismatch_bind','timeout','malformed','unprovable','chain_broken') |
+| `digest` | TEXT | NOT NULL — server-computed digest (decimal string), stored when the window ends |
+| `fail_reason` | TEXT | NULL — client-reported `proof_failed.reason` (informational) |
 | `commit_in` | TEXT | NULL |
 | `commit_out` | TEXT | NULL |
 | `prove_ms` | INTEGER | NULL — client-reported, informational only |
@@ -143,7 +144,7 @@ Index: `idx_cheat_match (match_id)`. Used to compute detection latency = first n
 | `id` | INTEGER | PK AUTOINCREMENT |
 | `run_id` | TEXT | NOT NULL, FK → benchmark_runs.id ON DELETE CASCADE |
 | `scheme` | TEXT | NOT NULL, CHECK IN ('groth16','plonk') |
-| `window_ticks` | INTEGER | NOT NULL, CHECK IN (30,60,120) |
+| `window_ticks` | INTEGER | NOT NULL, CHECK IN (4,30,60,120) |
 | `constraints` | INTEGER | NOT NULL |
 | `sample_no` | INTEGER | NOT NULL |
 | `witness_ms` | REAL | NOT NULL |
@@ -181,8 +182,9 @@ CREATE TABLE proof_windows (
   window_index INTEGER NOT NULL CHECK (window_index >= 0),
   start_tick INTEGER NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('valid','invalid','mismatch_digest',
-    'mismatch_commit','mismatch_bind','timeout','malformed')),
+    'mismatch_commit','mismatch_bind','timeout','malformed','unprovable','chain_broken')),
   digest TEXT NOT NULL,
+  fail_reason TEXT,
   commit_in TEXT, commit_out TEXT,
   prove_ms INTEGER, verify_ms REAL, proof_bytes INTEGER,
   received_at INTEGER, proof_json TEXT,
@@ -194,7 +196,7 @@ CREATE TABLE proof_windows (
 ## 4. Retention
 
 - `proof_json` off by default (proofs are ~800 B Groth16, larger for PLONK; only stored for audits).
-- Raw per-tick snapshots are **not** persisted by default (memory only, 2-window ring buffer). `LOG_SNAPSHOTS=true` writes them to `server/data/logs/<matchId>.jsonl` for benchmark input logs.
+- Raw per-tick snapshots are **not** persisted by default (memory only: the current window's snapshots; after each window only its digest and last snapshot are kept). `LOG_SNAPSHOTS=true` writes them to `server/data/logs/<matchId>.jsonl` for benchmark input logs.
 - Sessions older than 7 days are pruned at boot.
 
 ## 5. Useful queries

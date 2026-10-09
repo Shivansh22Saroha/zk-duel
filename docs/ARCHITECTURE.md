@@ -59,25 +59,37 @@ fired:  0 | 1
 ### Private per-tick state (never leaves the client in plaintext)
 ```
 ammo:        0..MAG_SIZE
-cooldown:    0..FIRE_COOLDOWN
+cooldown:    0..FIRE_COOLDOWN-1
 reloadTimer: 0..RELOAD_TICKS
 reloadPress: 0 | 1        (input this tick)
 ```
 
-### Deterministic rules (`shared/sim.ts`), applied per tick t → t+1
+### Ticks
+Ticks are **round-relative** everywhere in the protocol and the sim: the first simulated tick of each round is tick 0. Window k of a round covers ticks `[k·N, k·N+N−1]`. The server derives match-absolute ticks only for the DB (`rounds.start_tick/end_tick`, `matches.total_ticks`).
+
+At the start of every round each player's hidden state is `(ammo, cooldown, reloadTimer) = (MAG_SIZE, 0, 0)` with salt 0, and its `prev` snapshot is its spawn `{x, y, angle, fired: 0}` from `SPAWNS`.
+
+### Deterministic rules (`shared/sim.ts`), applied per tick
+Notation: `s = (ammo, cd, rt)` is the hidden state after the previous tick (or the round's initial state); inputs at this tick are `fired` and `reloadPress` (`rp`); `s' = (ammo', cd', rt')` is the state after this tick.
 ```
-Movement:  |x[t+1]-x[t]| ≤ MAX_SPEED, |y[t+1]-y[t]| ≤ MAX_SPEED
-           PLAYER_RADIUS ≤ x ≤ ARENA_W-PLAYER_RADIUS  (same for y)
-Aim:       d = (angle[t+1] - angle[t] + 3600) mod 3600
+Movement:  |x' - x| ≤ MAX_SPEED, |y' - y| ≤ MAX_SPEED   (honest client: each held axis steps exactly MAX_SPEED)
+           PLAYER_RADIUS ≤ x' ≤ ARENA_W-PLAYER_RADIUS  (same for y with ARENA_H)
+Aim:       d = (angle' - angle + 3600) mod 3600
            min(d, 3600-d) ≤ MAX_TURN
-Weapon (evaluated with state at t, input fired[t+1]):
-  if fired:  require ammo>0 ∧ cooldown==0 ∧ reloadTimer==0
-             ammo' = ammo-1, cooldown' = FIRE_COOLDOWN
-  else:      cooldown' = max(cooldown-1, 0)
-  reload:    if reloadPress ∧ reloadTimer==0 ∧ ammo<MAG_SIZE: reloadTimer' = RELOAD_TICKS
-             else if reloadTimer>0: reloadTimer' = reloadTimer-1;
-                                    if reloadTimer'==0: ammo' = MAG_SIZE
 ```
+
+**Weapon transition table** (exhaustive; the circuit enforces exactly this):
+
+| # | Condition on `s` and inputs | `ammo'` | `cd'` | `rt'` |
+|---|---|---|---|---|
+| W1 | `fired = 1` (requires `ammo > 0 ∧ cd = 0 ∧ rt = 0`, else **illegal**) | `ammo − 1` | `FIRE_COOLDOWN − 1` | `0` (`rp` ignored — fire wins) |
+| W2 | `fired = 0 ∧ rt > 1` | `ammo` | `max(cd − 1, 0)` | `rt − 1` (`rp` ignored during reload) |
+| W3 | `fired = 0 ∧ rt = 1` | `MAG_SIZE` | `max(cd − 1, 0)` | `0` (reload completes) |
+| W4 | `fired = 0 ∧ rt = 0 ∧ rp = 1 ∧ ammo < MAG_SIZE` | `ammo` | `max(cd − 1, 0)` | `RELOAD_TICKS` (reload starts) |
+| W5 | `fired = 0 ∧ rt = 0 ∧ (rp = 0 ∨ ammo = MAG_SIZE)` | `ammo` | `max(cd − 1, 0)` | `0` |
+
+Consequences: a shot at tick t allows the next shot at exactly t + 12 (5 shots/s). A reload started at tick t completes at t + 90 (ammo = `MAG_SIZE` after that tick); the earliest shot is t + 91. Auto-reload at 0 ammo is just the client setting `rp = 1`.
+
 Clamping happens in the client before the state is committed; the circuit only checks, never clamps.
 
 ## 4. Data flow per window
@@ -85,19 +97,29 @@ Clamping happens in the client before the state is committed; the circuit only c
 ```
 tick t   client: apply input → new state → push {public, private} to WindowRecorder
                  send input_snapshot{tick, x, y, angle, fired}
-         server: store snapshot in room buffer; ray-cast if fired; broadcast state
-end of window k (tick % WINDOW_TICKS == WINDOW_TICKS-1):
+         server: append snapshot to the current window's digest accumulator; ray-cast if fired; broadcast state
+end of window k (tick % N == N-1) on the server:
+         server: DigestBuilder finalises digest_k from the snapshots it actually received,
+                 stores digest_k, keeps only the last snapshot (seed for window k+1), discards the rest
+end of window k on the client — proving starts when the server's `state` for tick k·N+N−1 arrives
+(proving the round has not ended inside window k), or on `round_end` with endTick inside window k:
          client: recorder hands window k to Proof Worker (postMessage, transferable)
                  worker: snarkjs.groth16.fullProve(input, wasm, zkey)
-                 → send window_proof{windowIndex:k, proof, publicSignals}
-         server: DigestBuilder computes digest_k from its own buffered snapshots
-                 checks publicSignals.digest == digest_k
-                 checks publicSignals.commitIn == stored commitOut_{k-1}
+                 → send window_proof{roundNo, windowIndex:k, proof, publicSignals}
+                 → or, if witness generation throws: send proof_failed{roundNo, windowIndex:k, reason}
+         server (results decided strictly in window order; a proof for k is held until k−1 is decided):
+                 if the round's chain is broken → chain_broken
+                 checks bind, publicSignals.digest == stored digest_k,
+                 publicSignals.commitIn == stored commitOut_{k-1}
                  VerifierPool.verify(vkey, publicSignals, proof)
-                 persist window row; store commitOut_k; send proof_result
+                 persist window row; store commitOut_k (valid only); send proof_result
 ```
 
 The client keeps playing window k+1 while window k is being proven. A window's proof is late if not received before the end of window `k + PROOF_GRACE_WINDOWS`.
+
+**Round end.** `round_end` carries `endTick` (the last tick of the round). Both sides build the window containing `endTick` the same way: ticks `> endTick` are dropped and the window is padded up to N ticks by repeating the snapshot at `endTick` with `fired = 0`; hidden state is rolled forward over the padding with `fired = 0, rp = 0` using the table above. Windows that start after `endTick` do not exist.
+
+**Commitment chain.** No rewinds. The chain starts each round from the public `initialCommit`. The first non-`valid` result in a round breaks the chain for the rest of that round: every later window of the round gets `chain_broken` (observe mode keeps playing; strict mode has already forfeited). The next round starts a fresh chain.
 
 ## 5. Circuit design (`circuits/window.circom`)
 
@@ -109,7 +131,7 @@ The client keeps playing window k+1 while window k is being proven. A window's p
 **Public inputs (4):**
 | Signal | Meaning |
 |---|---|
-| `bind` | `Poseidon(matchField, playerIndex, roundNo, windowIndex)` — stops proof replay across matches, players, rounds and windows |
+| `bind` | `Poseidon(matchField, playerIndex, roundNo, windowIndex)` — stops proof replay across matches, players, rounds and windows. `matchField` = first 31 bytes of `SHA-256(matchId UUID string, UTF-8)` read as a big-endian integer (always < p) |
 | `digest` | Poseidon chain over the window's public snapshots, seeded with the last snapshot of the previous window |
 | `commitIn` | Hidden-state commitment entering the window |
 | `commitOut` | Hidden-state commitment leaving the window (public output) |
@@ -129,21 +151,22 @@ The client keeps playing window k+1 while window k is being proven. A window's p
 2. **Bounds:** `LessEqThan` checks for x, y within `[R, W-R]`/`[R, H-R]`; `angle < 3600`; `fired`, `reloadPress` boolean (`b*(b-1)===0`).
 3. **Speed:** `|Δx| ≤ MAX_SPEED` via `LessEqThan(Δx + MAX_SPEED, 2·MAX_SPEED)` with range-checked bit width (prevents field wrap).
 4. **Turn:** witness `turnD[i]` with constraint `angle[i] - angle[i-1] + 3600·k === turnD[i]`, `k ∈ {0,1}`, `turnD < 3600`; then `min(turnD, 3600-turnD) ≤ MAX_TURN` using a selector bit.
-5. **Weapon transition:** using `IsZero`/`LessThan` gadgets, enforce the exact transition from §3. `fired[i]=1` forces `ammo>0`, `cooldown==0`, `reloadT==0` on the previous state.
+5. **Weapon transition:** using `IsZero`/`LessThan` gadgets, enforce the exact transition table W1–W5 from §3. `fired[i]=1` forces `ammo>0`, `cooldown==0`, `reloadT==0` on the previous state.
 6. **Commitments:** `commitIn === Poseidon4(ammo0, cooldown0, reload0, saltIn)`, `commitOut === Poseidon4(ammo[N-1], cooldown[N-1], reloadT[N-1], saltOut)`.
 
 Expected size: roughly 700–900 constraints per tick (dominated by the Poseidon in step 1) → ~45–55k for N=60. **Estimate only — record the real count from `snarkjs r1cs info`.**
 
 ### 5.4 Initial commitment
-At match start the server computes `commitOut_{-1} = Poseidon4(MAG_SIZE, 0, 0, 0)` (known starting state, salt 0) and sends it in `match_found`. Every later salt is a fresh random 248-bit field element chosen by the client, so later commitments hide the hidden state. A new round resets with a fresh public commitment computed the same way.
+At match start the server computes `commitOut_{-1} = Poseidon4(MAG_SIZE, 0, 0, 0)` (known starting state, salt 0) and sends it in `match_found` together with `prevSnapshot` (the player's spawn, `fired = 0`). Every later salt is a fresh random 248-bit field element chosen by the client, so later commitments hide the hidden state. Every new round resets with a fresh public commitment computed the same way, sent in `round_end` together with the new round's `prevSnapshot`.
 
 ### 5.5 Build artefacts
 ```
 circuits/build/<scheme>_<N>/window.wasm
 circuits/build/<scheme>_<N>/window_final.zkey
 circuits/build/<scheme>_<N>/verification_key.json
-circuits/build/<scheme>_<N>/info.json   { constraints, publicInputs, publicSignalOrder, ptauPower, zkeySha256 }
+circuits/build/<scheme>_<N>/info.json   { constraints, publicInputs, publicSignalOrder, ptauPower, ptauFile, ptauSha256, zkeySha256 }
 ```
+`ptauPower` is computed per variant from its real constraint count (Groth16: smallest power with 2^p ≥ constraints; PLONK: smallest power that fits snarkjs's PLONK constraint count, which is larger than the R1CS count), and the smallest Hermez file of that power is used.
 The client loads `wasm` + `zkey` from `/zk/<scheme>_<N>/` (static, cached). The server loads only `verification_key.json`.
 
 ## 6. Server components
@@ -152,9 +175,9 @@ The client loads `wasm` + `zkey` from `/zk/<scheme>_<N>/` (static, cached). The 
 |---|---|
 | **WS Gateway** | Validates every message with zod; checks session token on `hello`; per-connection rate limit |
 | **Queue / Rooms** | FIFO queue + room-code map; one `MatchRoom` per match |
-| **MatchRoom** | `setInterval`-free fixed-step loop using `performance.now()` accumulator; buffers 2 windows of snapshots per player; handles input lag by holding the last snapshot for at most 6 ticks before marking the player stalled |
+| **MatchRoom** | `setInterval`-free fixed-step loop using `performance.now()` accumulator; keeps only the current window's snapshots per player; handles input lag by holding the last snapshot for at most `STALL_TICKS` ticks before marking the player stalled. Integer but out-of-range snapshot values are accepted as sent (so the digest reflects them and the proof fails on bounds) and counted as a strike; malformed types are rejected |
 | **Hit detection** | Integer ray vs circle using the shooter's snapshot at that tick; one hit per shot; no projectile travel time |
-| **DigestBuilder** | Same Poseidon chain as the circuit, computed from the room's buffered snapshots |
+| **DigestBuilder** | Same Poseidon chain as the circuit. Finalises and stores `digest_k` at the end of each window; afterwards only the per-window digests and the last snapshot (seed for the next window) are kept. `timeout`/`unprovable`/`chain_broken` rows use the stored digest. The digest always uses the snapshot the client actually sent for each tick (a snapshot arriving late, while held, still replaces the held value in the digest); a window is finalised when the snapshot for its last tick has arrived, or when the player goes `stalled`, in which case missing ticks are filled with the previous snapshot and `fired = 0` |
 | **VerifierPool** | `worker_threads` pool (size = `VERIFIER_THREADS`) running `snarkjs.groth16.verify` / `plonk.verify`; vkeys loaded once at boot |
 | **Persistence** | Synchronous `better-sqlite3`, writes batched once per window, never per tick |
 

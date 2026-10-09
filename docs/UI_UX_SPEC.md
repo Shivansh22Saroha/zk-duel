@@ -24,7 +24,7 @@
 | `--arena-floor` | `#12161C` | Arena fill |
 | `--arena-grid` | `#1B2129` | 50-unit grid lines |
 
-Status is never shown by color alone: valid ✓, invalid ✕, pending ◌, timeout – inside each cell.
+Status is never shown by color alone: valid ✓, failure ✕ (`invalid`, `mismatch_*`, `malformed`, `unprovable` — `--invalid`), pending ◌, timeout – (`--timeout`, hatched), chain_broken ⛓ (`--timeout`) inside each cell. The tooltip always names the exact status.
 
 ### Typography
 | Role | Font | Size |
@@ -85,9 +85,9 @@ Load via Google Fonts; fall back to `system-ui` and `ui-monospace`.
 
 ### 3.4 Results (`/match/:id/results`)
 - Winner headline, round score.
-- Two columns (one per player): windows valid / invalid / mismatch / timeout, mean & p95 prove ms, mean verify ms, cheats active.
+- Two columns (one per player): window counts per status (valid / invalid / mismatch / unprovable / timeout / chain_broken), mean & p95 prove ms, mean verify ms, cheats active.
 - Full proof timeline: one cell per window across the match (wraps).
-- Buttons: *Rematch*, *Back to lobby*, *Download match log (JSON)*.
+- Buttons: *Back to lobby*, *Download match log (JSON)*. (Rematch dropped — not in PRD.)
 
 ### 3.5 Benchmarks (`/bench`)
 - Run selector (dropdown of runs by date/device).

@@ -52,7 +52,7 @@ No UI framework is required: screens are small. If preferred, **Preact 10.x** is
 | Item | Version / Source | Purpose |
 |---|---|---|
 | `circomlib` | 2.0.x | `Poseidon`, `LessThan`, `LessEqThan`, `IsZero`, `IsEqual`, `Num2Bits`, `Mux1` |
-| Powers of Tau | Hermez/Polygon public ceremony file, power 16 or 17 (`powersOfTau28_hez_final_16.ptau` covers up to 65,536 constraints; use `_17` if N=120 exceeds that) | Phase 1 for Groth16 and the universal setup for PLONK |
+| Powers of Tau | Hermez/Polygon public ceremony files. The power is computed per variant from its **real** constraint count (Groth16: 2^p ≥ R1CS constraints; PLONK: 2^p ≥ snarkjs PLONK constraint count, which is larger) and the smallest file that fits is used; recorded in `info.json` | Phase 1 for Groth16 and the universal setup for PLONK |
 | `circom_tester` | latest | Circuit unit tests (witness checks) |
 | circomspect | latest | Static analysis for under-constrained signals |
 

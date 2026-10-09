@@ -12,7 +12,7 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **P0** must-have · **P
 - [ ] `shared/constants.ts` with every PRD §5 constant
 - [ ] `shared/protocol.ts` zod schemas for all WS messages and REST bodies
 - [ ] Install circom 2.2.x, snarkjs, circomlib; verify `circom --version`
-- [ ] Download and checksum the ptau file
+- [ ] Download and checksum the ptau file (power chosen per variant from real constraint counts in Phase 2/5; Phase 0 fetches the file needed for the test + N=60 builds)
 - [ ] GitHub Actions `ci.yml` skeleton (lint, typecheck, test)
 - [ ] Record pinned versions in CHANGELOG.md
 
@@ -25,7 +25,7 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **P0** must-have · **P
 - [ ] SQLite migrations: players, sessions, matches, match_players, rounds
 - [ ] Landing, queue, match HUD (no proof strip yet), results screens
 - [ ] `LOG_SNAPSHOTS` to produce input logs for later testing
-- [ ] **Exit check:** 10 full matches on two machines with no desync
+- [ ] **Exit check:** automated bot-driven matches (≥ 10 full matches over real sockets) with no desync, plus a manual playtest by the owner before approval
 
 ## Phase 2 — Circuit (Weeks 3–4) — P0
 - [ ] `circuits/window.circom` with templates: `DigestChain`, `MoveCheck`, `TurnCheck`, `WeaponStep`, `Commit`
@@ -42,11 +42,11 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **P0** must-have · **P
 - [ ] WindowRecorder + partial-window padding
 - [ ] Proof Worker (snarkjs in Web Worker), queue cap 2
 - [ ] Server `DigestBuilder`, commitment chain store, `VerifierPool` (worker_threads)
-- [ ] Status pipeline: malformed → bind → digest → commit → verify; timeout sweep
+- [ ] Status pipeline: chain_broken → malformed → bind → digest → commit → verify; `proof_failed` → unprovable; timeout sweep; window-order decisions
 - [ ] `proof_windows` table + `proof_result` messages
 - [ ] Proof strip HUD + tooltips
 - [ ] Enforcement modes (observe/strict)
-- [ ] Reconnect flow with commitment resume
+- [ ] Reconnect flow with `resume` message (chain broken for the rest of the round, fresh chain next round)
 - [ ] **Exit check:** clean 3-minute match, 100% `valid`, frame time p95 < 20 ms
 
 ## Phase 4 — Cheats & demo (Week 6) — P0
@@ -82,8 +82,12 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **P0** must-have · **P
 - [ ] Fog-of-war: hide opponent position when out of line of sight, proving visibility honestly
 - [ ] Rapidsnark native prover comparison (Node benchmarks only)
 
+## P1 — after Phase 4
+- [ ] Match history: `GET /api/matches`, "My matches" list (F16, Flow 8)
+
 ## Known risks / open questions
-- [ ] Browser Groth16 proving time for ~50k constraints is unmeasured; if > 1 s on the baseline laptop, switch `ACTIVE_VARIANT` to `groth16_120` for gameplay and report it as a finding
+- [ ] Browser Groth16 proving time for ~50k constraints is unmeasured. A bigger window does not help (prove and play time both scale with N). If proving is slower than real time, report the real prove/play ratio as a finding (proofs lag play → near-real-time / post-match audit)
+- [ ] snarkjs worker threads may hurt frame time; measure and, if needed, cap thread usage and report the setting
 - [ ] PLONK zkey and proof sizes may be large; check download size before using PLONK for live play (benchmark-only is acceptable)
 - [ ] Confirm current official ptau download URL and checksum at setup
 

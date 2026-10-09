@@ -6,7 +6,11 @@
   "scripts": {
     "ptau": "tsx scripts/ptau.ts",
     "check": "tsx scripts/check-tools.ts",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsx scripts/build.ts",
+    "prove-log": "tsx scripts/prove-log.ts",
+    "mutate-log": "tsx scripts/mutate-log.ts",
+    "lint": "tsx scripts/gen-main.ts 4 && tsx scripts/gen-main.ts 60 && circomspect --level WARNING -L ../node_modules main_4.circom main_60.circom"
   },
   "dependencies": {
     "circomlib": "2.0.5",

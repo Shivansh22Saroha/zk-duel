@@ -29,14 +29,16 @@
     "test:int": "vitest run --project integration",
     "test:e2e": "playwright test",
     "circuits:ptau": "npm run ptau --workspace circuits --",
-    "circuits:build": "npm run build --workspace circuits",
-    "circuits:build:all": "npm run build:all --workspace circuits",
+    "circuits:build": "npm run build -w circuits --",
     "circuits:check": "npm run check --workspace circuits",
     "db:migrate": "npm run db:migrate -w server",
     "dev": "concurrently -k -n server,client -c blue,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
     "dev:lan": "concurrently -k -n server,client -c blue,magenta \"npm run dev -w server\" \"npm run dev -w client -- --host\"",
     "perf:frame": "tsx client/scripts/perf-frame.ts",
-    "bots": "npm run bots -w server --"
+    "bots": "npm run bots -w server --",
+    "circuits:prove-log": "npm run prove-log -w circuits --",
+    "circuits:mutate-log": "npm run mutate-log -w circuits --",
+    "circuits:lint": "npm run lint -w circuits"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

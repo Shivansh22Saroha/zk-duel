@@ -58,17 +58,17 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      # Phase 2 adds: build the groth16_4 test circuit (needs a small ptau) before this step.
+      # Circuit tests compile N=4 (and the N=60 smoke) via circom_tester; no ptau / zkey needed.
+      # The groth16_60 prove/verify test is skipped when circuits/build is absent (CI).
       - name: Unit + circuit tests
         run: npm test
 
       - name: Integration tests
         run: npm run test:int -- --passWithNoTests
 
+      # circomspect exits 1 on any finding (verified in Phase 2 with a planted under-constrained signal).
       - name: circomspect (fail on warnings)
-        if: hashFiles('circuits/*.circom') != ''
-        # Phase 2 confirms circomspect's exit code on warnings (wrap with a grep if it exits 0).
-        run: circomspect --level WARNING -L node_modules/circomlib/circuits circuits/window.circom
+        run: npm run circuits:lint
 
       - name: npm audit (high/critical blocks)
         run: npm audit --omit=dev --audit-level=high

@@ -118,6 +118,10 @@ Results are written to the `benchmark_results` table and exported to `bench/out/
 | `npm run test:int` | Server integration tests (real sockets; includes 10 bot matches) |
 | `npm run bots -- --matches N` | Bot matches against a running server; writes tick logs |
 | `npm run perf:frame` | Client frame-time measurement in Chrome (needs `npm run dev`) |
+| `npm run circuits:build` | Build groth16_60 + groth16_4 (compile, ptau, setup, info.json); `-- --n 4` for one |
+| `npm run circuits:prove-log -- --log <file> --n 60` | Prove + verify every window of a client tick log offline |
+| `npm run circuits:mutate-log -- --log <in> --out <out> --cheat speed\|rapid\|ammo` | Make a cheating copy of a tick log |
+| `npm run circuits:lint` | circomspect on the generated main circuits |
 | `npm run test:e2e` | Playwright two-player match |
 | `npm run circuits:build` | Build the default circuit |
 | `npm run bench` | Benchmark suite |

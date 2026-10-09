@@ -125,12 +125,25 @@ The client keeps playing window k+1 while window k is being proven. A window's p
 
 ## 5. Circuit design (`circuits/window.circom`)
 
-### 5.1 Template parameters
-`Window(N, ARENA_W, ARENA_H, R, MAX_SPEED, MAX_TURN, MAG, COOLDOWN, RELOAD)` — values injected from `shared/constants.ts` by the build script into `circuits/main_<N>.circom`.
+### 5.1 Template structure and parameters (as built in Phase 2)
+
+| File | Template | Checks |
+|---|---|---|
+| `circuits/src/util.circom` | `InRange(BITS, LO, HI)` | `Num2Bits(BITS)` range check, then `GreaterEqThan`/`LessEqThan` — every comparator input is bit-bounded first (no field wrap) |
+| `circuits/src/bounds.circom` | `BoundsCheck(ARENA_W, ARENA_H, R, ANGLES)` | x, y, angle ranges; `fired`, `reloadPress` boolean |
+| `circuits/src/speed.circom` | `SpeedCheck(MAX_SPEED)` | `cur − prev + MAX_SPEED ∈ [0, 2·MAX_SPEED]` (one axis) |
+| `circuits/src/turn.circom` | `TurnCheck(ANGLES, MAX_TURN)` | shortest-arc turn ≤ MAX_TURN |
+| `circuits/src/weapon.circom` | `WeaponStep(MAG, COOLDOWN, RELOAD)` | weapon table W1–W5 exactly |
+| `circuits/src/digest.circom` | `DigestChain(N)` | Poseidon chain |
+| `circuits/src/commit.circom` | `Commit()` | Poseidon4(ammo, cooldown, reloadT, salt) |
+| `circuits/src/bind.circom` | `Bind()` | Poseidon4(matchField, playerIndex, roundNo, windowIndex) |
+| `circuits/window.circom` | `Window(N, ARENA_W, ARENA_H, R, MAX_SPEED, ANGLES, MAX_TURN, MAG, COOLDOWN, RELOAD)` | composes all of the above |
+
+`circuits/main_<N>.circom` is **generated** (`circuits/scripts/gen-main.ts`) from `shared/constants.ts`; it is the only place numbers enter the circuit. Bit widths are derived in-circuit with circomlib's `nbits()`. Compiled with `circom --O2`. JS reference: `shared/zkInput.ts` (input object + expected `bind`, `digest`, `commitIn`, `commitOut`).
 
 ### 5.2 Signals
 
-**Public inputs (4):**
+**Public signals (4): three public inputs and one public output.** snarkjs orders them `[commitOut, bind, digest, commitIn]` (outputs first); this order is detected from a real proof at build time and stored in `info.json.publicSignalOrder` — code must read it from there.
 | Signal | Meaning |
 |---|---|
 | `bind` | `Poseidon(matchField, playerIndex, roundNo, windowIndex)` — stops proof replay across matches, players, rounds and windows. `matchField` = first 31 bytes of `SHA-256(matchId UUID string, UTF-8)` read as a big-endian integer (always < p) |
@@ -146,17 +159,18 @@ The client keeps playing window k+1 while window k is being proven. A window's p
 - `ammo0, cooldown0, reload0, saltIn` — hidden state entering window
 - `ammo[N], cooldown[N], reloadT[N]` — hidden state per tick
 - `saltOut`
-- `turnD[N]` — witness helper for angle difference
+
+(`turnD` is no longer a prover input: it is computed in-circuit, see rule 4.)
 
 ### 5.3 Constraints per tick i (with i−1 meaning `prev`/initial state for i=0)
 1. **Digest chain:** `h[i] = Poseidon5(h[i-1], x[i], y[i], angle[i], fired[i])`; `h[-1] = Poseidon4(prev)`; `digest === h[N-1]`.
-2. **Bounds:** `LessEqThan` checks for x, y within `[R, W-R]`/`[R, H-R]`; `angle < 3600`; `fired`, `reloadPress` boolean (`b*(b-1)===0`).
-3. **Speed:** `|Δx| ≤ MAX_SPEED` via `LessEqThan(Δx + MAX_SPEED, 2·MAX_SPEED)` with range-checked bit width (prevents field wrap).
-4. **Turn:** witness `turnD[i]` with constraint `angle[i] - angle[i-1] + 3600·k === turnD[i]`, `k ∈ {0,1}`, `turnD < 3600`; then `min(turnD, 3600-turnD) ≤ MAX_TURN` using a selector bit.
-5. **Weapon transition:** using `IsZero`/`LessThan` gadgets, enforce the exact transition table W1–W5 from §3. `fired[i]=1` forces `ammo>0`, `cooldown==0`, `reloadT==0` on the previous state.
-6. **Commitments:** `commitIn === Poseidon4(ammo0, cooldown0, reload0, saltIn)`, `commitOut === Poseidon4(ammo[N-1], cooldown[N-1], reloadT[N-1], saltOut)`.
+2. **Bounds:** `InRange` (Num2Bits then comparators) for x ∈ `[R, W-R]`, y ∈ `[R, H-R]`, angle ∈ `[0, 3599]`; `fired`, `reloadPress` boolean (`b*(b-1)===0`).
+3. **Speed:** `InRange(cur − prev + MAX_SPEED)` in `[0, 2·MAX_SPEED]` with a 4-bit `Num2Bits` — a negative step that wraps mod p fails the bit check.
+4. **Turn:** helper `k <-- (cur < prev) ? 1 : 0` (the circuit's **only** hand-written `<--`), constrained by `k·(k−1) === 0`; `turnD <== cur − prev + ANGLES·k` (a real constraint, not a prover input) range-checked into `[0, ANGLES−1]`, which has exactly one solution for k; then `LessEqThan(turnD, MAX_TURN) + GreaterEqThan(turnD, ANGLES − MAX_TURN) === 1` (the two cases are exclusive, so no selector witness is needed).
+5. **Weapon transition:** `IsZero`/`IsEqual` gadgets enforce the table W1–W5 from §3 exactly. `fired·isZero(ammo) === 0`, `fired·(1−isZero(cooldown)) === 0`, `fired·(1−isZero(reloadT)) === 0`; next state written as single-product constraints. "ammo < MAG" is implemented as "ammo ≠ MAG", identical on every reachable state (ammo starts at MAG via the public initial commitment and every row keeps it in [0, MAG]).
+6. **Commitments:** `commitIn === Poseidon4(ammo0, cooldown0, reload0, saltIn)`, `commitOut <== Poseidon4(ammo[N-1], cooldown[N-1], reloadT[N-1], saltOut)`.
 
-Expected size: roughly 700–900 constraints per tick (dominated by the Poseidon in step 1) → ~45–55k for N=60. **Estimate only — record the real count from `snarkjs r1cs info`.**
+**Real size (`--O2`):** groth16_4 = 3,292 constraints; **groth16_60 = 32,748 constraints (~537/tick)**, 493 private inputs — lower than the earlier 45–55k estimate. circomspect: no findings.
 
 ### 5.4 Initial commitment
 At match start the server computes `commitOut_{-1} = Poseidon4(MAG_SIZE, 0, 0, 0)` (known starting state, salt 0) and sends it in `match_found` together with `prevSnapshot` (the player's spawn, `fired = 0`). Every later salt is a fresh random 248-bit field element chosen by the client, so later commitments hide the hidden state. Every new round resets with a fresh public commitment computed the same way, sent in `round_end` together with the new round's `prevSnapshot`.
@@ -168,7 +182,7 @@ circuits/build/<scheme>_<N>/window_final.zkey
 circuits/build/<scheme>_<N>/verification_key.json
 circuits/build/<scheme>_<N>/info.json   { constraints, publicInputs, publicSignalOrder, ptauPower, ptauFile, ptauSha256, zkeySha256 }
 ```
-`ptauPower` is computed per variant from its real constraint count (Groth16: smallest power with 2^p ≥ constraints; PLONK: smallest power that fits snarkjs's PLONK constraint count, which is larger than the R1CS count), and the smallest Hermez file of that power is used.
+`ptauPower` is computed per variant from its real constraint count using snarkjs's own rule (Groth16: `floor(log2(nConstraints + nPubInputs + nOutputs)) + 1`; PLONK, Phase 5: the PLONK constraint count, which is larger than the R1CS count), and the smallest Hermez file of that power is used (groth16_4 → 12, groth16_60 → 15). Build: `npm run circuits:build` (`circuits/scripts/build.ts`); Groth16 phase 2 = one local contribution with `crypto.randomBytes` entropy that is never stored (SECURITY A8).
 The client loads `wasm` + `zkey` from `/zk/<scheme>_<N>/` (static, cached). The server loads only `verification_key.json`.
 
 ## 6. Server components

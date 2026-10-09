@@ -28,14 +28,15 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **P0** must-have · **P
 - [~] **Exit check:** automated bot-driven matches (≥ 10 full matches over real sockets) with no desync ✅ — manual playtest by the owner pending
 
 ## Phase 2 — Circuit (Weeks 3–4) — P0
-- [ ] `circuits/window.circom` with templates: `DigestChain`, `MoveCheck`, `TurnCheck`, `WeaponStep`, `Commit`
-- [ ] Build script templating constants from `shared/constants.ts` into `main_<N>.circom`
-- [ ] Test circuit N=4; positive + negative tests for every rule (TESTING.md §3)
-- [ ] Property tests with fast-check
-- [ ] circomspect clean
-- [ ] Full N=60 Groth16 build; record constraint count
-- [ ] JS reference (`shared/poseidon.ts`, digest + commitment) matches circuit outputs
-- [ ] **Exit check:** proofs generated offline from Phase 1 logs all verify; mutated logs all fail
+- [x] `circuits/window.circom` with templates: `DigestChain`, `BoundsCheck`, `SpeedCheck`, `TurnCheck`, `WeaponStep`, `Commit`, `Bind` (each in `circuits/src/`, tested on its own)
+- [x] Build script templating constants from `shared/constants.ts` into `main_<N>.circom`
+- [x] Test circuit N=4; positive + negative tests for every rule (TESTING.md §3)
+- [x] Property tests with fast-check
+- [x] circomspect clean (in CI: `npm run circuits:lint`)
+- [x] Full N=60 Groth16 build; record constraint count (32,748)
+- [x] JS reference (`shared/poseidon.ts`, `shared/zkInput.ts`) matches circuit outputs
+- [x] **Exit check:** proofs generated offline from Phase 1 logs all verify (26/26 windows, 4 logs); mutated logs fail exactly at the cheating window (speed, rapid-fire, infinite ammo)
+- [ ] **Decision needed before Phase 3:** Node proving is ~4.8× slower than real time at N=60 — see CHANGELOG Phase 2 "Performance preview"
 
 ## Phase 3 — Live proving & verification (Weeks 5–6) — P0
 - [ ] Client artefact loader + SHA-256 check + Cache API

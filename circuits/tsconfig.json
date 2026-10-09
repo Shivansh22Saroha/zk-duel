@@ -3,6 +3,6 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["scripts/**/*.ts", "test/**/*.ts"],
+  "include": ["scripts/**/*.ts", "test/**/*.ts", "../shared/types/*.d.ts"],
   "exclude": ["node_modules", "build"]
 }

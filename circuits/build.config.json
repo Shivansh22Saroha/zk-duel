@@ -56,7 +56,8 @@
       "12": {
         "file": "powersOfTau28_hez_final_12.ptau",
         "url": "https://circom.info/powersOfTau28_hez_final_12.ptau",
-        "blake2b512": "ded2694169b7b08e898f736d5de95af87c3f1a64594013351b1a796dbee393bd825f88f9468c84505ddd11eb0b1465ac9b43b9064aa8ec97f2b73e04758b8a4a"
+        "blake2b512": "ded2694169b7b08e898f736d5de95af87c3f1a64594013351b1a796dbee393bd825f88f9468c84505ddd11eb0b1465ac9b43b9064aa8ec97f2b73e04758b8a4a",
+        "sha256": "dcf4ea473bf14b971ce5f7b7c1d6ce1c41a8ed042cdb75b65ca9178e3a3c7c17"
       },
       "13": {
         "file": "powersOfTau28_hez_final_13.ptau",
@@ -71,7 +72,8 @@
       "15": {
         "file": "powersOfTau28_hez_final_15.ptau",
         "url": "https://circom.info/powersOfTau28_hez_final_15.ptau",
-        "blake2b512": "982372c867d229c236091f767e703253249a9b432c1710b4f326306bfa2428a17b06240359606cfe4d580b10a5a1f63fbed499527069c18ae17060472969ae6e"
+        "blake2b512": "982372c867d229c236091f767e703253249a9b432c1710b4f326306bfa2428a17b06240359606cfe4d580b10a5a1f63fbed499527069c18ae17060472969ae6e",
+        "sha256": "3ef2ecc5b75d687048cf2d59195119b42fb07c5af639c5f283d84bfa69829e7f"
       },
       "16": {
         "file": "powersOfTau28_hez_final_16.ptau",

@@ -9,7 +9,39 @@ Every entry that changes the circuit must state: new constraint count per varian
 ## [Unreleased]
 
 ### Planned (see TODO.md)
-- Phase 2: circuit, tested offline against Phase 1 tick logs.
+- Phase 3: live proving + server verification (pending the performance decision below).
+
+### Phase 2 — Circuit (offline) — 2026-10-09
+#### Added
+- `circuits/src/*.circom` templates (`InRange`, `BoundsCheck`, `SpeedCheck`, `TurnCheck`, `WeaponStep`, `DigestChain`, `Commit`, `Bind`) and `circuits/window.circom` (`Window`). `circuits/scripts/gen-main.ts` generates `main_<N>.circom` from `shared/constants.ts` (no game numbers in .circom sources).
+- `shared/zkInput.ts`: JS reference — circuit input object, expected `bind`/`digest`/`commitIn`/`commitOut`, log → window slicing (truncate + pad, hidden-state and salt chaining, per-round reset), `randomSalt()` (248 bits), `namePublicSignals()` (order from info.json).
+- `circuits/scripts/build.ts` (`npm run circuits:build`), `prove-log.ts` (`npm run circuits:prove-log`), `mutate-log.ts` (`npm run circuits:mutate-log`); `npm run circuits:lint` (circomspect on main_4 + main_60, CI gate).
+- Tests: 19 template tests, 17 Window(N=4) tests (all real-log windows, TESTING §3 table, malicious helper witness, 150 random legal sequences, 1,000 random mutations), 5 offline tests (3 cheats on real logs at N=4, N=60 smoke over every real window, groth16_60 prove/verify + publicSignalOrder), zkInput unit tests. Fixture logs: `circuits/test/fixtures/` (2 Phase 1 bot matches through the real server, both players).
+
+#### Circuit
+- **groth16_4**: 3,292 constraints; ptau power 12 (`powersOfTau28_hez_final_12.ptau`, sha256 `dcf4ea473bf14b971ce5f7b7c1d6ce1c41a8ed042cdb75b65ca9178e3a3c7c17`); zkeySha256 `0ae419920ef42b1d3f9e0e39df76e4759bf163d47ce0928842e46ccb66a793ee`; zkey 3.78 MiB.
+- **groth16_60**: 32,748 constraints (~537/tick), 493 private inputs, 31,502 wires; ptau power 15 (`powersOfTau28_hez_final_15.ptau`, sha256 `3ef2ecc5b75d687048cf2d59195119b42fb07c5af639c5f283d84bfa69829e7f`); zkeySha256 `d49f56bb0795e0be41e2209ead25b719a3c1cdd1bea6c31cc5749d31ca45b93f`; zkey 34.83 MiB; wasm 2.9 MB; proof ≈ 724 B.
+- **publicSignalOrder** (both): `[commitOut, bind, digest, commitIn]` — detected from a real proof at build time. First circuit release, so no previous order to compare.
+- Setup: single local phase-2 contribution (SECURITY A8). Both ptau files blake2b-verified against the snarkjs README.
+- The power-16 ptau downloaded in Phase 0 is not used (15 suffices for N=60).
+
+#### Results
+- Real logs, N=60, Node: **26/26 windows** of 4 logs prove + verify, and named public signals equal the JS values for every window.
+- Mutated logs (from `match-bffb33a1-p1`): speed (tick 136) → only window 2 has no witness (`SpeedCheck`/`Num2Bits`); rapid-fire (tick 203) → only window 3 (`WeaponStep` cooldown legality); infinite ammo (tick 202) → only window 3 (`WeaponStep` ammo transition). All other windows still verify.
+- Mutation property (N=4, 1,000 runs): 935 rejected by both circuit and sim, 65 accepted by both, **0 disagreements**.
+- circomspect 0.9.0: no findings (gate verified to exit 1 on a planted under-constrained signal).
+
+#### Performance preview (Node, not the official benchmark) — Intel Core 5 210H (8C/12T), 15.6 GB, Node 22.23.3, snarkjs 0.7.6, groth16_60, 26 windows
+- witness p50 303 ms / p95 352 ms; **prove p50 4,840 ms / p95 6,067 ms** (min 1,911, max 7,125); verify p50 36 ms / p95 54 ms; proof ≈ 724 B; zkey 34.8 MiB.
+- Prove time is ≈ 4.8× the window's 1 s of play → proving every window live is not feasible in Node on this laptop (browser is usually slower). See the Phase 3 decision in TODO.
+- Verify p95 (54 ms) is slightly above NFR-4 (< 50 ms); measured in the same process right after proving — to be re-measured in the server's verifier pool in Phase 3.
+
+#### Deviations from the docs
+- `turnD` is computed in-circuit (`<==` from the helper `k`) instead of being a prover input; `k` is the only hand-written `<--`. No selector witness for the min(): two exclusive comparators must sum to 1.
+- `Window` lives in `circuits/window.circom` (per ARCHITECTURE), the sub-templates in `circuits/src/`.
+- "ammo < MAG" in W4 is implemented as "ammo ≠ MAG" (identical on reachable states — documented in the template).
+- Circuits compiled with `--O2` (removes all linear constraints: N=4 7,432 → 3,292).
+- TESTING §3 mutation property clarified: an ignored `reloadPress` is a legitimate no-op witness.
 
 ### Phase 1 follow-ups — 2026-10-09
 - **Late snapshots bounded:** accepted up to `PROOF_GRACE_WINDOWS × WINDOW_TICKS` ticks behind the server's wall tick; older → rejected + strike (`strike_late`). Boundary unit test (exactly at the bound → ok, one past → strike). SECURITY §4 updated.

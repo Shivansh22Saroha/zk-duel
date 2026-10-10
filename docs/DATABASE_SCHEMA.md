@@ -61,6 +61,7 @@ Index: `idx_sessions_player (player_id)`.
 | `audit_status` | TEXT | NULL, CHECK IN ('auditing','audited_clean','audited_failed','audit_incomplete') — Phase 3 (migration 002). `auditing` from `match_end` until the audit closes; NULL for aborted matches without windows |
 | `overturned` | INTEGER | NOT NULL DEFAULT 0, CHECK IN (0,1) — 1 when the winner's audit failed. `winner_index`/`end_reason` are never rewritten |
 | `audit_ended_at` | INTEGER | NULL — when the audit closed |
+| `result_verdict` | TEXT | NULL, CHECK IN ('verified','overturned','unverified') — migration 004: what the audit says about the recorded result (winner's own audit clean / failed / incomplete); NULL when there is no winner or no windows |
 
 Indexes: `idx_matches_started (started_at DESC)`, `idx_matches_status (status)`.
 
@@ -79,7 +80,8 @@ Indexes: `idx_matches_started (started_at DESC)`, `idx_matches_status (status)`.
 | `challenges` | INTEGER | NOT NULL DEFAULT 0 — challenges issued during play |
 | `challenges_passed` | INTEGER | NOT NULL DEFAULT 0 — challenges decided `valid` |
 | `challenge_rate` | REAL | NULL — r = challenges / windows_committed |
-| `detection_latency_windows` | INTEGER | NULL — windows from the first cheat activation to the first failed challenge (needs `cheat_events`, Phase 4) |
+| `detection_latency_windows` | INTEGER | NULL — windows (in window order) from the first cheat activation to the first failed challenge at or after it |
+| `detection_latency_ms` | INTEGER | NULL — the same in ms (activation → that challenge's decision); migration 004 |
 | `audit_ms` | INTEGER | NULL — `match_end` → this player's last audit result (or the audit close) |
 | `audit_status` | TEXT | NULL, CHECK IN ('audited_clean','audited_failed','audit_incomplete') — this player's own audit result (migration 003). A loser's failure is recorded here; the match result is not changed and `overturned` stays 0 |
 
@@ -112,6 +114,7 @@ One row per player per window. The core research table.
 | `challenged` | INTEGER | NOT NULL DEFAULT 0, CHECK IN (0,1) — 1 when the window was challenged during play |
 | `challenged_at` | INTEGER | NULL |
 | `decided_phase` | TEXT | NULL, CHECK IN ('live','audit') — when the result was decided |
+| `decided_at` | INTEGER | NULL — epoch ms of the decision (migration 004) |
 | `fail_reason` | TEXT | NULL — client-reported `proof_failed.reason` (informational) |
 | `commit_in` | TEXT | NULL — claimed commitment entering the window (claimed `commit_out` of k−1, or `initialCommit`) |
 | `commit_out` | TEXT | NULL — commitment claimed in `window_commit` |
@@ -137,8 +140,12 @@ A row is written when a window ends and is first decided (`committed`, `missing_
 | `round_no` | INTEGER | NOT NULL |
 | `tick` | INTEGER | NOT NULL |
 | `window_index` | INTEGER | NOT NULL |
+| `created_at` | INTEGER | NOT NULL — epoch ms (live detection latency in seconds) |
 
-Index: `idx_cheat_match (match_id)`. Used to compute detection latency = first non-valid window − activation window.
+Index: `idx_cheat_match (match_id)`. Built in migration 004.
+
+### `detection_runs` (Phase 4, migration 004)
+One row per detection-experiment match (`npm run exp:detect`, `npm run exp:browser`): `environment` (node \| browser), `cheat`, `window_ticks`, `m_nominal` (windows the cheat was on), `m_effective` (cheater windows with ≥ 1 rule violation — ground truth from the cheater's own tick log), `windows`, `challenges`, `challenge_rate` (r), `predicted_live` (1 − (1 − r)^m_effective), `caught_live`, `latency_windows`, `latency_ms`, `caught_audit`, `final_status`, `cheater_status`, `device_label`, `notes` (anomalies). Exported to `bench/out/detection.csv`. Used to compute detection latency = first non-valid window − activation window.
 
 ### `benchmark_runs`
 | Column | Type | Constraints |

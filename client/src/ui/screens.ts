@@ -1,5 +1,5 @@
 /** Landing, queue and results screens (UI_UX §3.1, §3.2, §3.4). */
-import { DISPLAY_NAME_PATTERN } from '@zkduel/shared/constants';
+import { DISPLAY_NAME_PATTERN, ROOM_CODE_PATTERN } from '@zkduel/shared/constants';
 import type { MatchSummary } from '../api';
 import type { AuditProgress } from '../zk/auditResumer';
 import { h, mono, setText } from './dom';
@@ -11,6 +11,9 @@ export function landingScreen(opts: {
   initialName: string;
   versionError: string | null;
   onFindMatch: (name: string) => void;
+  /** Private room (F3): create with the creator's enforcement, or join by code. */
+  onCreateRoom: (name: string, enforcement: 'observe' | 'strict') => void;
+  onJoinRoom: (name: string, code: string) => void;
 }): HTMLElement {
   const input = h('input', {
     type: 'text',
@@ -34,6 +37,51 @@ export function landingScreen(opts: {
     if (e.key === 'Enter' && validate() && !find.disabled) opts.onFindMatch(input.value);
   });
   find.addEventListener('click', () => validate() && opts.onFindMatch(input.value));
+
+  // ---- Private Room ▾ (UI_UX §3.1): create (choose enforcement) / join with code
+  const enf = h(
+    'select',
+    { id: 'room-enforcement', 'aria-label': 'Enforcement' },
+    h('option', { value: 'strict' }, 'strict (a failed spot-check forfeits)'),
+    h('option', { value: 'observe' }, 'observe (record only)'),
+  );
+  const create = h('button', { class: 'secondary', id: 'create-room' }, 'Create room');
+  create.addEventListener(
+    'click',
+    () =>
+      validate() && opts.onCreateRoom(input.value, enf.value === 'observe' ? 'observe' : 'strict'),
+  );
+  const code = h('input', {
+    type: 'text',
+    id: 'room-code',
+    maxlength: 6,
+    autocomplete: 'off',
+    placeholder: 'Code',
+    'aria-label': 'Room code',
+    style: 'text-transform:uppercase;width:8em',
+  });
+  code.addEventListener('input', () => (code.value = code.value.toUpperCase()));
+  const join = h('button', { class: 'secondary', id: 'join-room' }, 'Join');
+  const codeErr = h('div', { class: 'error', id: 'room-err' });
+  const tryJoin = (): void => {
+    if (!validate()) return;
+    if (!new RegExp(ROOM_CODE_PATTERN).test(code.value)) {
+      setText(codeErr, 'Room codes are 6 characters (no 0, O, 1 or I).');
+      return;
+    }
+    setText(codeErr, '');
+    opts.onJoinRoom(input.value, code.value);
+  };
+  join.addEventListener('click', tryJoin);
+  code.addEventListener('keydown', (e) => e.key === 'Enter' && tryJoin());
+  const rooms = h(
+    'details',
+    { class: 'rooms', id: 'private-room' },
+    h('summary', {}, 'Private Room ▾'),
+    h('div', { class: 'row' }, enf, create),
+    h('div', { class: 'row' }, code, join),
+    codeErr,
+  );
   validate();
 
   const dialog = h(
@@ -85,6 +133,7 @@ export function landingScreen(opts: {
       input,
       err,
       h('div', { class: 'row' }, find),
+      rooms,
       h(
         'div',
         { class: 'row muted' },
@@ -97,6 +146,31 @@ export function landingScreen(opts: {
       dialog,
     ),
   );
+}
+
+/** Private room wait screen (UI_UX §3.2): the code large in mono with a copy button. */
+export function roomScreen(
+  roomCode: string,
+  creator: boolean,
+  onCancel: () => void,
+  loadProgress: () => number,
+): { el: HTMLElement; dispose: () => void } {
+  const q = queueScreen(onCancel, loadProgress);
+  const copy = h('button', { class: 'secondary', id: 'copy-code' }, 'Copy');
+  copy.addEventListener('click', () => {
+    void navigator.clipboard?.writeText(roomCode).then(() => setText(copy, 'Copied'));
+  });
+  const box = h(
+    'div',
+    { class: 'stack', style: 'text-align:center' },
+    h('div', { class: 'muted' }, creator ? 'Room code — give it to your opponent' : 'Joined room'),
+    h('div', { class: 'row', style: 'justify-content:center' }, mono(roomCode, 'room-code'), copy),
+  );
+  q.el.querySelector('.card')?.prepend(box);
+  const status = q.el.querySelector('#queue-status');
+  if (status)
+    status.textContent = creator ? 'Waiting for opponent…' : 'Waiting for the room creator…';
+  return q;
 }
 
 export function queueScreen(
@@ -166,10 +240,19 @@ function auditPanel(
   const detail = h('div', { class: 'muted' });
   const bar = h('progress', { max: 1, value: 0 });
   const stamp = h('span', { class: 'overturned', hidden: true }, 'OVERTURNED');
+  const unverified = h(
+    'span',
+    {
+      class: 'overturned unverified',
+      hidden: true,
+      title: "The winner's audit did not finish — the result stands but is not verified.",
+    },
+    'UNVERIFIED',
+  );
   const el = h(
     'section',
     { class: 'audit stack', id: 'audit' },
-    h('div', { class: 'row' }, status, stamp),
+    h('div', { class: 'row' }, status, stamp, unverified),
     bar,
     detail,
   );
@@ -208,6 +291,7 @@ function auditPanel(
       setText(detail, '');
     }
     stamp.hidden = !overturned;
+    unverified.hidden = !(final && s.resultVerdict === 'unverified');
   };
   update();
   return { el, update };

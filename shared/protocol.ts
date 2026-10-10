@@ -333,6 +333,8 @@ export const auditEndMsg = z.object({
   matchId: z.string().uuid(),
   auditStatus,
   overturned: z.boolean(),
+  /** verified | overturned | unverified (winner's audit incomplete); null: no winner. */
+  resultVerdict: z.enum(['verified', 'overturned', 'unverified']).nullable(),
   players: z.tuple([auditCounts, auditCounts]),
 });
 export const resumeMsg = z.object({

@@ -69,8 +69,8 @@ export const PROOF_GRACE_WINDOWS = 2;
 export const SALT_BITS = 248;
 /**
  * A challenged window's proof must arrive within this time, else `timeout` (server env
- * PROOF_DEADLINE_MS overrides). Owner's default. Measured (Phase 3): Chrome prove p95 at N=60 is
- * 1.7 s alone, but 8.1 s with two clients proving on one laptop — 10 s was too tight.
+ * PROOF_DEADLINE_MS overrides). Owner's default. Measured on AC (Phase 3): Chrome prove p95 at N=60
+ * is 1.48 s alone, 2.78 s with two clients proving on one laptop.
  */
 export const PROOF_DEADLINE_MS = 15_000;
 /** Audit proofs are accepted this long after match_end (server env AUDIT_TIMEOUT_MIN overrides). */

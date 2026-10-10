@@ -31,6 +31,8 @@ export interface MatchScreenOptions {
   proof: ProofClient | null;
   /** Called every frame after the sim stepped (commits windows that became final). */
   afterUpdate?: () => void;
+  /** Dev cheat drawer (VITE_DEV_CHEATS builds only). */
+  cheatDrawer?: HTMLElement | null;
 }
 
 export function matchScreen(o: MatchScreenOptions): {
@@ -50,6 +52,19 @@ export function matchScreen(o: MatchScreenOptions): {
   const strips = o.proof
     ? ([0, 1] as const).map((p) => proofStrip(o.proof as ProofClient, p, p === me))
     : [];
+  // CHEAT tag under each player while a dev cheat is on (both players see it — F13)
+  const cheatTags: [HTMLSpanElement, HTMLSpanElement] = [
+    h('span', { class: 'cheat-tag', hidden: true }),
+    h('span', { class: 'cheat-tag', hidden: true }),
+  ];
+  const renderCheatTags = (): void => {
+    for (const p of [0, 1] as const) {
+      const on = [...game.cheatFlags[p]];
+      cheatTags[p].hidden = on.length === 0;
+      setText(cheatTags[p], on.length ? `CHEAT: ${on.join(', ')}` : '');
+    }
+  };
+  renderCheatTags();
   const side = (p: PlayerIndex, right: boolean) =>
     h(
       'div',
@@ -66,6 +81,7 @@ export function matchScreen(o: MatchScreenOptions): {
         hpText[p],
       ),
       strips[p]?.el ?? null,
+      cheatTags[p],
     );
 
   const canvas = h('canvas', { id: 'arena', 'aria-label': 'Arena' });
@@ -130,7 +146,17 @@ export function matchScreen(o: MatchScreenOptions): {
       'div',
       { class: 'match' },
       h('header', { class: 'topbar' }, side(0, false), scoreEl, side(1, true)),
-      h('div', { class: 'arena-wrap' }, canvas, overlay, hint, settings, forfeitBanner, debug),
+      h(
+        'div',
+        { class: 'arena-wrap' },
+        canvas,
+        overlay,
+        hint,
+        settings,
+        forfeitBanner,
+        debug,
+        o.cheatDrawer ?? null,
+      ),
       h(
         'footer',
         { class: 'bottombar' },
@@ -161,6 +187,7 @@ export function matchScreen(o: MatchScreenOptions): {
   let failedLive: string | null = null;
 
   const off = game.onMessage((m: ServerMessage) => {
+    if (m.t === 'cheat_flag') renderCheatTags();
     if (m.t === 'round_end') {
       bannerText = `Round to ${o.names[m.winnerIndex]}`;
       bannerUntil = performance.now() + ROUND_BANNER_MS;

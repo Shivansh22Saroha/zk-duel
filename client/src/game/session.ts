@@ -7,7 +7,7 @@
  * state goes exclusively to the optional local TickLogSink.
  */
 import { MAX_HP, STALL_TICKS, TICK_RATE, type PlayerIndex } from '@zkduel/shared/constants';
-import type { ClientFrame, ServerMessage } from '@zkduel/shared/protocol';
+import type { CheatName, ClientFrame, ServerMessage } from '@zkduel/shared/protocol';
 import {
   holdTick,
   spawnState,
@@ -54,7 +54,12 @@ export type SessionPhase = 'idle' | 'matched' | 'countdown' | 'live' | 'pause' |
  * scripted cheater in tests; the Phase 4 cheat module). The rewritten state is what gets recorded
  * and sent — the prover then runs honestly over cheating data (FR-20).
  */
-export type StateTamper = (ctx: { roundNo: number; tick: number }, s: PlayerState) => PlayerState;
+export type StateTamper = (
+  ctx: { roundNo: number; tick: number; opponent: PublicSnap | null },
+  s: PlayerState,
+  prev: PlayerState,
+  input: TickInput,
+) => PlayerState;
 
 export interface SessionOptions {
   now: () => number;
@@ -93,6 +98,8 @@ export class GameSession {
   opponentStatus: 'connected' | 'reconnecting' | 'stalled' = 'connected';
   /** Last server states (both players) for rendering. */
   lastState: StateMsg | null = null;
+  /** Dev cheats each player has switched on (cheat_flag broadcasts — the CHEAT tag). */
+  readonly cheatFlags: [Set<CheatName>, Set<CheatName>] = [new Set(), new Set()];
   /** Highest live tick of the current round the server has sent a `state` for (−1: none). */
   serverTick = -1;
   readonly opponentBuffer: OpponentSample[] = [];
@@ -145,6 +152,8 @@ export class GameSession {
         this.result = null;
         this.self = spawnState(m.playerIndex);
         this.prevSelf = this.self;
+        this.cheatFlags[0].clear();
+        this.cheatFlags[1].clear();
         this.nextPrev = m.prevSnapshot;
         this.nextCommit = m.initialCommit;
         this.opts.log?.write({
@@ -219,6 +228,10 @@ export class GameSession {
       case 'opponent_status':
         this.opponentStatus = m.status;
         break;
+      case 'cheat_flag':
+        if (m.enabled) this.cheatFlags[m.playerIndex].add(m.cheat);
+        else this.cheatFlags[m.playerIndex].delete(m.cheat);
+        break;
       default:
         break;
     }
@@ -270,9 +283,16 @@ export class GameSession {
       }
     }
     while (this.tick < target) {
-      const r = stepPlayer(this.self, this.input.sample(this.inputContext()));
+      const ictx = this.inputContext();
+      const input = this.input.sample(ictx);
+      const r = stepPlayer(this.self, input);
       const next = this.opts.tamper
-        ? this.opts.tamper({ roundNo: this.roundNo, tick: this.tick + 1 }, r.state)
+        ? this.opts.tamper(
+            { roundNo: this.roundNo, tick: this.tick + 1, opponent: ictx.opponent },
+            r.state,
+            this.self,
+            input,
+          )
         : r.state;
       this.advance(next, r.reloadPress, true, now);
       steps++;

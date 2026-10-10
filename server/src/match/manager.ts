@@ -1,6 +1,11 @@
-/** FIFO queue + room registry (FEATURES F2). Private rooms arrive in Phase 4. */
-import { randomUUID } from 'node:crypto';
-import type { Scheme } from '@zkduel/shared/constants';
+/** FIFO queue (FEATURES F2), private rooms by code (F3) and the registry of running matches. */
+import { randomInt, randomUUID } from 'node:crypto';
+import {
+  ROOM_CODE_ALPHABET,
+  ROOM_CODE_LENGTH,
+  ROOM_EXPIRY_MS,
+  type Scheme,
+} from '@zkduel/shared/constants';
 import { matchField } from '@zkduel/shared/matchField';
 import { initialCommit } from '@zkduel/shared/poseidon';
 import type { Repo } from '../db/repo';
@@ -25,8 +30,22 @@ export interface ManagerOptions {
   now: () => number;
 }
 
+/** A private room waiting for its two players (the creator joins with room_join too). */
+interface PrivateRoom {
+  code: string;
+  creator: string;
+  enforcement: 'observe' | 'strict';
+  createdAt: number;
+  expiresAt: number;
+  /** Players who sent room_join (creator first or second). */
+  joined: string[];
+}
+
+export type RoomJoinResult = 'ok' | 'ROOM_NOT_FOUND' | 'ROOM_FULL' | 'ALREADY_IN_MATCH';
+
 export class MatchManager {
   private readonly queue: string[] = [];
+  private readonly privateRooms = new Map<string, PrivateRoom>();
   /** Every room until its audit closes (live rooms and finished rooms still auditing). */
   readonly rooms = new Map<string, MatchRoom>();
   /** Player → the room they are playing in (removed at match_end). */
@@ -105,6 +124,63 @@ export class MatchManager {
   /** Called at 60 Hz by the fixed-step loop. */
   tick(): void {
     for (const room of this.rooms.values()) room.onWall();
+    const now = Date.now();
+    for (const [code, r] of this.privateRooms)
+      if (now >= r.expiresAt) this.privateRooms.delete(code);
+  }
+
+  /** POST /api/rooms: a fresh 6-character code (no 0/O/1/I), unused rooms expire after 10 min. */
+  createPrivateRoom(
+    creator: string,
+    enforcement: 'observe' | 'strict',
+  ): { roomCode: string; expiresAt: number } | null {
+    if (this.isBusy(creator)) return null;
+    let code = '';
+    do {
+      code = Array.from(
+        { length: ROOM_CODE_LENGTH },
+        () => ROOM_CODE_ALPHABET[randomInt(ROOM_CODE_ALPHABET.length)],
+      ).join('');
+    } while (this.privateRooms.has(code));
+    const now = Date.now();
+    this.privateRooms.set(code, {
+      code,
+      creator,
+      enforcement,
+      createdAt: now,
+      expiresAt: now + ROOM_EXPIRY_MS,
+      joined: [],
+    });
+    return { roomCode: code, expiresAt: now + ROOM_EXPIRY_MS };
+  }
+
+  /**
+   * WS room_join (both players). One seat is reserved for the creator, so two other players can
+   * never take the room over. When both are in, the private match starts with the room's enforcement.
+   */
+  joinPrivateRoom(playerId: string, code: string): RoomJoinResult {
+    const r = this.privateRooms.get(code);
+    if (!r || Date.now() >= r.expiresAt) return 'ROOM_NOT_FOUND';
+    if (r.joined.includes(playerId)) return 'ok';
+    if (this.isBusy(playerId)) return 'ALREADY_IN_MATCH';
+    const others = r.joined.filter((p) => p !== r.creator).length;
+    if (r.joined.length >= 2 || (playerId !== r.creator && others >= 1)) return 'ROOM_FULL';
+    this.leaveQueue(playerId);
+    r.joined.push(playerId);
+    if (r.joined.length === 2) {
+      this.privateRooms.delete(code);
+      const players = [r.creator, r.joined.find((p) => p !== r.creator) as string] as [
+        string,
+        string,
+      ];
+      for (const p of players) this.pairing.add(p);
+      void this.createRoom(players, {
+        mode: 'private',
+        enforcement: r.enforcement,
+        roomCode: code,
+      }).finally(() => players.forEach((p) => this.pairing.delete(p)));
+    }
+    return 'ok';
   }
 
   private async tryPair(): Promise<void> {
@@ -114,7 +190,11 @@ export class MatchManager {
       this.pairing.add(a);
       this.pairing.add(b);
       try {
-        await this.createRoom([a, b]);
+        await this.createRoom([a, b], {
+          mode: 'queue',
+          enforcement: this.opts.defaultEnforcement,
+          roomCode: null,
+        });
       } finally {
         this.pairing.delete(a);
         this.pairing.delete(b);
@@ -122,7 +202,10 @@ export class MatchManager {
     }
   }
 
-  private async createRoom(players: [string, string]): Promise<MatchRoom> {
+  private async createRoom(
+    players: [string, string],
+    how: { mode: 'queue' | 'private'; enforcement: 'observe' | 'strict'; roomCode: string | null },
+  ): Promise<MatchRoom> {
     const id = randomUUID();
     const [mf, commit] = await Promise.all([matchField(id), initialCommit()]);
     const names = players.map((p) => this.repo.getPlayer(p)?.displayName ?? '???') as [
@@ -132,12 +215,12 @@ export class MatchManager {
     this.repo.createMatch({
       id,
       matchField: mf,
-      mode: 'queue',
-      enforcement: this.opts.defaultEnforcement,
+      mode: how.mode,
+      enforcement: how.enforcement,
       scheme: this.opts.scheme,
       windowTicks: this.opts.windowTicks,
       circuitHash: this.opts.variant.zkeySha256,
-      roomCode: null,
+      roomCode: how.roomCode,
       players,
     });
     const room = new MatchRoom(
@@ -145,8 +228,8 @@ export class MatchManager {
         id,
         matchField: mf,
         initialCommit: commit,
-        mode: 'queue',
-        enforcement: this.opts.defaultEnforcement,
+        mode: how.mode,
+        enforcement: how.enforcement,
         scheme: this.opts.scheme,
         windowTicks: this.opts.windowTicks,
         constantsHash: this.opts.constantsHash,

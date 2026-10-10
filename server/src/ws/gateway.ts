@@ -198,12 +198,16 @@ export class Gateway {
         return;
       case 'queue_leave':
         return mgr.leaveQueue(pid);
-      case 'room_join':
-        return c.send({
-          t: 'error',
-          code: 'FORBIDDEN',
-          message: 'private rooms are not available yet',
-        });
+      case 'room_join': {
+        const res = mgr.joinPrivateRoom(pid, m.roomCode);
+        if (res === 'ok') return;
+        const msg = {
+          ROOM_NOT_FOUND: 'Room not found or expired.',
+          ROOM_FULL: 'Room already has two players.',
+          ALREADY_IN_MATCH: 'already in a match',
+        }[res];
+        return c.send({ t: 'error', code: res, message: msg });
+      }
       case 'ready':
         if (room && p !== null && !room.onReady(p, m.artefactSha256)) {
           c.send({
@@ -238,7 +242,8 @@ export class Gateway {
       }
       case 'cheat_toggle':
         if (!this.opts.devCheats) return this.strike(c, 'FORBIDDEN', 'cheats are disabled');
-        return; // Phase 4
+        if (room && p !== null) room.onCheatToggle(p, m.cheat, m.enabled, m.tick);
+        return;
       case 'forfeit':
         if (room && p !== null) room.onForfeit(p);
         return;

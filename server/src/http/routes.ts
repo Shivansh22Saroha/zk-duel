@@ -1,7 +1,7 @@
 /** REST routes (API_SPEC §3). Error format: { error: { code, message } }. */
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { CONSTANTS } from '@zkduel/shared/constants';
-import { guestAuthBody } from '@zkduel/shared/protocol';
+import { createRoomBody, guestAuthBody } from '@zkduel/shared/protocol';
 import { AuthError, type Auth, type Session } from '../auth/jwt';
 import type { Config } from '../config';
 import type { Repo } from '../db/repo';
@@ -84,6 +84,21 @@ export function registerRoutes(app: FastifyInstance, d: RouteDeps): void {
     d.auth.revoke(s.jti);
     return reply.code(204).send();
   });
+
+  app.post(
+    '/api/rooms',
+    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    async (req, reply) => {
+      const s = requireAuth(req, reply);
+      if (!s) return reply;
+      const r = createRoomBody.safeParse(req.body ?? {});
+      if (!r.success)
+        return sendError(reply, 400, 'INVALID_BODY', 'enforcement must be observe or strict.');
+      const room = d.manager.createPrivateRoom(s.playerId, r.data.enforcement ?? 'observe');
+      if (!room) return sendError(reply, 409, 'ALREADY_IN_MATCH', 'Already in a match.');
+      return reply.code(201).send(room);
+    },
+  );
 
   app.get('/api/circuit/info', async () => ({
     active: d.cfg.ACTIVE_VARIANT,

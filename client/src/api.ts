@@ -48,6 +48,8 @@ export interface MatchSummary {
   totalTicks: number;
   auditStatus: 'auditing' | 'audited_clean' | 'audited_failed' | 'audit_incomplete' | null;
   overturned: boolean;
+  /** verified | overturned | unverified (winner's audit incomplete) — the result is never rewritten. */
+  resultVerdict: 'verified' | 'overturned' | 'unverified' | null;
   you: number | null;
   players: {
     playerIndex: number;
@@ -86,6 +88,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ displayName }),
     }),
+  createRoom: (token: string, enforcement: 'observe' | 'strict') =>
+    call<{ roomCode: string; expiresAt: number }>(
+      '/api/rooms',
+      { method: 'POST', body: JSON.stringify({ enforcement }) },
+      token,
+    ),
   match: (id: string, token: string) =>
     call<MatchSummary>(`/api/matches/${encodeURIComponent(id)}`, {}, token),
   windows: (id: string, token: string) =>

@@ -31,6 +31,7 @@ import {
   type Scheme,
 } from '@zkduel/shared/constants';
 import type {
+  CheatName,
   EndReason,
   ProofFailedMessage,
   ServerMessage,
@@ -231,6 +232,30 @@ export class MatchRoom {
       this.broadcast({ t: 'countdown', secondsLeft: COUNTDOWN_SECONDS });
     }
     return true;
+  }
+
+  /**
+   * Dev cheat switched (server DEV_CHEATS=true only — the gateway rejects it otherwise): recorded
+   * in cheat_events with the window it starts in, broadcast as cheat_flag so both players see the
+   * CHEAT tag, and the first activation anchors the live detection latency.
+   */
+  onCheatToggle(p: PlayerIndex, cheat: CheatName, enabled: boolean, tick: number): void {
+    if (this.roundNo < 1 || this.phase === 'finished') return;
+    const t = Math.max(0, Math.min(tick, Math.max(0, this.wallTick()) + STALL_TICKS));
+    const k = Math.floor(t / this.opts.windowTicks);
+    const epoch = (this.deps.epoch ?? Date.now)();
+    this.deps.repo.addCheatEvent({
+      matchId: this.id,
+      playerIndex: p,
+      cheat,
+      enabled,
+      roundNo: this.roundNo,
+      tick: t,
+      windowIndex: k,
+      createdAt: epoch,
+    });
+    if (enabled) this.tracker.cheatActivated(p, this.roundNo, k, epoch);
+    this.broadcast({ t: 'cheat_flag', playerIndex: p, cheat, enabled });
   }
 
   onForfeit(p: PlayerIndex): void {

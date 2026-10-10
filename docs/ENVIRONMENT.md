@@ -16,7 +16,7 @@ Two env files: `server/.env` (secret, never committed) and `client/.env` (public
 | `ZK_ARTEFACT_DIR` | no | `../circuits/build` | Where variant folders live |
 | `ACTIVE_VARIANT` | no | `groth16_60` | Variant used for matches (`<scheme>_<N>`) |
 | `PROOF_GRACE_WINDOWS` | no | `2` | Late-snapshot bound and digest-finalisation grace, in windows |
-| `PROOF_DEADLINE_MS` | no | `15000` (`shared/constants.ts`) | Time a challenged window's proof may take before `timeout`. Measured Chrome prove p95 at N=60: 1.7 s with one client per machine, 8.1 s with two clients on one laptop |
+| `PROOF_DEADLINE_MS` | no | `15000` (`shared/constants.ts`) | Time a challenged window's proof may take before `timeout`. Measured on AC (Phase 3): Chrome prove p95 at N=60 1.48 s with one client per machine, 2.78 s with two clients proving on one laptop (worst case) |
 | `AUDIT_TIMEOUT_MIN` | no | `60` (`shared/constants.ts`) | How long after `match_end` audit proofs are accepted; then remaining windows are `unaudited` |
 | `DEFAULT_ENFORCEMENT` | no | `observe` | `observe` \| `strict` for queue matches |
 | `VERIFIER_THREADS` | no | `2` | `worker_threads` for verification |

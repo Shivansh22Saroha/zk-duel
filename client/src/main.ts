@@ -17,13 +17,33 @@ import { MemoryTickLog } from './game/tickLog';
 import { Net } from './net/socket';
 import { toast } from './ui/dom';
 import { matchScreen } from './ui/matchScreen';
-import { landingScreen, queueScreen, resultsScreen } from './ui/screens';
+import { landingScreen, queueScreen, resultsScreen, roomScreen } from './ui/screens';
 import { ArtefactIntegrityError, loadArtefacts, type VariantMeta } from './zk/artefacts';
 import { AuditResumer } from './zk/auditResumer';
 import { IndexedDbAuditStore } from './zk/auditStore';
 import { ProofClient, type ProveOutcome, type Prover } from './zk/proofClient';
 import type { WindowJob } from './zk/recorder';
 import { WorkerProver } from './zk/workerProver';
+import type { CheatName } from '@zkduel/shared/protocol';
+import type { Cheats } from './game/cheats';
+import type * as CheatsModule from './game/cheats';
+import type * as CheatPanelModule from './ui/cheatPanel';
+
+/**
+ * Dev cheats (FEATURES F13) exist only in builds with VITE_DEV_CHEATS=true: this is a compile-time
+ * constant, so the dynamic imports below (and the whole cheat module) are dropped otherwise.
+ */
+const CHEATS_BUILT = import.meta.env.VITE_DEV_CHEATS === 'true';
+type CheatMods = {
+  Cheats: typeof CheatsModule.Cheats;
+  cheatPanel: typeof CheatPanelModule.cheatPanel;
+};
+let cheatMods: CheatMods | null = null;
+async function loadCheatMods(): Promise<void> {
+  if (!CHEATS_BUILT || cheatMods) return;
+  const [c, p] = await Promise.all([import('./game/cheats'), import('./ui/cheatPanel')]);
+  cheatMods = { Cheats: c.Cheats, cheatPanel: p.cheatPanel };
+}
 
 const root = document.getElementById('app') as HTMLElement;
 /** Dev server, or the `--mode perf` production build used by the Playwright perf runs. */
@@ -83,6 +103,7 @@ const state = {
   store: null as IndexedDbAuditStore | null,
   /** An audit resumed after a page reload (IndexedDB). */
   resumer: null as AuditResumer | null,
+  cheats: null as Cheats | null,
   input: new InputProxy(),
   kbm: null as KeyboardMouseInput | null,
   tickLog: ENV.LOG_TICKS ? new MemoryTickLog() : null,
@@ -103,6 +124,10 @@ if (ENV.SHOW_DEBUG || automation) {
     __zkd: {
       stats: () => state.stats.summary(),
       resetStats: () => state.stats.reset(),
+      /** Dev cheat builds only: switch a cheat exactly like the F9 drawer does. */
+      cheat: (c: CheatName, on: boolean) => toggleCheat(c, on),
+      /** VITE_LOG_TICKS builds: this player's own tick log (stays in the browser). */
+      tickLog: () => state.tickLog?.lines ?? null,
       game: () => state.game,
       proof: () => {
         const r = state.resumer;
@@ -184,9 +209,14 @@ function showLanding(): void {
       initialName: session.name ?? '',
       versionError: state.versionError,
       onFindMatch: (name) => void findMatch(name),
+      onCreateRoom: (name, enforcement) => void findMatch(name, { create: enforcement }),
+      onJoinRoom: (name, code) => void findMatch(name, { join: code }),
     }),
   );
-  if (botSeed !== null) void findMatch(`bot_${botSeed}_${Math.floor(Math.random() * 1000)}`);
+  // `&manual=1`: the bot plays, but the lobby (queue / private room) is driven through the UI
+  if (botSeed !== null && !params.has('manual')) {
+    void findMatch(`bot_${botSeed}_${Math.floor(Math.random() * 1000)}`);
+  }
 }
 
 function variantMeta(id: string): VariantMeta | null {
@@ -205,7 +235,10 @@ function preload(id: string): Promise<{ wasm: ArrayBuffer; zkey: ArrayBuffer }> 
   return promise;
 }
 
-async function findMatch(name: string): Promise<void> {
+/** Queue (default), or a private room: create one with an enforcement, or join one by code. */
+type MatchWay = { create: 'observe' | 'strict' } | { join: string } | null;
+
+async function findMatch(name: string, way: MatchWay = null): Promise<void> {
   try {
     let token = session.name === name ? session.token : null;
     if (!token) {
@@ -219,6 +252,9 @@ async function findMatch(name: string): Promise<void> {
       now: () => performance.now(),
       constantsHash: state.hash,
       log: state.tickLog ?? undefined,
+      tamper: CHEATS_BUILT
+        ? (ctx, s, prev, input) => (state.cheats ? state.cheats.apply(ctx, s, prev, input) : s)
+        : undefined,
     });
     state.net = net;
     state.game = game;
@@ -236,6 +272,27 @@ async function findMatch(name: string): Promise<void> {
     }
     if (state.info) state.preload = null; // re-check the cache for every match (cheap when cached)
     if (state.info) void preload(state.info.active);
+    if (way) {
+      // private room (F3): the creator gets a code from REST, then BOTH players send room_join
+      let code: string;
+      if ('create' in way) {
+        try {
+          code = (await api.createRoom(token, way.create)).roomCode;
+        } catch (e) {
+          toast(e instanceof ApiError ? e.message : 'Could not create the room.');
+          return showLanding();
+        }
+      } else code = way.join;
+      const q = roomScreen(
+        code,
+        'create' in way,
+        () => showLanding(),
+        () => state.loadProgress,
+      );
+      mount(q.el, q.dispose);
+      net.send({ t: 'room_join', roomCode: code });
+      return;
+    }
     const q = queueScreen(
       () => {
         net.send({ t: 'queue_leave' });
@@ -298,6 +355,7 @@ function onServer(m: ServerMessage, myName: string): void {
   game.handle(m);
   switch (m.t) {
     case 'match_found': {
+      state.cheats = cheatMods ? new cheatMods.Cheats(m.playerIndex) : null;
       state.names = m.playerIndex === 0 ? [myName, m.opponentName] : [m.opponentName, myName];
       const v = variantMeta(m.variant);
       const art = preload(m.variant);
@@ -345,14 +403,28 @@ function onServer(m: ServerMessage, myName: string): void {
       if (m.code === 'VERSION_MISMATCH')
         state.versionError = 'Client and server versions differ. Refresh.';
       toast(m.message);
+      // a failed room_join (unknown / expired / full room): back to the landing page
+      if (m.code === 'ROOM_NOT_FOUND' || m.code === 'ROOM_FULL') showLanding();
       break;
     default:
       break;
   }
 }
 
+/** F9 drawer / dev hook: switch a cheat locally and tell the server (cheat_events, cheat_flag). */
+function toggleCheat(c: CheatName, on: boolean): void {
+  const game = state.game;
+  if (!state.cheats || !game) return;
+  state.cheats.set(c, on);
+  state.net?.send({ t: 'cheat_toggle', cheat: c, enabled: on, tick: Math.max(0, game.tick + 1) });
+}
+
 function showMatch(): void {
   const game = state.game as GameSession;
+  const drawer =
+    cheatMods && state.cheats
+      ? cheatMods.cheatPanel(state.cheats, (c, on) => toggleCheat(c, on))
+      : null;
   const ms = matchScreen({
     game,
     names: state.names,
@@ -363,8 +435,12 @@ function showMatch(): void {
     onForfeit: () => state.net?.send({ t: 'forfeit' }),
     proof: state.proof,
     afterUpdate: () => state.proof?.poll(),
+    cheatDrawer: drawer?.el ?? null,
   });
-  mount(ms.el, ms.dispose);
+  mount(ms.el, () => {
+    ms.dispose();
+    drawer?.dispose();
+  });
   if (botSeed !== null) {
     state.input.inner = new BotInput(botSeed, botAccuracy, Number(params.get('miss')) || 0);
     // dev-only: `&stopAfter=<s>` forfeits after that much play — a match of a fixed length
@@ -480,6 +556,7 @@ async function boot(): Promise<void> {
   } catch {
     state.versionError = `Cannot reach the server at ${ENV.API_URL}.`;
   }
+  await loadCheatMods();
   state.store = await IndexedDbAuditStore.open();
   if (!state.versionError) await resumeAudit();
   route();

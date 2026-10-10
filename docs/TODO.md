@@ -58,12 +58,15 @@ Design changed before coding (CHANGELOG "Phase 3 design change"): commit every w
 - [x] Follow-ups: per-player audit status, AUDIT_TIMEOUT_MIN 60, audit survives reloads (IndexedDB + resume, e2e test), production perf build, Node vs Chrome investigated
 - [x] **Exit check:** clean 3-minute match — all challenges valid, full audit `audited_clean`; frame time p95 < 20 ms while proving; scripted cheater never `audited_clean`; frame inspector clean ✅ (CHANGELOG Phase 3; worst case: both players on one laptop)
 
-## Phase 4 — Cheats & demo (Week 6) — P0
-- [ ] Cheat module behind `VITE_DEV_CHEATS` / `DEV_CHEATS`
-- [ ] Speedhack, rapid-fire, infinite ammo, snap-aim, smooth-aim
-- [ ] `cheat_events` table, `cheat_flag` broadcast, `CHEAT` tag in UI
-- [ ] Private rooms with enforcement choice
-- [ ] **Exit check:** E2E-2 and E2E-3 pass
+## Phase 4 — Cheats, private rooms & the detection experiment (Week 6) — P0
+- [x] Audit policy gap: winner's audit incomplete → result `unverified` (migration 004, results stamp, docs)
+- [x] Cheat module behind `VITE_DEV_CHEATS` / `DEV_CHEATS` (dynamic import; absent from builds without the flag)
+- [x] Speedhack, rapid-fire, infinite ammo, snap-aim, smooth-aim (F9 drawer)
+- [x] `cheat_events` table, `cheat_flag` broadcast, `CHEAT` tag in UI; live detection latency
+- [x] Private rooms with enforcement choice (create/join by code, creator joins too)
+- [x] Detection experiment: `npm run exp:detect` (Node matrix: 4 cheats × m ∈ {1,5,20} × 10 + smooth-aim control × 10), `npm run exp:browser` (one live run per cheat), `detection_runs`, `bench/out/detection.csv`
+- [x] Tests: E2E-2, E2E-3 (`npm run e2e:cheats`), winner closes the tab during the audit → `unverified` (integration)
+- [x] **Exit check:** rule-breaking cheats 124/124 `audited_failed`; smooth-aim 11/11 `audited_clean`; private rooms in two browser windows; frame inspector clean. Live catch vs 1 − (1 − r)^m: matches for m ≥ 5, under-predicts m = 1 (85 % observed vs 55 %; scheduler-aware 81 %) — reported (CHANGELOG Phase 4)
 
 ## Phase 5 — Benchmarks (Week 7) — P0
 - [ ] Build all 6 variants (groth16/plonk × 30/60/120)
@@ -97,7 +100,7 @@ Design changed before coding (CHANGELOG "Phase 3 design change"): commit every w
 - [ ] Match history: `GET /api/matches`, "My matches" list (F16, Flow 8)
 
 ## Known risks / open questions
-- [x] Browser Groth16 proving time measured (Phase 3 Step 1): N=60 prove p50 1.58 s (1.6× real time), N=30 1.01 s (2.0×) in Chrome on the dev laptop → commit/challenge/audit design
+- [x] Browser Groth16 proving time measured (Phase 3 Step 1): N=60 prove p50 1.42 s (1.42× real time), N=30 0.89 s (1.78×) in Chrome on the dev laptop, AC power → commit/challenge/audit design
 - [x] snarkjs worker threads vs frame time: no effect measured (12 threads = hardwareConcurrency; capping only slows proving) — default kept
 - [ ] PLONK zkey and proof sizes may be large; check download size before using PLONK for live play (benchmark-only is acceptable)
 - [ ] Confirm current official ptau download URL and checksum at setup

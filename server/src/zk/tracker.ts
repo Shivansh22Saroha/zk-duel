@@ -41,6 +41,8 @@ export interface WindowRow {
   proofBytes: number | null;
   receivedAt: number | null;
   proofJson: string | null;
+  /** Epoch ms of the decision (null while committed). */
+  decidedAt: number | null;
 }
 
 export interface PlayerAuditMetrics {
@@ -53,12 +55,24 @@ export interface PlayerAuditMetrics {
   counts: { valid: number; failed: number; unaudited: number; chainBroken: number };
   /** This player's own audit result (null: the player had no windows). */
   auditStatus: AuditStatus | null;
+  /**
+   * Live detection latency, from the player's first cheat activation (cheat_events) to the first
+   * failed challenge at or after it: windows (in window order across rounds) and ms. Null when no
+   * cheat was switched on, or no challenge failed during play.
+   */
+  detectionLatencyWindows: number | null;
+  detectionLatencyMs: number | null;
 }
+
+/** What the audit says about the recorded result (the result itself is never rewritten). */
+export type ResultVerdict = 'verified' | 'overturned' | 'unverified';
 
 export interface AuditSummary {
   matchId: string;
   auditStatus: AuditStatus | null;
   overturned: boolean;
+  /** null: no winner, or no windows at all. */
+  resultVerdict: ResultVerdict | null;
   endedAt: number;
   players: [PlayerAuditMetrics, PlayerAuditMetrics];
 }
@@ -115,6 +129,7 @@ interface Slot {
   verifying: boolean;
   decidedPhase: 'live' | 'audit' | null;
   decidedAt: number | null;
+  decidedEpoch: number | null;
   failReason: string | null;
   proveMs: number | null;
   verifyMs: number | null;
@@ -361,6 +376,7 @@ export class ProofTracker {
         verifying: false,
         decidedPhase: null,
         decidedAt: null,
+        decidedEpoch: null,
         failReason: null,
         proveMs: null,
         verifyMs: null,
@@ -425,6 +441,7 @@ export class ProofTracker {
     if (status !== 'committed') {
       s.decidedPhase = this.auditing ? 'audit' : 'live';
       s.decidedAt = this.d.now();
+      s.decidedEpoch = this.d.epoch();
     }
     const c = this.outstanding[s.p];
     if (c && c.slot === s && status !== 'committed') this.outstanding[s.p] = null;
@@ -467,6 +484,7 @@ export class ProofTracker {
       proofBytes: s.proofBytes,
       receivedAt: s.receivedAt,
       proofJson: s.proofJson,
+      decidedAt: s.decidedEpoch,
     });
   }
 
@@ -509,6 +527,14 @@ export class ProofTracker {
             ? 'audit_incomplete'
             : 'audited_clean',
       overturned: this.winner !== null && players[this.winner].counts.failed > 0,
+      resultVerdict:
+        !any || this.winner === null
+          ? null
+          : players[this.winner].auditStatus === 'audited_failed'
+            ? 'overturned'
+            : players[this.winner].auditStatus === 'audited_clean'
+              ? 'verified'
+              : 'unverified',
       endedAt: this.d.epoch(),
       players,
     };
@@ -526,6 +552,7 @@ export class ProofTracker {
         matchId: this.o.matchId,
         auditStatus: summary.auditStatus,
         overturned: summary.overturned,
+        resultVerdict: summary.resultVerdict,
         players: counts,
       };
       this.d.send(0, msg);
@@ -554,6 +581,28 @@ export class ProofTracker {
       }
     }
     const issued = this.challengesIssued[p];
+    // live detection latency (Phase 4): first cheat activation → first failed challenge after it
+    let detectionLatencyWindows: number | null = null;
+    let detectionLatencyMs: number | null = null;
+    const act = this.cheatActivation[p];
+    if (act) {
+      const order = [...this.slots.values()]
+        .filter((s) => s.p === p && s.endedAt !== null)
+        .sort((a, b) => a.roundNo - b.roundNo || a.k - b.k);
+      const from = order.findIndex(
+        (s) => s.roundNo > act.roundNo || (s.roundNo === act.roundNo && s.k >= act.windowIndex),
+      );
+      if (from >= 0) {
+        const caught = order
+          .slice(from)
+          .filter((s) => s.challenged && s.decidedPhase === 'live' && isFailure(s.status))
+          .sort((a, b) => (a.decidedEpoch ?? 0) - (b.decidedEpoch ?? 0))[0];
+        if (caught) {
+          detectionLatencyWindows = order.indexOf(caught) - from;
+          detectionLatencyMs = (caught.decidedEpoch ?? act.epoch) - act.epoch;
+        }
+      }
+    }
     return {
       windows,
       windowsCommitted,
@@ -572,6 +621,18 @@ export class ProofTracker {
             : counts.unaudited > 0 || counts.chainBroken > 0
               ? 'audit_incomplete'
               : 'audited_clean',
+      detectionLatencyWindows,
+      detectionLatencyMs,
     };
   }
+
+  /** Phase 4: a cheat was switched on (first activation per player counts for the latency). */
+  cheatActivated(p: PlayerIndex, roundNo: number, windowIndex: number, epoch: number): void {
+    this.cheatActivation[p] ??= { roundNo, windowIndex, epoch };
+  }
+
+  private readonly cheatActivation: [
+    { roundNo: number; windowIndex: number; epoch: number } | undefined,
+    { roundNo: number; windowIndex: number; epoch: number } | undefined,
+  ] = [undefined, undefined];
 }

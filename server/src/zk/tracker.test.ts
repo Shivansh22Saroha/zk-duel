@@ -373,6 +373,65 @@ describe('ProofTracker', () => {
     }
   });
 
+  it("result verdict: verified / overturned / unverified follows the WINNER's own audit", async () => {
+    // winner p1 proves everything, loser p0 leaves → verified (loser incomplete does not matter)
+    const v = setup();
+    v.endWindow(1, 0);
+    v.tr.startAudit(1);
+    await v.tr.proof(1, await v.proofFor(1, 1, 0));
+    v.advance(60_000);
+    v.tr.tick(null);
+    expect(v.audit()).toMatchObject({ auditStatus: 'audit_incomplete', resultVerdict: 'verified' });
+    // winner p0 closes the tab during the audit → unverified (not overturned)
+    const u = setup();
+    u.endWindow(1, 0);
+    u.tr.startAudit(0);
+    await u.tr.proof(1, await u.proofFor(1, 1, 0));
+    u.advance(60_000);
+    u.tr.tick(null);
+    expect(u.audit()).toMatchObject({ resultVerdict: 'unverified', overturned: false });
+    expect(u.inbox.at(-1)).toMatchObject({ t: 'audit_end', resultVerdict: 'unverified' });
+    // winner fails → overturned
+    const o = setup();
+    o.endWindow(1, 0);
+    o.tr.startAudit(0);
+    o.tr.proofFailed(0, {
+      t: 'proof_failed',
+      matchId: UUID,
+      roundNo: 1,
+      windowIndex: 0,
+      reason: '',
+    });
+    await o.tr.proof(1, await o.proofFor(1, 1, 0));
+    o.tr.tick(null);
+    expect(o.audit()).toMatchObject({ resultVerdict: 'overturned', overturned: true });
+  });
+
+  it('live detection latency: from the first cheat activation to the first failed challenge', async () => {
+    const t = setup({ random: () => 0 });
+    t.endWindow(1, 0);
+    t.tr.tick(1); // challenge w0 (before the cheat)
+    await t.tr.proof(0, await t.proofFor(0, 1, 0));
+    t.tr.cheatActivated(0, 1, 1, 1_700_000_000_000 + 100);
+    for (let k = 1; k <= 3; k++) t.endWindow(1, k);
+    t.advance(900);
+    t.tr.tick(1); // pool = w1..w3 for p0; random 0 → w1
+    t.tr.proofFailed(0, {
+      t: 'proof_failed',
+      matchId: UUID,
+      roundNo: 1,
+      windowIndex: 1,
+      reason: 'Assert Failed',
+    });
+    t.tr.startAudit(1);
+    t.tr.tick(null);
+    t.advance(60_000);
+    t.tr.tick(null);
+    const a = t.audit() as AuditSummary;
+    expect(a.players[0]).toMatchObject({ detectionLatencyWindows: 0, detectionLatencyMs: 800 });
+    expect(a.players[1]).toMatchObject({ detectionLatencyWindows: null });
+  });
+
   it('an outstanding challenge at match_end keeps its deadline into the audit', async () => {
     const t = setup();
     t.endWindow(1, 0);

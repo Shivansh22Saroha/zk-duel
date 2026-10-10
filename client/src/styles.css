@@ -489,3 +489,55 @@ dialog::backdrop {
   flex-wrap: wrap;
   gap: 3px;
 }
+.overturned.unverified {
+  border-color: var(--timeout);
+  color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------------- dev cheats (F13) */
+.cheat-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 280px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  padding: 16px;
+  overflow-y: auto;
+  z-index: 5;
+}
+.cheat-drawer h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.dev-badge {
+  font: 600 11px var(--mono);
+  background: var(--invalid);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.cheat-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+}
+.cheat-tag {
+  font: 600 11px var(--mono);
+  color: var(--invalid);
+  white-space: nowrap;
+}
+
+.room-code {
+  font-size: 32px;
+  letter-spacing: 0.15em;
+}
+.rooms summary {
+  cursor: pointer;
+  color: var(--text-muted);
+}
+.rooms > * + * {
+  margin-top: 8px;
+}

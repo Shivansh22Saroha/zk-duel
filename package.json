@@ -42,7 +42,10 @@
     "perf:prove": "tsx client/scripts/perf-prove.ts",
     "perf:match": "tsx client/scripts/perf-match.ts",
     "perf:serve": "npm run build:perf -w client && concurrently -k -n server,client -c blue,magenta \"npm run start -w server\" \"npm run preview -w client\"",
-    "e2e:audit-reload": "tsx client/scripts/e2e-audit-reload.ts"
+    "e2e:audit-reload": "tsx client/scripts/e2e-audit-reload.ts",
+    "exp:detect": "tsx server/scripts/exp-detect.ts",
+    "e2e:cheats": "tsx client/scripts/e2e-cheats.ts",
+    "exp:browser": "tsx client/scripts/exp-browser.ts"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

@@ -101,6 +101,23 @@ The client downloads the proving key (≈ 35 MB for N = 60) while you wait in th
 
 Generate bot matches with full (public + private) tick logs for offline circuit tests: `npm run bots -- --matches 3` (server must be running).
 
+## Live cheat demo (two browser windows, one machine)
+
+Prerequisites: `server\.env` has `DEV_CHEATS=true`, `client\.env` has `VITE_DEV_CHEATS=true` (both are in the `.env.example` files). Laptop on AC power.
+
+```bat
+:: terminal 1 — production client build + server (no hot reload)
+npm run perf:serve
+```
+
+1. Open `http://localhost:5173` in two Chrome windows side by side (both visible).
+2. Window A: enter a name → **Private Room ▾** → choose **strict** → **Create room**. Note the 6-letter code.
+3. Window B: enter a name → **Private Room ▾** → type the code → **Join**. Both windows load the proving key and the countdown starts.
+4. In window A, click the arena (pointer lock), play a few seconds, then press **F9** and tick **Speedhack**. Both windows show `CHEAT: speedhack` under A's name.
+5. Watch the proof strips: cells turn ◌ when challenged. The first challenged cheating window fails (✕ `unprovable`) and, in strict mode, the match ends with *"Spot-check failed … Match forfeited."*
+6. Smooth-aim demo: new room (strict) → in A press F9 → **Smooth-aimbot**. Every spot-check stays ✓, the match never forfeits, and after the match the audit ends **AUDITED CLEAN** — the input-provenance limitation.
+7. Observe-mode demo: create the room with **observe** instead; cheat for a few seconds, switch it off, finish the match. Cheating windows that were not spot-checked are caught by the audit: **AUDIT FAILED** (and **OVERTURNED** if the cheater won).
+
 ## Run benchmarks
 
 ```bat
@@ -125,6 +142,9 @@ Results are written to the `benchmark_results` table and exported to `bench/out/
 | `npm run perf:prove -- --variants groth16_60,groth16_30 --threads default,4` | Browser proving measurement: real windows in the Proof Worker + frame time (dev page `/bench.html`; needs `npm run dev -w client`) |
 | `npm run perf:serve` | Production `--mode perf` client build + `vite preview` + server without watch (for perf/e2e runs) |
 | `npm run perf:match -- --acc 1800 --stop-after 180` | Phase 3 exit check in Chrome: two bot-driven windows play a 3-minute match through spot-checks and the full audit (needs `npm run perf:serve`) |
+| `npm run e2e:cheats` | Phase 4 browser E2E: private room via the UI, E2E-2 (strict + speedhack → forfeit), E2E-3 (smooth-aim → `audited_clean`), frame inspector (needs `npm run perf:serve`) |
+| `npm run exp:detect -- --reps 10` | Detection experiment with Node bots (real N=60 circuit): cheats × m ∈ {1,5,20} + smooth-aim control → `detection_runs`, `bench/out/detection.csv` |
+| `npm run exp:browser` | One live browser detection run per cheat (needs `npm run perf:serve`) |
 | `npm run e2e:audit-reload` | Reload a page mid-audit; the audit must resume from IndexedDB and end `audited_clean` (needs `npm run perf:serve`) |
 | `npx tsx server/scripts/prove-profile.ts --variant groth16_60` | Per-step timing of one snarkjs prove in Node |
 | `npx tsx server/scripts/zk-node-bench.ts --variant groth16_60` | Node proving (bot worker) + VerifierPool verify times, idle machine |

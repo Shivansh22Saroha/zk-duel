@@ -97,11 +97,14 @@ Feature-by-feature behaviour. Constants refer to `shared/constants.ts` (PRD §5)
 | Snap-aim | Sets angle straight at opponent each tick | No proof when turn > `MAX_TURN` → `unprovable` / `timeout` / `unaudited` |
 | Smooth-aim | Turns toward opponent at ≤ `MAX_TURN` | **Valid** proofs — demonstrates the limitation |
 
-- Toggle state broadcast via `cheat_flag`; both players see a `CHEAT` tag.
+- Cheats rewrite the player's real state after the honest tick (`client/src/game/cheats.ts`, shared with the experiment bots); the client still commits every window honestly — a cheated window simply has no witness when it is challenged or audited (`proof_failed` → `unprovable`). Snap-aim snaps to the exact angle every tick (illegal whenever the needed turn exceeds `MAX_TURN`); smooth-aim turns toward the opponent at ≤ `MAX_TURN`.
+- F9 opens the drawer; the module and drawer are dynamically imported behind the compile-time `VITE_DEV_CHEATS` flag, so builds without it contain no cheat code.
+- Toggle state broadcast via `cheat_flag`; both players see a `CHEAT: …` tag under the name. Each toggle is a `cheat_events` row (window index, time).
+- **Detection experiment** (`npm run exp:detect`, `npm run exp:browser`): see CHANGELOG Phase 4 — cheats × cheat duration m, live catch rate vs 1 − (1 − r)^m, audit catch, latency.
 - **AC:** a match with a rule-breaking cheat is never `audited_clean` (caught by a challenge live or by the audit; the live detection latency is reported); smooth-aim yields valid results.
 
 ## F14. Results screen
-- Data from `GET /api/matches/:id`; timeline of all windows; per-player stats; cheat events with "windows to detect"; audit progress ("Auditing… 23/150 windows") while the audit runs, then the audit status and an `OVERTURNED` banner when the winner failed; research metrics (challenge count, rate r, detection latency, audit duration).
+- Data from `GET /api/matches/:id`; timeline of all windows; per-player stats; cheat events with "windows to detect"; audit progress ("Auditing… 23/150 windows") while the audit runs, then the audit status, an `OVERTURNED` stamp when the winner failed and an `UNVERIFIED` stamp when the winner's audit did not finish (result stands); research metrics (challenge count, rate r, detection latency, audit duration).
 - **AC:** numbers match the DB exactly; download produces valid JSON with no hidden state.
 
 ## F15. Benchmark mode

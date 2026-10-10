@@ -137,19 +137,59 @@ export class Repo implements ProofStore {
       .prepare(
         `INSERT INTO proof_windows (match_id, player_index, round_no, window_index, start_tick, status,
            digest, challenged, challenged_at, decided_phase, fail_reason, commit_in, commit_out,
-           prove_ms, verify_ms, proof_bytes, received_at, proof_json)
+           prove_ms, verify_ms, proof_bytes, received_at, proof_json, decided_at)
          VALUES (@matchId, @playerIndex, @roundNo, @windowIndex, @startTick, @status, @digest,
            @challenged, @challengedAt, @decidedPhase, @failReason, @commitIn, @commitOut, @proveMs,
-           @verifyMs, @proofBytes, @receivedAt, @proofJson)
+           @verifyMs, @proofBytes, @receivedAt, @proofJson, @decidedAt)
          ON CONFLICT (match_id, player_index, round_no, window_index) DO UPDATE SET
            status = excluded.status, digest = excluded.digest, challenged = excluded.challenged,
            challenged_at = excluded.challenged_at, decided_phase = excluded.decided_phase,
            fail_reason = excluded.fail_reason, commit_in = excluded.commit_in,
            commit_out = excluded.commit_out, prove_ms = excluded.prove_ms,
            verify_ms = excluded.verify_ms, proof_bytes = excluded.proof_bytes,
-           received_at = excluded.received_at, proof_json = excluded.proof_json`,
+           received_at = excluded.received_at, proof_json = excluded.proof_json,
+           decided_at = excluded.decided_at`,
       )
       .run({ ...r, challenged: r.challenged ? 1 : 0 });
+  }
+
+  addCheatEvent(e: {
+    matchId: string;
+    playerIndex: PlayerIndex;
+    cheat: string;
+    enabled: boolean;
+    roundNo: number;
+    tick: number;
+    windowIndex: number;
+    createdAt: number;
+  }): void {
+    this.db
+      .prepare(
+        `INSERT INTO cheat_events (match_id, player_index, cheat, enabled, round_no, tick, window_index, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        e.matchId,
+        e.playerIndex,
+        e.cheat,
+        e.enabled ? 1 : 0,
+        e.roundNo,
+        e.tick,
+        e.windowIndex,
+        e.createdAt,
+      );
+  }
+
+  getCheatEvents(matchId: string): CheatEventRow[] {
+    return (
+      this.db
+        .prepare(
+          `SELECT player_index AS playerIndex, cheat, enabled, round_no AS roundNo, tick,
+                  window_index AS windowIndex, created_at AS createdAt
+             FROM cheat_events WHERE match_id = ? ORDER BY id`,
+        )
+        .all(matchId) as (Omit<CheatEventRow, 'enabled'> & { enabled: number })[]
+    ).map((r) => ({ ...r, enabled: r.enabled === 1 }));
   }
 
   setAuditing(matchId: string): void {
@@ -160,12 +200,13 @@ export class Repo implements ProofStore {
     this.db.transaction(() => {
       this.db
         .prepare(
-          'UPDATE matches SET audit_status = ?, overturned = ?, audit_ended_at = ? WHERE id = ?',
+          'UPDATE matches SET audit_status = ?, overturned = ?, result_verdict = ?, audit_ended_at = ? WHERE id = ?',
         )
-        .run(a.auditStatus, a.overturned ? 1 : 0, a.endedAt, a.matchId);
+        .run(a.auditStatus, a.overturned ? 1 : 0, a.resultVerdict, a.endedAt, a.matchId);
       const up = this.db.prepare(
         `UPDATE match_players SET windows = ?, windows_committed = ?, challenges = ?,
-           challenges_passed = ?, challenge_rate = ?, audit_ms = ?, audit_status = ?
+           challenges_passed = ?, challenge_rate = ?, audit_ms = ?, audit_status = ?,
+           detection_latency_windows = ?, detection_latency_ms = ?
          WHERE match_id = ? AND player_index = ?`,
       );
       a.players.forEach((m, i) =>
@@ -177,6 +218,8 @@ export class Repo implements ProofStore {
           m.challengeRate,
           m.auditMs,
           m.auditStatus,
+          m.detectionLatencyWindows,
+          m.detectionLatencyMs,
           a.matchId,
           i,
         ),
@@ -237,7 +280,7 @@ export class Repo implements ProofStore {
                 mp.windows_committed AS windowsCommitted, mp.challenges,
                 mp.challenges_passed AS challengesPassed, mp.challenge_rate AS challengeRate,
                 mp.detection_latency_windows AS detectionLatencyWindows, mp.audit_ms AS auditMs,
-                mp.audit_status AS auditStatus
+                mp.audit_status AS auditStatus, mp.detection_latency_ms AS detectionLatencyMs
            FROM match_players mp JOIN players p ON p.id = mp.player_id
           WHERE mp.match_id = ? ORDER BY mp.player_index`,
       )
@@ -262,8 +305,10 @@ export class Repo implements ProofStore {
       totalTicks: m.total_ticks,
       auditStatus: m.audit_status,
       overturned: m.overturned === 1,
+      resultVerdict: m.result_verdict,
       auditEndedAt: m.audit_ended_at,
       players: players.map((p) => ({ ...p, proofs: this.windowStats(matchId, p.playerIndex) })),
+      cheatEvents: this.getCheatEvents(matchId),
       rounds,
     };
   }
@@ -283,7 +328,18 @@ interface MatchRow {
   total_ticks: number;
   audit_status: MatchSummary['auditStatus'];
   overturned: number;
+  result_verdict: MatchSummary['resultVerdict'];
   audit_ended_at: number | null;
+}
+
+export interface CheatEventRow {
+  playerIndex: number;
+  cheat: string;
+  enabled: boolean;
+  roundNo: number;
+  tick: number;
+  windowIndex: number;
+  createdAt: number;
 }
 
 export interface WindowListRow {
@@ -321,6 +377,7 @@ export interface MatchSummary {
   totalTicks: number;
   auditStatus: 'auditing' | 'audited_clean' | 'audited_failed' | 'audit_incomplete' | null;
   overturned: boolean;
+  resultVerdict: 'verified' | 'overturned' | 'unverified' | null;
   auditEndedAt: number | null;
   players: {
     playerIndex: number;
@@ -337,8 +394,10 @@ export interface MatchSummary {
     detectionLatencyWindows: number | null;
     auditMs: number | null;
     auditStatus: 'audited_clean' | 'audited_failed' | 'audit_incomplete' | null;
+    detectionLatencyMs: number | null;
     proofs: WindowStats;
   }[];
+  cheatEvents: CheatEventRow[];
   rounds: {
     roundNo: number;
     startTick: number;

@@ -9,7 +9,75 @@ Every entry that changes the circuit must state: new constraint count per varian
 ## [Unreleased]
 
 ### Planned (see TODO.md)
-- Phase 3: commit / challenge / audit (design change below).
+- Phase 5: benchmarks (all 6 variants, Node + browser runner, dashboard, CSV).
+
+### Phase 4 — Cheats, private rooms and the detection experiment — 2026-10-10
+#### Added
+- **Result verdict** (audit policy gap): `matches.result_verdict` = `verified` (winner's own audit clean) / `overturned` (winner failed) / `unverified` (winner's audit incomplete — e.g. the winner closed the tab during the audit; the result is not changed) / NULL (no winner). In `audit_end.resultVerdict`, `GET /api/matches/:id`, and as an `UNVERIFIED` stamp on the results screen. Migration `004_phase4`.
+- **Dev cheat module** (FEATURES F13): `client/src/game/cheats.ts` (speedhack ×2 step, rapid-fire ignores cooldown, infinite ammo never decrements, snap-aim exact angle, smooth-aim ≤ `MAX_TURN`), shared by the browser and the experiment bots; F9 drawer (280 px, DEV badge); module + drawer dynamically imported behind the compile-time `VITE_DEV_CHEATS` flag (verified: a `VITE_DEV_CHEATS=false` build contains no cheat code); server accepts `cheat_toggle` only with `DEV_CHEATS=true` → `cheat_events` row (window index, epoch) + `cheat_flag` broadcast → `CHEAT: …` tag under the player's name on both screens. Live detection latency (`match_players.detection_latency_windows/_ms`): first cheat activation → first failed challenge after it.
+- **Private rooms** (F3): `POST /api/rooms` (creator picks observe/strict; 6-char code without 0/O/1/I; 10 min expiry), both players `room_join`; one seat reserved for the creator (`ROOM_FULL` for a second outsider), `ROOM_NOT_FOUND` for unknown/expired/used codes; match mode `private` with the room's enforcement and `room_code`. Landing "Private Room ▾" (create with enforcement / join by code), room screen with the code + Copy.
+- **Detection experiment**: `npm run exp:detect` (Node bots, real groth16_60, provers in worker_threads, 6 threads each), `npm run exp:browser` (one live run per cheat in two Chrome windows, production build), `detection_runs` table, `bench/out/detection.csv`, `server/scripts/detection-report.ts` (matrix + scheduler-aware prediction).
+- **Tests**: `cheats.test.ts` (each rule-breaking cheat is rejected by the circuit mirror, smooth-aim legal), tracker verdict + latency tests, integration `phase4.test.ts` (private rooms, cheat events, winner closes the tab during the audit → `unverified`), browser `npm run e2e:cheats` (private room through the UI in two windows, E2E-2, E2E-3, frame inspector).
+
+#### Detection experiment — results (AC power, Intel Core 5 210H 8C/12T, real groth16_60 circuit)
+**Node matrix** (`npm run exp:detect -- --reps 10 --m 1,5,20`; 130 matches, 100 min): two Node bots in one process with the server, each proving in a worker_thread with 6 threads (both provers share the CPU — the same worst case as two browsers on one laptop). One round per match (bots fire but always miss), cheat on from window 3 for m windows, 10 more windows, opponent forfeits, both audit. **Browser runs** (`npm run exp:browser`): one live run per cheat in two Chrome windows on one laptop, production build.
+
+| env | cheat | m | runs | m_eff (mean) | r (mean) | caught live | predicted 1−(1−r)^m_eff | scheduler-aware prediction | caught by audit | audited_failed | audited_clean | latency windows / s (mean, caught live) | anomalies |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| browser | infinite_ammo | 5 | 1 | 5.0 | 0.647 | 100 % | 99 % | 100 % | 0 % | 1/1 | 0/1 | 1.0 / 3.9 | 0 |
+| browser | rapid_fire | 5 | 1 | 3.0 | 0.471 | 100 % | 85 % | 99 % | 100 % | 1/1 | 0/1 | 0.0 / 3.9 | 0 |
+| browser | smooth_aim | 20 | 1 | 0.0 | 0.344 | 0 % | 0 % | 0 % | 0 % | 0/1 | 1/1 | – / – | 0 |
+| browser | snap_aim | 5 | 1 | 2.0 | 0.471 | 100 % | 72 % | 87 % | 0 % | 1/1 | 0/1 | 0.0 / 9.5 | 0 |
+| browser | speedhack | 5 | 1 | 6.0 | 0.588 | 100 % | 100 % | 100 % | 100 % | 1/1 | 0/1 | 1.0 / 4.2 | 0 |
+| node | infinite_ammo | 1 | 10 | 1.0 | 0.564 | 90 % | 56 % | 83 % | 10 % | 10/10 | 0/10 | 0.0 / 4.9 | 0 |
+| node | infinite_ammo | 5 | 10 | 5.0 | 0.722 | 100 % | 100 % | 100 % | 0 % | 10/10 | 0/10 | 1.0 / 3.3 | 0 |
+| node | infinite_ammo | 20 | 10 | 20.0 | 0.848 | 100 % | 100 % | 100 % | 0 % | 10/10 | 0/10 | 1.7 / 4.1 | 0 |
+| node | rapid_fire | 1 | 10 | 1.0 | 0.564 | 90 % | 56 % | 83 % | 10 % | 10/10 | 0/10 | 0.0 / 5.1 | 0 |
+| node | rapid_fire | 5 | 10 | 3.7 | 0.639 | 100 % | 97 % | 100 % | 20 % | 10/10 | 0/10 | 0.6 / 3.7 | 0 |
+| node | rapid_fire | 20 | 10 | 13.0 | 0.824 | 100 % | 100 % | 100 % | 30 % | 10/10 | 0/10 | 1.3 / 5.1 | 0 |
+| node | smooth_aim | 20 | 10 | 0.0 | 0.486 | 0 % | 0 % | 0 % | 0 % | 0/10 | 10/10 | – / – | 0 |
+| node | snap_aim | 1 | 10 | 1.0 | 0.543 | 70 % | 54 % | 80 % | 30 % | 10/10 | 0/10 | 0.0 / 4.5 | 0 |
+| node | snap_aim | 5 | 10 | 5.0 | 0.726 | 100 % | 100 % | 100 % | 0 % | 10/10 | 0/10 | 1.1 / 3.3 | 0 |
+| node | snap_aim | 20 | 10 | 20.0 | 0.848 | 100 % | 100 % | 100 % | 0 % | 10/10 | 0/10 | 1.3 / 3.8 | 0 |
+| node | speedhack | 1 | 10 | 1.0 | 0.529 | 90 % | 53 % | 80 % | 10 % | 10/10 | 0/10 | 0.0 / 4.8 | 0 |
+| node | speedhack | 5 | 10 | 5.0 | 0.722 | 100 % | 100 % | 100 % | 0 % | 10/10 | 0/10 | 1.5 / 3.9 | 0 |
+| node | speedhack | 20 | 10 | 20.0 | 0.848 | 100 % | 100 % | 100 % | 0 % | 10/10 | 0/10 | 0.8 / 3.4 | 0 |
+
+- **Exit criteria:** every rule-breaking cheat ended `audited_failed` in **124/124** runs (120 Node + 4 browser) — caught live, by the audit, or both; smooth-aim ended `audited_clean` in **11/11** (10 Node + 1 browser). **0 anomalies**: in every run every cheater window with a rule violation (ground truth: `checkSequence` on the cheater's own tick log) failed (`unprovable`) and every other window was `valid`.
+- **Live catch vs prediction:** for m ≥ 5 the live catch rate is 100 % and both predictions are 97–100 %. For **m = 1** the observed live catch rate (pooled over the 4 cheats) is **34/40 = 85 %** (95 % CI ≈ 70–94 %), the naive **1 − (1 − r)^m predicts ≈ 55 %**, the **scheduler-aware prediction ≈ 81 %**. The naive formula underestimates single-window cheats because it assumes an independent per-window probability r; our scheduler draws uniformly among all still-unproven windows of the round, so a window that ends early stays in the pool for many draws (here: window 3 of a ~14-window round). The scheduler-aware prediction (a Monte Carlo replay of each run's real challenge draw times, `server/scripts/detection.ts` `schedulerPrediction`) matches within the binomial margin; the naive one does not for m = 1.
+- **Achieved r:** honest play ≈ 0.49 (smooth-aim control) with two Node provers; it rises while cheating (0.53–0.85) because a cheated window fails in milliseconds (witness generation aborts), so the next challenge comes sooner. Browser runs: 0.34–0.65.
+- **Live detection latency** (activation → first failed challenge; 114 live catches): **median 4.5 s, p95 8.6 s, max 10.6 s**; 0 windows after activation in 62/114, ≤ 3 windows in 113/114.
+- **m_effective < m_nominal** for rapid-fire (3.7 of 5, 13 of 20): the cheat only breaks a rule when a shot happens during the cooldown, and the magazine reloads in between. Browser snap-aim m=5 had m_eff 2 (snap every tick: only the large turns are illegal).
+
+#### Exit check — Phase 4
+| Check | Result |
+|---|---|
+| Every rule-breaking cheat ends `audited_failed` (live or audit) | ✅ 124/124 runs |
+| Smooth-aim ends `audited_clean` | ✅ 11/11 runs (and E2E-3: 13/13 spot-checks, 36/36 windows valid) |
+| Live catch rate vs 1 − (1 − r)^m | ⚠️ m ≥ 5: 100 % vs 97–100 % ✅; **m = 1: 85 % vs 55 % — outside the margin**; the scheduler-aware prediction (81 %) is within it. Reported as a finding, table above |
+| Private rooms between two browser windows | ✅ created + joined through the UI (`npm run e2e:cheats`), strict enforcement carried over |
+| Frame inspector clean | ✅ browser: 5,141 frames, keys incl. `cheat`, `enabled`, `roomCode` — no hidden key; integration suites ✅ |
+| E2E-2 strict + speedhack → forfeit | ✅ `forfeit_proof` 2.3 s after activation, banner "Spot-check failed: unprovable — round 1, window 2 …" |
+| E2E-3 smooth-aim → valid, `audited_clean` | ✅ |
+| Winner closes the tab during the audit → `unverified` | ✅ integration |
+
+Tests: `npm test` 246/246, `npm run test:int` 26/26 (Phase 1 + 3 + 4 suites), `npm run e2e:audit-reload` PASS, circomspect clean, typecheck / ESLint / Prettier clean.
+
+#### Deviations / decisions to confirm
+- **Experiment bot behaviour while cheating** (`server/scripts/exp-detect.ts`): speedhack keeps moving, rapid-fire/infinite ammo hold the trigger, **snap-aim snaps every 10 ticks and does not shoot** (a hit-scan snap would end the round in under a second and reset the challenge pool). The cheat module itself (F13, F9 drawer) snaps every tick; `Cheats.snapEveryTicks` is the only experiment knob. Bots fire but always miss (`missBy` 300) to keep the match in one round.
+- **Full matrix with Node bots** (as allowed): bots prove in worker_threads with 6 threads each; Node proves ≈ 1.2× faster than Chrome, so r is somewhat higher than with two browsers (browser runs: 0.34–0.65 vs Node 0.49–0.85).
+- **Closing the tab with an outstanding challenge** after `match_end` → that challenge times out (failure) → the winner is `overturned`, not `unverified`. Kept deliberately (otherwise a last-window cheat + leaving would only give "unverified"); `unverified` is for leaving after the live challenge was answered. SECURITY A17 updated.
+- `cheat_events` gained `created_at`; `proof_windows.decided_at`, `match_players.detection_latency_ms`, `matches.result_verdict` and `detection_runs` added (migration 004). Detection latency in windows is counted in window order from the activation window.
+- `POST /api/rooms`: 10/min per IP, `409 ALREADY_IN_MATCH` while in a match; one seat reserved for the creator.
+- Dev automation URL params (dev and `--mode perf` builds only): `&manual=1` (bot plays, lobby driven by the UI), `window.__zkd.cheat(name, on)`, `window.__zkd.tickLog()`.
+- Benchmark export of the per-match research metrics stays a Phase 5 item; the detection rows have their own CSV (`bench/out/detection.csv`, 135 rows).
+
+### Phase 3 findings (owner-approved, 2026-10-10)
+All timings are on AC power (Intel Core 5 210H, 8C/12T, Chrome 155, Node 22.23.3); they supersede every battery-era number below.
+- **Prove time vs play time (Chrome, one client):** N=60 prove p50 1,419 ms = **1.42×** the 1 s window; N=30 891 ms = **1.78×** the 0.5 s window. Proving every window live is not sustainable; Node (bot worker) is 1.1–1.2× faster than Chrome (1,187 / 795 ms).
+- **Max sustainable live challenge rate** r_max ≈ window duration / prove time (one outstanding challenge, proofs back to back): Chrome alone **≈ 0.70 at N=60** (1000 / 1419), **≈ 0.56 at N=30** (500 / 891). Measured in the worst case (two provers on one laptop, N=60): **r = 0.356** (64 challenges / 180 windows; challenge prove p50 ≈ 2.2 s → 1/2.2 ≈ 0.45 minus verify/round-trip/idle gaps).
+- **Frame time is unaffected by proving** (worker): p95 7.1 ms during the 3-minute match.
+- **Power throttling note:** on battery with the power-saving plan, proving was **≈ 3.7× slower** (Node groth16_60 4,371 ms vs 1,187 ms on AC) and Chrome capped rendering at 30 Hz (33.5 ms frames). The battery-era numbers further down (marked) are kept only as this note.
 
 ### Phase 3 — Commit, challenge & audit — 2026-10-10 (exit check passed)
 #### Added
@@ -106,7 +174,7 @@ Decided by the owner after the Phase 2 performance preview (options (a) then (d)
 - **G4 / FR-20 / §8 reworded:** "non-valid within 3 windows" is no longer a property of the system; the guarantee is "never `audited_clean`", with the live detection probability measured.
 - **Residual predictability (SECURITY A15):** the first window of a round can be the only candidate (certain challenge); windows late in a round face fewer draws. Implemented as specified; documented and measured, not fixed.
 
-#### Step 1 — browser proving measured (before the redesign was coded)
+#### Step 1 — browser proving measured (before the redesign was coded) — ⚠ power state not recorded; superseded by the AC table in "Phase 3 findings"
 Chrome 154 (Playwright, headed, tab visible), Intel Core 5 210H (8C/12T), `client/bench.html` → Proof Worker, 10 real windows from the Phase 1 fixture logs + 1 warm-up per setting, synthetic arena rendering on the main thread. All public signals equal the JS reference.
 
 | Variant | snarkjs threads | witness p50/p95 | prove p50/p95 | prove ÷ play | frame interval while proving p50/p95/max |

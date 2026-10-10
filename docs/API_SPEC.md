@@ -63,7 +63,7 @@ Revokes the session. `204`.
 
 ### `POST /api/rooms` 🔒
 Creates a private room. Request `{ "enforcement": "strict" }` (optional, default `observe`).
-Response `201 { "roomCode": "K7QX2M", "expiresAt": … }` (expires in 10 min if unused). The creator then sends WS `room_join` with this code, like the second player.
+Response `201 { "roomCode": "K7QX2M", "expiresAt": … }` (expires in 10 min if unused; `409 ALREADY_IN_MATCH` while in a match; 10/min per IP). The creator then sends WS `room_join` with this code, like the second player. One seat is reserved for the creator: a second non-creator gets `ROOM_FULL`; unknown, expired or already-started rooms give `ROOM_NOT_FOUND`. The match starts (mode `private`, the room's enforcement) when both are in.
 
 ### `GET /api/matches?limit=20&before=<ms>` 🔒 (P1 — match history, built after Phase 4)
 Current player's recent matches.
@@ -119,7 +119,7 @@ Envelope: `{ "t": "<type>", ...fields }`. Every message is validated against a z
 | `window_commit` | `roundNo`, `windowIndex`, `commitOut` | Sent once at the end of every window (when the server's `state` for the window's last tick has arrived and the local sim has reached it, or on `round_end` inside the window). `commitOut` = Poseidon4(ammo, cooldown, reloadT, saltOut) of the window's last state — a field element, nothing else. A second commit for the same window is dropped |
 | `window_proof` | `matchId`, `roundNo`, `windowIndex`, `scheme`, `proof`, `publicSignals[4]`, `proveMs` | Only for the player's **challenged** window during play, or for any still-`committed` window of `matchId` during its **audit** (after `match_end`, up to `AUDIT_TIMEOUT_MIN`). Anything else is dropped. `publicSignals` order is read from `info.json.publicSignalOrder` (circom puts outputs first, then public inputs in template declaration order) — never hard-coded |
 | `proof_failed` | `matchId`, `roundNo`, `windowIndex`, `reason` | Honest client reports that witness generation / proving threw for a challenged or audited window. Server records `unprovable` immediately. `reason` ≤ 200 chars, informational only |
-| `cheat_toggle` | `cheat`, `enabled`, `tick` | Accepted only when `DEV_CHEATS=true` |
+| `cheat_toggle` | `cheat`, `enabled`, `tick` | Accepted only when `DEV_CHEATS=true` (else `error FORBIDDEN` + strike). Recorded in `cheat_events` with the window the (clamped) tick lies in; broadcast as `cheat_flag`; the first activation anchors the player's live detection latency |
 | `ping` | `ts` | |
 | `forfeit` | — | |
 
@@ -136,7 +136,7 @@ Envelope: `{ "t": "<type>", ...fields }`. Every message is validated against a z
 | `round_end` | `roundNo`, `endTick` (last tick of the round, round-relative), `winnerIndex`, `score: [a,b]`, `pauseTicks` (= `ROUND_PAUSE_TICKS`), `initialCommit` (fresh public commitment for the new round), `prevSnapshot[4]` (receiving player's spawn, `fired = 0`, seed for the new round's first window) |
 | `challenge` | `playerIndex`, `roundNo`, `windowIndex`, `deadlineMs` (= `PROOF_DEADLINE_MS`) — broadcast to both; only the named player proves. At most one outstanding per player |
 | `proof_result` | `playerIndex`, `roundNo`, `windowIndex`, `status`, `verifyMs`, `phase: 'live' \| 'audit'` — sent for every status change, including `committed` |
-| `audit_end` | `matchId`, `auditStatus` (`audited_clean` \| `audited_failed` \| `audit_incomplete`), `overturned`, `players[2]: {auditStatus, valid, failed, unaudited, chainBroken}` (each player's own audit result) |
+| `audit_end` | `matchId`, `auditStatus` (`audited_clean` \| `audited_failed` \| `audit_incomplete`), `overturned`, `resultVerdict` (`verified` \| `overturned` \| `unverified` \| null), `players[2]: {auditStatus, valid, failed, unaudited, chainBroken}` (each player's own audit result) |
 | `resume` | `roundNo`, `nextWindowIndex`, `chainStatus: 'intact' \| 'broken'`, `committed` (window indices of the current round whose commit the server holds), `challenge` (`{roundNo, windowIndex, deadlineMs}` with the remaining time, or `null`) — sent after a reconnecting `hello`, followed by a `state` |
 | `cheat_flag` | `playerIndex`, `cheat`, `enabled` (broadcast so both see the `CHEAT` tag) |
 | `opponent_status` | `status: 'connected' \| 'reconnecting' \| 'stalled'` |
@@ -193,7 +193,7 @@ For player p, window k of round r, the server keeps one slot with the stored dig
 - `audit_incomplete` — no failure, but some window is `unaudited` or `chain_broken`;
 - `audited_clean` — every window of both players is `valid`.
 
-`overturned = 1` when the **winner** has a failure (the recorded winner, score and end reason stay as they were). Each player also gets their own audit status by the same rules over their own windows (`match_players.audit_status`): a loser whose audit fails is `audited_failed` there, without changing the result. `audit_end` is sent to both players.
+`overturned = 1` when the **winner** has a failure (the recorded winner, score and end reason stay as they were). **Result verdict** (`matches.result_verdict`, `audit_end.resultVerdict`, Phase 4): `verified` (winner's own audit clean), `overturned` (winner failed), `unverified` (winner's audit incomplete — `unaudited` or `chain_broken` windows, e.g. the winner closed the tab during the audit; the result stands), `null` (no winner). A challenge that was outstanding at `match_end` keeps its deadline: leaving before answering it is a `timeout` (a failure), not `unaudited`. Each player also gets their own audit status by the same rules over their own windows (`match_players.audit_status`): a loser whose audit fails is `audited_failed` there, without changing the result. `audit_end` is sent to both players.
 
 **Window boundaries and rounds:** ticks and windows are counted from tick 0 of each round. The window containing `endTick` is truncated to `endTick` and padded up to N ticks by repeating the snapshot at `endTick` with `fired=0` (client and server pad identically; the client re-derives its hidden state over the padding with `fired=0, reloadPress=0`). The client commits window k only once it has received the server's `state` for the window's last tick in the same round, or a `round_end` whose `endTick` lies in window k — so it never commits ticks the server later discards. Windows that start after `endTick`, or that had not ended when the match ended, do not exist.
 

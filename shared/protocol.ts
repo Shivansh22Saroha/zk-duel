@@ -321,6 +321,8 @@ export const proofResultMsg = z.object({
   phase: z.enum(['live', 'audit']),
 });
 const auditCounts = z.object({
+  /** This player's own audit result (a loser's failure is recorded without changing the result). */
+  auditStatus: z.enum(['audited_clean', 'audited_failed', 'audit_incomplete']),
   valid: z.number().int().min(0),
   failed: z.number().int().min(0),
   unaudited: z.number().int().min(0),

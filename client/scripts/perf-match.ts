@@ -25,6 +25,8 @@ const arg = (name: string, def: string): string => {
 const acc = Number(arg('acc', '400'));
 /** Seconds of play after which page 1 forfeits (fixed-length match); 0 = play to the end. */
 const stopAfter = Number(arg('stop-after', '0'));
+/** Minimum bot aim error in angle units (bots fire but never hit → the match lasts until stop-after). */
+const miss = Number(arg('miss', '0'));
 const tag = arg('tag', 'phase3-browser-match');
 
 type Zkd = {
@@ -64,7 +66,7 @@ async function main(): Promise<void> {
       if (m.type() === 'error') console.error(`[console ${seed}] ${m.text()}`);
     });
     await page.goto(
-      `${BASE}?bot=${seed}&acc=${acc}${i === 1 && stopAfter > 0 ? `&stopAfter=${stopAfter + 4}` : ''}`,
+      `${BASE}?bot=${seed}&acc=${acc}&miss=${miss}${i === 1 && stopAfter > 0 ? `&stopAfter=${stopAfter + 4}` : ''}`,
     );
     pages.push(page);
   }

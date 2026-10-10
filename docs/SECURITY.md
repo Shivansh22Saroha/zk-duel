@@ -102,6 +102,7 @@ ZK-Duel demonstrates **verifiable rule compliance over committed hidden state**.
 | Secret | Where |
 |---|---|
 | `JWT_SECRET` | `server/.env`, never committed; Docker secret in production |
+| Unproven windows' private inputs (hidden state, salts) | Only in the player's own browser: memory, and IndexedDB `zkduel-audit` so the audit survives a reload. Each window is deleted once the server decided it; the whole match once `audit_end` arrives or its audit deadline passed. Never sent anywhere |
 | `BENCH_TOKEN` | `server/.env` |
 | Phase-2 contribution entropy | Generated during `circuits:build`, discarded after; never stored |
 

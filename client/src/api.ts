@@ -1,6 +1,7 @@
 /** REST client + guest session storage (FEATURES F1: token in sessionStorage). */
 import { ENV } from './env';
 import type { VariantMeta } from './zk/artefacts';
+import type { ServerWindowRow } from './zk/auditResumer';
 
 const TOKEN_KEY = 'zkd.token';
 const NAME_KEY = 'zkd.name';
@@ -61,6 +62,7 @@ export interface MatchSummary {
     challengeRate: number | null;
     detectionLatencyWindows: number | null;
     auditMs: number | null;
+    auditStatus: 'audited_clean' | 'audited_failed' | 'audit_incomplete' | null;
     proofs: {
       byStatus: Record<string, number>;
       failed: number;
@@ -86,6 +88,12 @@ export const api = {
     }),
   match: (id: string, token: string) =>
     call<MatchSummary>(`/api/matches/${encodeURIComponent(id)}`, {}, token),
+  windows: (id: string, token: string) =>
+    call<{ windows: ServerWindowRow[] }>(
+      `/api/matches/${encodeURIComponent(id)}/windows`,
+      {},
+      token,
+    ),
 };
 
 export const session = {

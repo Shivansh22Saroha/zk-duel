@@ -81,6 +81,7 @@ Indexes: `idx_matches_started (started_at DESC)`, `idx_matches_status (status)`.
 | `challenge_rate` | REAL | NULL — r = challenges / windows_committed |
 | `detection_latency_windows` | INTEGER | NULL — windows from the first cheat activation to the first failed challenge (needs `cheat_events`, Phase 4) |
 | `audit_ms` | INTEGER | NULL — `match_end` → this player's last audit result (or the audit close) |
+| `audit_status` | TEXT | NULL, CHECK IN ('audited_clean','audited_failed','audit_incomplete') — this player's own audit result (migration 003). A loser's failure is recorded here; the match result is not changed and `overturned` stays 0 |
 
 PK `(match_id, player_index)`. Unique `(match_id, player_id)`. Index `idx_mp_player (player_id)`.
 
@@ -212,7 +213,7 @@ CREATE TABLE proof_windows (
 -- remaining tables follow §2 exactly
 ```
 
-Migrations as built: `001_init` (Phase 1 tables), `002_proofs` (Phase 3: `proof_windows`, the `matches` audit columns and the `match_players` metric columns).
+Migrations as built: `001_init` (Phase 1 tables), `002_proofs` (Phase 3: `proof_windows`, the `matches` audit columns and the `match_players` metric columns), `003_player_audit` (`match_players.audit_status`).
 
 ## 4. Retention
 

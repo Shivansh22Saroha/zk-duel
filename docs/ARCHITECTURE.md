@@ -245,6 +245,7 @@ The client loads `wasm` + `zkey` from `/zk/<scheme>_<N>/` (static, cached). The 
 | **Input** | Keyboard state + pointer-locked mouse; converts mouse to integer angle, clamps turn to `MAX_TURN` and speed to `MAX_SPEED` (honest client never violates the rules) |
 | **WindowRecorder** | Freezes each window when it ends (truncated + padded at round end), chains `prev`/hidden state/salt window to window, draws `saltOut`, computes the commitment for `window_commit`; keeps every window's private input in memory (and in the dev tick log) until the match's audit ends |
 | **Proof Queue** | Challenged window first (only one can be outstanding), then — after `match_end` — every still-`committed` window in window order |
+| **Audit store** | IndexedDB (`zkduel-audit`): each window's private circuit input is written when the window is frozen and deleted once the server decided it; the match record carries the audit deadline. On page load an unfinished audit inside `AUDIT_TIMEOUT_MIN` is resumed (`AuditResumer`: asks `GET /api/matches/:id/windows` which windows are still `committed` and proves those) |
 | **Proof Worker** | Dedicated Web Worker; artefacts loaded once (SHA-256 checked, Cache API); builds the circuit input and proves one window at a time; reports `witnessMs`, `proveMs` |
 | **Cheat module** | Only bundled when `VITE_DEV_CHEATS=true`; bypasses the clamps in Input/Weapon |
 

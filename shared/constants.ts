@@ -74,7 +74,7 @@ export const SALT_BITS = 248;
  */
 export const PROOF_DEADLINE_MS = 15_000;
 /** Audit proofs are accepted this long after match_end (server env AUDIT_TIMEOUT_MIN overrides). */
-export const AUDIT_TIMEOUT_MIN = 30;
+export const AUDIT_TIMEOUT_MIN = 60;
 
 // ---------------------------------------------------------------- network / liveness
 /** Max ticks a missing snapshot is held before the player is `stalled`. */

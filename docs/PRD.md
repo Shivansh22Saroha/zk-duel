@@ -62,7 +62,7 @@ The game must be small, stable and fun enough to play a real match. Every featur
 | `WINDOW_TICKS` | 60 | Default proof window (bench: 30, 60, 120) |
 | `PROOF_GRACE_WINDOWS` | 2 | Late snapshots accepted up to 2 windows behind; window k's digest is final at the latest at the end of window k+2 |
 | `PROOF_DEADLINE_MS` | 15000 | A challenged window's proof must arrive within this time (server env override) |
-| `AUDIT_TIMEOUT_MIN` | 30 | Post-match audit proofs accepted for this long (server env override) |
+| `AUDIT_TIMEOUT_MIN` | 60 | Post-match audit proofs accepted for this long (server env override) |
 | `SPAWNS` | P0 `(150,300)` angle 0; P1 `(850,300)` angle 1800 | Fixed round spawns (also each round's `prevSnapshot`, with `fired=0`) |
 | `RAY_LENGTH` | 1200 | Hit-scan ray length |
 | `TRIG_SCALE` | 1024 | Integer sin/cos table scale |

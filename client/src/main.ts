@@ -19,20 +19,22 @@ import { toast } from './ui/dom';
 import { matchScreen } from './ui/matchScreen';
 import { landingScreen, queueScreen, resultsScreen } from './ui/screens';
 import { ArtefactIntegrityError, loadArtefacts, type VariantMeta } from './zk/artefacts';
+import { AuditResumer } from './zk/auditResumer';
+import { IndexedDbAuditStore } from './zk/auditStore';
 import { ProofClient, type ProveOutcome, type Prover } from './zk/proofClient';
 import type { WindowJob } from './zk/recorder';
 import { WorkerProver } from './zk/workerProver';
 
 const root = document.getElementById('app') as HTMLElement;
+/** Dev server, or the `--mode perf` production build used by the Playwright perf runs. */
+const automation = import.meta.env.DEV || import.meta.env.VITE_PERF_AUTOMATION === 'true';
 const params = new URLSearchParams(location.search);
 /** Dev-only automation (perf measurement / smoke tests): `?bot=<seed>[&acc=<jitter>]` plays with BotInput. */
-const botSeed = import.meta.env.DEV && params.has('bot') ? Number(params.get('bot')) || 1 : null;
+const botSeed = automation && params.has('bot') ? Number(params.get('bot')) || 1 : null;
 const botAccuracy = params.has('acc') ? Number(params.get('acc')) : undefined;
 /** Dev-only experiment: cap snarkjs threads (`?threads=6`), e.g. two clients on one machine. */
 const proverThreads =
-  import.meta.env.DEV && params.has('threads')
-    ? Number(params.get('threads')) || 'default'
-    : 'default';
+  automation && params.has('threads') ? Number(params.get('threads')) || 'default' : 'default';
 
 /** Lets the session be created before the canvas (and its input) exists. */
 class InputProxy implements InputSource {
@@ -78,6 +80,9 @@ const state = {
   game: null as GameSession | null,
   proof: null as ProofClient | null,
   prover: null as LazyProver | null,
+  store: null as IndexedDbAuditStore | null,
+  /** An audit resumed after a page reload (IndexedDB). */
+  resumer: null as AuditResumer | null,
   input: new InputProxy(),
   kbm: null as KeyboardMouseInput | null,
   tickLog: ENV.LOG_TICKS ? new MemoryTickLog() : null,
@@ -93,13 +98,26 @@ const state = {
   reconnecting: false,
 };
 
-if (ENV.SHOW_DEBUG || import.meta.env.DEV) {
+if (ENV.SHOW_DEBUG || automation) {
   Object.assign(window, {
     __zkd: {
       stats: () => state.stats.summary(),
       resetStats: () => state.stats.reset(),
       game: () => state.game,
       proof: () => {
+        const r = state.resumer;
+        if (r) {
+          return {
+            resumed: true,
+            auditing: r.auditing,
+            auditDone: r.auditDone,
+            auditStatus: r.auditStatus,
+            overturned: r.overturned,
+            auditTotal: r.auditTotal,
+            auditProven: r.auditProven,
+            lastProveMs: r.lastProveMs,
+          };
+        }
         const p = state.proof;
         if (!p) return null;
         const me = state.game?.playerIndex ?? 0;
@@ -139,6 +157,8 @@ function teardownMatch(): void {
   state.input.inner = null;
   state.proof?.dispose();
   state.proof = null;
+  state.resumer?.dispose();
+  state.resumer = null;
   const net = state.net;
   state.net = null;
   net?.close();
@@ -235,7 +255,7 @@ function onNetClose(net: Net, code: number): void {
   if (state.net !== net || state.reconnecting) return;
   const game = state.game;
   const inMatch = game !== null && game.phase !== 'idle' && game.phase !== 'ended';
-  const auditing = state.proof?.auditing === true;
+  const auditing = state.proof?.auditing === true || state.resumer?.auditing === true;
   if ((inMatch || auditing) && ![4400, 4401, 4409, 4429].includes(code)) {
     void reconnect(net);
     return;
@@ -258,6 +278,7 @@ async function reconnect(net: Net): Promise<void> {
       await net.connect(state.token as string, state.hash);
       state.reconnecting = false;
       state.proof?.onReconnected();
+      state.resumer?.onReconnected();
       toast('Reconnected.');
       return;
     } catch {
@@ -291,6 +312,7 @@ function onServer(m: ServerMessage, myName: string): void {
         scheme: m.scheme,
         now: () => performance.now(),
         log: state.tickLog ?? undefined,
+        store: state.store,
       });
       art.then(
         () => {
@@ -344,7 +366,7 @@ function showMatch(): void {
   });
   mount(ms.el, ms.dispose);
   if (botSeed !== null) {
-    state.input.inner = new BotInput(botSeed, botAccuracy);
+    state.input.inner = new BotInput(botSeed, botAccuracy, Number(params.get('miss')) || 0);
     // dev-only: `&stopAfter=<s>` forfeits after that much play — a match of a fixed length
     const stopAfter = Number(params.get('stopAfter'));
     if (stopAfter > 0) {
@@ -366,9 +388,17 @@ async function showResults(id: string): Promise<void> {
     const summary = await api.match(id, token);
     const log = state.tickLog;
     const hasLog = log !== null && log.lines.some((l) => l.type === 'header' && l.matchId === id);
-    const proof = state.game?.match?.matchId === id ? state.proof : null;
+    const proof =
+      state.game?.match?.matchId === id
+        ? state.proof
+        : state.resumer?.matchId === id
+          ? state.resumer
+          : null;
     // keep committing the final window and proving the audit while this page is open
-    const pump = window.setInterval(() => proof?.poll(), 50);
+    const pump = window.setInterval(
+      () => (proof === state.proof ? state.proof?.poll() : undefined),
+      50,
+    );
     const r = resultsScreen({
       summary,
       proof,
@@ -390,6 +420,56 @@ async function showResults(id: string): Promise<void> {
   }
 }
 
+/**
+ * After a page reload: if IndexedDB holds unproven windows of a match whose audit is still open,
+ * reconnect and finish proving them (Phase 3 follow-up). Returns true when an audit was resumed.
+ */
+async function resumeAudit(): Promise<boolean> {
+  const store = state.store;
+  const token = session.token;
+  if (!store || !token) return false;
+  const u = await store.unfinishedAudit(Date.now());
+  if (!u) return false;
+  const id = u.match.matchId;
+  try {
+    const summary = await api.match(id, token);
+    if (summary.auditStatus !== 'auditing') {
+      store.deleteMatch(id); // the audit already closed
+      return false;
+    }
+    const { windows } = await api.windows(id, token);
+    const v = variantMeta(u.match.variant);
+    if (!v) return false;
+    const prover = new LazyProver(
+      loadArtefacts(v).then((a) => new WorkerProver(a.wasm, a.zkey, proverThreads)),
+    );
+    const net = new Net();
+    const resumer = new AuditResumer(id, u.match.playerIndex, u.match.scheme, u.jobs, windows, {
+      prover,
+      send: (m) => state.net?.send(m),
+      now: () => performance.now(),
+      store,
+    });
+    state.net = net;
+    state.token = token;
+    state.resumer = resumer;
+    net.onMessage = (m) => {
+      resumer.handle(m);
+      if (m.t === 'audit_end' && location.pathname.endsWith('/results')) {
+        setTimeout(() => route(), 300);
+      }
+    };
+    net.onClose = (code) => onNetClose(net, code);
+    await net.connect(token, state.hash);
+    resumer.start();
+    toast(`Resuming the audit: ${resumer.auditTotal} windows left to prove.`);
+    history.replaceState(null, '', `/match/${id}/results${location.search}`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function boot(): Promise<void> {
   state.hash = await constantsHash();
   try {
@@ -400,6 +480,8 @@ async function boot(): Promise<void> {
   } catch {
     state.versionError = `Cannot reach the server at ${ENV.API_URL}.`;
   }
+  state.store = await IndexedDbAuditStore.open();
+  if (!state.versionError) await resumeAudit();
   route();
 }
 

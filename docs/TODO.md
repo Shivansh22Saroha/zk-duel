@@ -55,7 +55,8 @@ Design changed before coding (CHANGELOG "Phase 3 design change"): commit every w
 - [x] Proof strip HUD (hollow / ◌ / ✓ / ✕ / ⛓) + "Spot-checks: 7/7 passed" + tooltips; results screen audit progress + status + metrics
 - [x] Enforcement modes (observe/strict: forfeit on a failed challenge)
 - [x] Reconnect flow with `resume` (outstanding challenge + held commits; chain broken for the rest of the round, fresh chain next round)
-- [~] **Exit check:** clean 3-minute match — all challenges valid, full audit `audited_clean`; frame time p95 < 20 ms while proving; scripted cheater never `audited_clean`; frame inspector clean
+- [x] Follow-ups: per-player audit status, AUDIT_TIMEOUT_MIN 60, audit survives reloads (IndexedDB + resume, e2e test), production perf build, Node vs Chrome investigated
+- [x] **Exit check:** clean 3-minute match — all challenges valid, full audit `audited_clean`; frame time p95 < 20 ms while proving; scripted cheater never `audited_clean`; frame inspector clean ✅ (CHANGELOG Phase 3; worst case: both players on one laptop)
 
 ## Phase 4 — Cheats & demo (Week 6) — P0
 - [ ] Cheat module behind `VITE_DEV_CHEATS` / `DEV_CHEATS`
@@ -102,4 +103,4 @@ Design changed before coding (CHANGELOG "Phase 3 design change"): commit every w
 - [ ] Confirm current official ptau download URL and checksum at setup
 
 ## Bugs
-- Phase 3 exit check pending on AC power: last browser runs were on battery (Chrome capped at 30 Hz). Re-run `npm run perf:match -- --acc 1800 --stop-after 180` plugged in.
+_None open._

@@ -40,7 +40,9 @@
     "circuits:mutate-log": "npm run mutate-log -w circuits --",
     "circuits:lint": "npm run lint -w circuits",
     "perf:prove": "tsx client/scripts/perf-prove.ts",
-    "perf:match": "tsx client/scripts/perf-match.ts"
+    "perf:match": "tsx client/scripts/perf-match.ts",
+    "perf:serve": "npm run build:perf -w client && concurrently -k -n server,client -c blue,magenta \"npm run start -w server\" \"npm run preview -w client\"",
+    "e2e:audit-reload": "tsx client/scripts/e2e-audit-reload.ts"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

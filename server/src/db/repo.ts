@@ -165,7 +165,7 @@ export class Repo implements ProofStore {
         .run(a.auditStatus, a.overturned ? 1 : 0, a.endedAt, a.matchId);
       const up = this.db.prepare(
         `UPDATE match_players SET windows = ?, windows_committed = ?, challenges = ?,
-           challenges_passed = ?, challenge_rate = ?, audit_ms = ?
+           challenges_passed = ?, challenge_rate = ?, audit_ms = ?, audit_status = ?
          WHERE match_id = ? AND player_index = ?`,
       );
       a.players.forEach((m, i) =>
@@ -176,6 +176,7 @@ export class Repo implements ProofStore {
           m.challengesPassed,
           m.challengeRate,
           m.auditMs,
+          m.auditStatus,
           a.matchId,
           i,
         ),
@@ -235,7 +236,8 @@ export class Repo implements ProofStore {
                 mp.rounds_won AS roundsWon, mp.hits, mp.shots, mp.windows,
                 mp.windows_committed AS windowsCommitted, mp.challenges,
                 mp.challenges_passed AS challengesPassed, mp.challenge_rate AS challengeRate,
-                mp.detection_latency_windows AS detectionLatencyWindows, mp.audit_ms AS auditMs
+                mp.detection_latency_windows AS detectionLatencyWindows, mp.audit_ms AS auditMs,
+                mp.audit_status AS auditStatus
            FROM match_players mp JOIN players p ON p.id = mp.player_id
           WHERE mp.match_id = ? ORDER BY mp.player_index`,
       )
@@ -334,6 +336,7 @@ export interface MatchSummary {
     challengeRate: number | null;
     detectionLatencyWindows: number | null;
     auditMs: number | null;
+    auditStatus: 'audited_clean' | 'audited_failed' | 'audit_incomplete' | null;
     proofs: WindowStats;
   }[];
   rounds: {

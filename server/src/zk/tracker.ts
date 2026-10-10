@@ -51,6 +51,8 @@ export interface PlayerAuditMetrics {
   challengeRate: number | null;
   auditMs: number | null;
   counts: { valid: number; failed: number; unaudited: number; chainBroken: number };
+  /** This player's own audit result (null: the player had no windows). */
+  auditStatus: AuditStatus | null;
 }
 
 export interface AuditSummary {
@@ -511,9 +513,12 @@ export class ProofTracker {
       players,
     };
     this.d.store.finishAudit(summary);
-    const counts = ([0, 1] as const).map((p) => players[p].counts) as [
-      PlayerAuditMetrics['counts'],
-      PlayerAuditMetrics['counts'],
+    const counts = ([0, 1] as const).map((p) => ({
+      ...players[p].counts,
+      auditStatus: players[p].auditStatus ?? 'audit_incomplete',
+    })) as [
+      PlayerAuditMetrics['counts'] & { auditStatus: AuditStatus },
+      PlayerAuditMetrics['counts'] & { auditStatus: AuditStatus },
     ];
     if (summary.auditStatus) {
       const msg: ServerMessage = {
@@ -559,6 +564,14 @@ export class ProofTracker {
         (counts.unaudited > 0 ? now : Math.max(lastAudit, this.auditStart)) - this.auditStart,
       ),
       counts,
+      auditStatus:
+        windows === 0
+          ? null
+          : counts.failed > 0
+            ? 'audited_failed'
+            : counts.unaudited > 0 || counts.chainBroken > 0
+              ? 'audit_incomplete'
+              : 'audited_clean',
     };
   }
 }

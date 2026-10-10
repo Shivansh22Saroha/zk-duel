@@ -136,7 +136,7 @@ Envelope: `{ "t": "<type>", ...fields }`. Every message is validated against a z
 | `round_end` | `roundNo`, `endTick` (last tick of the round, round-relative), `winnerIndex`, `score: [a,b]`, `pauseTicks` (= `ROUND_PAUSE_TICKS`), `initialCommit` (fresh public commitment for the new round), `prevSnapshot[4]` (receiving player's spawn, `fired = 0`, seed for the new round's first window) |
 | `challenge` | `playerIndex`, `roundNo`, `windowIndex`, `deadlineMs` (= `PROOF_DEADLINE_MS`) — broadcast to both; only the named player proves. At most one outstanding per player |
 | `proof_result` | `playerIndex`, `roundNo`, `windowIndex`, `status`, `verifyMs`, `phase: 'live' \| 'audit'` — sent for every status change, including `committed` |
-| `audit_end` | `matchId`, `auditStatus` (`audited_clean` \| `audited_failed` \| `audit_incomplete`), `overturned`, `players[2]: {valid, failed, unaudited, chainBroken}` |
+| `audit_end` | `matchId`, `auditStatus` (`audited_clean` \| `audited_failed` \| `audit_incomplete`), `overturned`, `players[2]: {auditStatus, valid, failed, unaudited, chainBroken}` (each player's own audit result) |
 | `resume` | `roundNo`, `nextWindowIndex`, `chainStatus: 'intact' \| 'broken'`, `committed` (window indices of the current round whose commit the server holds), `challenge` (`{roundNo, windowIndex, deadlineMs}` with the remaining time, or `null`) — sent after a reconnecting `hello`, followed by a `state` |
 | `cheat_flag` | `playerIndex`, `cheat`, `enabled` (broadcast so both see the `CHEAT` tag) |
 | `opponent_status` | `status: 'connected' \| 'reconnecting' \| 'stalled'` |
@@ -193,7 +193,7 @@ For player p, window k of round r, the server keeps one slot with the stored dig
 - `audit_incomplete` — no failure, but some window is `unaudited` or `chain_broken`;
 - `audited_clean` — every window of both players is `valid`.
 
-`overturned = 1` when the **winner** has a failure (the recorded winner, score and end reason stay as they were). `audit_end` is sent to both players.
+`overturned = 1` when the **winner** has a failure (the recorded winner, score and end reason stay as they were). Each player also gets their own audit status by the same rules over their own windows (`match_players.audit_status`): a loser whose audit fails is `audited_failed` there, without changing the result. `audit_end` is sent to both players.
 
 **Window boundaries and rounds:** ticks and windows are counted from tick 0 of each round. The window containing `endTick` is truncated to `endTick` and padded up to N ticks by repeating the snapshot at `endTick` with `fired=0` (client and server pad identically; the client re-derives its hidden state over the padding with `fired=0, reloadPress=0`). The client commits window k only once it has received the server's `state` for the window's last tick in the same round, or a `round_end` whose `endTick` lies in window k — so it never commits ticks the server later discards. Windows that start after `endTick`, or that had not ended when the match ended, do not exist.
 

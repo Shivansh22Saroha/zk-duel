@@ -1,7 +1,7 @@
 /** Landing, queue and results screens (UI_UX §3.1, §3.2, §3.4). */
 import { DISPLAY_NAME_PATTERN } from '@zkduel/shared/constants';
 import type { MatchSummary } from '../api';
-import type { ProofClient } from '../zk/proofClient';
+import type { AuditProgress } from '../zk/auditResumer';
 import { h, mono, setText } from './dom';
 import { cellOf, tooltipOf } from './proofStrip';
 
@@ -160,7 +160,7 @@ const fmtMs = (v: number | null | undefined, digits = 0): string =>
  */
 function auditPanel(
   s: MatchSummary,
-  proof: ProofClient | null,
+  proof: AuditProgress | null,
 ): { el: HTMLElement; update: () => void } {
   const status = h('div', { class: 'status' });
   const detail = h('div', { class: 'muted' });
@@ -216,7 +216,7 @@ function auditPanel(
 export function resultsScreen(opts: {
   summary: MatchSummary;
   /** This client's proof state for the match (live audit progress), if it played it. */
-  proof: ProofClient | null;
+  proof: AuditProgress | null;
   onLobby: () => void;
   onDownloadTickLog: (() => void) | null;
 }): { el: HTMLElement; dispose: () => void } {
@@ -292,6 +292,16 @@ export function resultsScreen(opts: {
                 {},
                 h('td', {}, 'Accuracy'),
                 h('td', {}, mono(p.shots ? `${Math.round((100 * p.hits) / p.shots)}%` : '–')),
+              ),
+              h(
+                'tr',
+                {},
+                h('td', {}, 'Own audit'),
+                h(
+                  'td',
+                  {},
+                  mono(p.auditStatus ? (AUDIT_LABEL[p.auditStatus]?.[0] ?? p.auditStatus) : '–'),
+                ),
               ),
               h(
                 'tr',

@@ -115,7 +115,8 @@ Using two `ws` clients driven by scripted input logs and real proofs from the N=
 - **E2E-2:** private room with strict mode → enable speedhack in context A → the match ends with a forfeit banner at the first challenged cheating window (`unprovable`), or the audit ends `audited_failed`.
 - **E2E-3:** smooth-aim enabled → strip stays ✓.
 - **E2E-4:** results page numbers equal API values.
-- **E2E-5:** performance trace while proving → frame time p95 < 20 ms (run on the baseline machine, not in CI).
+- **E2E-5:** performance trace while proving → frame time p95 < 20 ms (run on the baseline machine, not in CI): `npm run perf:serve` + `npm run perf:match -- --acc 1800 --stop-after 180` (production `--mode perf` build, so source edits cannot reload the pages).
+- **E2E-6 (Phase 3):** reload player 0's page mid-audit → the audit resumes from IndexedDB → `audited_clean`, no stored windows left: `npm run perf:serve` + `npm run e2e:audit-reload`.
 
 ## 6. Security tests
 

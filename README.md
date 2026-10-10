@@ -123,7 +123,10 @@ Results are written to the `benchmark_results` table and exported to `bench/out/
 | `npm run bots -- --matches N` | Bot matches against a running server; writes tick logs |
 | `npm run perf:frame` | Client frame-time measurement in Chrome (needs `npm run dev`) |
 | `npm run perf:prove -- --variants groth16_60,groth16_30 --threads default,4` | Browser proving measurement: real windows in the Proof Worker + frame time (dev page `/bench.html`; needs `npm run dev -w client`) |
-| `npm run perf:match -- --acc 400` | Phase 3 exit check in Chrome: two bot-driven windows play a match through spot-checks and the full audit (needs `npm run dev`) |
+| `npm run perf:serve` | Production `--mode perf` client build + `vite preview` + server without watch (for perf/e2e runs) |
+| `npm run perf:match -- --acc 1800 --stop-after 180` | Phase 3 exit check in Chrome: two bot-driven windows play a 3-minute match through spot-checks and the full audit (needs `npm run perf:serve`) |
+| `npm run e2e:audit-reload` | Reload a page mid-audit; the audit must resume from IndexedDB and end `audited_clean` (needs `npm run perf:serve`) |
+| `npx tsx server/scripts/prove-profile.ts --variant groth16_60` | Per-step timing of one snarkjs prove in Node |
 | `npx tsx server/scripts/zk-node-bench.ts --variant groth16_60` | Node proving (bot worker) + VerifierPool verify times, idle machine |
 | `npm run circuits:build` | Build groth16_60 + groth16_4 (compile, ptau, setup, info.json); `-- --n 30` for one |
 | `npm run circuits:prove-log -- --log <file> --n 60` | Prove + verify every window of a client tick log offline |

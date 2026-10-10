@@ -148,8 +148,9 @@ describe('Phase 3 protocol scenarios', () => {
     const m = await playMatch(srv, {
       bots: [{ accuracy: 200 }, { accuracy: 200 }],
       during: async ([a, b]) => {
-        // drop in the first round that lasts past tick 40 (round lengths vary a lot)
-        await waitUntil(() => a.session.phase === 'live' && a.session.tick > 40, 120_000);
+        // drop in the first round that lasts past tick 20 — always reachable: a round cannot end
+        // before tick 36 (four hits need three FIRE_COOLDOWN gaps)
+        await waitUntil(() => a.session.phase === 'live' && a.session.tick > 20, 120_000);
         dropRound = a.session.roundNo;
         dropTick = a.session.tick;
         a.dropSocket();

@@ -273,8 +273,8 @@ const cases: Case[] = [
       auditStatus: 'audited_clean',
       overturned: false,
       players: [
-        { valid: 10, failed: 0, unaudited: 0, chainBroken: 0 },
-        { valid: 9, failed: 0, unaudited: 0, chainBroken: 0 },
+        { auditStatus: 'audited_clean', valid: 10, failed: 0, unaudited: 0, chainBroken: 0 },
+        { auditStatus: 'audited_failed', valid: 9, failed: 1, unaudited: 0, chainBroken: 0 },
       ],
     },
     [

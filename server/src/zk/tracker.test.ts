@@ -364,6 +364,11 @@ describe('ProofTracker', () => {
       await f.tr.proof(1, await f.proofFor(1, 1, 0));
       f.tr.tick(null);
       expect(f.audit()).toMatchObject({ auditStatus: 'audited_failed', overturned });
+      // per player: p0's failure is recorded even when p0 lost (winner 1); p1 is clean
+      expect(f.audit()?.players.map((x) => x.auditStatus)).toEqual([
+        'audited_failed',
+        'audited_clean',
+      ]);
       expect(f.failures).toEqual([]); // audit failures never trigger strict-mode forfeits
     }
   });

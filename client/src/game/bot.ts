@@ -18,6 +18,8 @@ export class BotInput implements InputSource {
   constructor(
     seed: number,
     private readonly accuracy = 120, // ± angle units of aim jitter (misses → longer rounds, reloads)
+    /** Minimum aim error (angle units): the bot still fires (weapon rules exercised) but never hits. */
+    private readonly missBy = 0,
   ) {
     this.rng = mulberry32(seed);
   }
@@ -27,6 +29,9 @@ export class BotInput implements InputSource {
       this.moveX = randInt(this.rng, -1, 1);
       this.moveY = randInt(this.rng, -1, 1);
       this.jitter = randInt(this.rng, -this.accuracy, this.accuracy);
+      if (this.missBy > 0 && Math.abs(this.jitter) < this.missBy) {
+        this.jitter = this.jitter < 0 ? -this.missBy : this.missBy;
+      }
       this.nextTurnTick = ctx.tick + randInt(this.rng, 15, 45);
     }
     let aimTarget = ctx.self.pub.angle;

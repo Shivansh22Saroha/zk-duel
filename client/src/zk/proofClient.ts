@@ -22,6 +22,7 @@ import {
 } from '@zkduel/shared/protocol';
 import type { Groth16Proof } from 'snarkjs';
 import type { GameSession, TickLogSink } from '../game/session';
+import type { JobStore } from './jobStore';
 import { WindowRecorder, type WindowJob } from './recorder';
 
 export type ProveOutcome =
@@ -53,6 +54,8 @@ export interface ProofClientOptions {
   hooks?: ProofClientHooks;
   /** Salt source for tests; crypto randomness otherwise. */
   salt?: () => string;
+  /** Local persistence of unproven windows (browser: IndexedDB) so the audit survives a reload. */
+  store?: JobStore | null;
 }
 
 export interface WindowView {
@@ -70,7 +73,29 @@ export interface WindowView {
 const FAILURES: ReadonlySet<string> = new Set(FAILURE_STATUSES);
 const key = (p: number, r: number, k: number): string => `${p}:${r}:${k}`;
 /** Leave a little headroom under the server's window_proof rate limit. */
-const MIN_PROOF_GAP_MS = 1000 / RATE_LIMIT_PROOFS_PER_S + 20;
+export const MIN_PROOF_GAP_MS = 1000 / RATE_LIMIT_PROOFS_PER_S + 20;
+
+/** The message for one proving outcome: window_proof, or proof_failed (no witness: a rule broke). */
+export function proofMessageFor(
+  matchId: string,
+  scheme: Scheme,
+  roundNo: number,
+  windowIndex: number,
+  r: ProveOutcome,
+): ClientFrame {
+  return r.ok
+    ? {
+        t: 'window_proof',
+        matchId,
+        roundNo,
+        windowIndex,
+        scheme,
+        proof: r.proof as WindowProofMessage['proof'],
+        publicSignals: r.publicSignals,
+        proveMs: Math.round(r.proveMs),
+      }
+    : { t: 'proof_failed', matchId, roundNo, windowIndex, reason: r.reason.slice(0, 200) };
+}
 
 export class ProofClient {
   readonly windows = new Map<string, WindowView>();
@@ -203,6 +228,14 @@ export class ProofClient {
         this.me = m.playerIndex;
         this.recorder = new WindowRecorder(m.matchField, m.playerIndex, m.windowTicks, this.o.salt);
         this.nextPrev = m.prevSnapshot;
+        this.o.store?.putMatch({
+          matchId: m.matchId,
+          playerIndex: m.playerIndex,
+          scheme: m.scheme,
+          variant: m.variant,
+          windowTicks: m.windowTicks,
+          auditUntil: null,
+        });
         break;
       case 'start':
         this.recorder?.startRound(m.roundNo, this.nextPrev ?? [0, 0, 0, 0]);
@@ -238,6 +271,9 @@ export class ProofClient {
             this.enqueueAudit(k);
           }
           if (m.status !== 'committed') {
+            // decided: its private input is no longer needed anywhere
+            if (m.status !== 'unaudited')
+              this.o.store?.deleteJob(this.matchId, m.roundNo, m.windowIndex);
             if (this.challenge === k) this.challenge = null;
             if (this.auditing && was === 'committed') this.auditProven++;
           }
@@ -248,6 +284,7 @@ export class ProofClient {
       }
       case 'match_end':
         this.auditing = true;
+        this.o.store?.setAuditUntil(this.matchId, Date.now() + m.auditTimeoutMs);
         for (const [k, w] of this.windows) {
           if (w.playerIndex !== this.me || w.status !== 'committed') continue;
           this.auditTotal++; // the outstanding challenge counts too (proven first)
@@ -266,6 +303,7 @@ export class ProofClient {
         this.auditQueue.length = 0;
         this.challenge = null;
         this.jobs.clear(); // private inputs are no longer needed
+        this.o.store?.deleteMatch(this.matchId);
         this.emit();
         break;
       case 'resume': {
@@ -311,6 +349,7 @@ export class ProofClient {
       for (const j of jobs) {
         const k = key(this.me, j.roundNo, j.windowIndex);
         this.jobs.set(k, j);
+        this.o.store?.putJob(this.matchId, j);
         this.view(this.me, j.roundNo, j.windowIndex);
         this.o.log?.write({
           type: 'window',

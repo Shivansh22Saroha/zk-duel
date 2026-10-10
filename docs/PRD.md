@@ -21,9 +21,9 @@ The game must be small, stable and fun enough to play a real match. Every featur
 | ID | Goal | Measured by |
 |---|---|---|
 | G1 | A playable, stable 1v1 match over a LAN or localhost | 10 consecutive matches finish without desync or crash |
-| G2 | Each client proves rule compliance for every window of N ticks | ≥ 99% of windows produce a proof in a clean match |
+| G2 | Each client commits to every window of N ticks and proves rule compliance for every window — challenged windows live, all others in the post-match audit | Clean match: 100% of windows committed, every challenge `valid`, audit ends `audited_clean` (≥ 99% of windows proven within `AUDIT_TIMEOUT_MIN`) |
 | G3 | Proving does not block gameplay | Client frame time stays < 20 ms p95 while proving |
-| G4 | Every rule-breaking cheat is caught (smooth-aim is expected to pass) | Each rule-breaking cheat causes a non-valid window result within 3 windows of activation (window k fails, timeout declared at end of k+2) |
+| G4 | Every rule-breaking cheat is caught (smooth-aim is expected to pass) | A match with a rule-breaking cheat is never `audited_clean`: the cheating window fails its challenge live (probability ≈ 1 − (1 − r)^m for m cheating windows at challenge rate r — measured and reported) or fails in the post-match audit |
 | G5 | Reproducible benchmarks | Benchmark run exports CSV for 3 window sizes × 2 schemes × ≥ 20 samples |
 | G6 | Hidden state stays hidden | Opponent and server never receive ammo, cooldown, reload timer or salt in plaintext |
 
@@ -60,7 +60,9 @@ The game must be small, stable and fun enough to play a real match. Every featur
 | `DAMAGE` | 25 | Damage per hit (4 hits to kill) |
 | `ROUNDS_TO_WIN` | 3 | Best of 5 rounds |
 | `WINDOW_TICKS` | 60 | Default proof window (bench: 30, 60, 120) |
-| `PROOF_GRACE_WINDOWS` | 2 | Window k proof must arrive before window k+2 ends |
+| `PROOF_GRACE_WINDOWS` | 2 | Late snapshots accepted up to 2 windows behind; window k's digest is final at the latest at the end of window k+2 |
+| `PROOF_DEADLINE_MS` | 15000 | A challenged window's proof must arrive within this time (server env override) |
+| `AUDIT_TIMEOUT_MIN` | 30 | Post-match audit proofs accepted for this long (server env override) |
 | `SPAWNS` | P0 `(150,300)` angle 0; P1 `(850,300)` angle 1800 | Fixed round spawns (also each round's `prevSnapshot`, with `fired=0`) |
 | `RAY_LENGTH` | 1200 | Hit-scan ray length |
 | `TRIG_SCALE` | 1024 | Integer sin/cos table scale |
@@ -89,20 +91,22 @@ All positions and angles are **integers**. No floats inside game state. Renderin
 - **FR-12** Ammo, cooldown and reload timer are tracked **only on the client** and are never sent in plaintext.
 
 ### 6.3 Proofs
-- **FR-13** At the end of every window, the client's proof worker generates a Groth16 proof (see ARCHITECTURE.md §5) over that window while play continues.
-- **FR-14** The client sends `window_proof` with the proof, public signals and the new hidden-state commitment.
-- **FR-15** The server recomputes the public snapshot digest from snapshots it received, checks it matches the proof's public signal, checks the commitment chain, and verifies the proof.
-- **FR-16** Result per window (full list and order in API_SPEC.md §5): `valid`, `malformed`, `mismatch_bind`, `mismatch_digest`, `mismatch_commit`, `invalid`, `unprovable` (client reported that no proof could be generated), `timeout` (not received within grace), `chain_broken` (an earlier window in the same round was non-valid, so the commitment chain cannot continue).
-- **FR-17** Enforcement mode per match: `observe` (log only) or `strict` (first non-valid result forfeits the match). Default `observe` for benchmarking, `strict` for demos.
-- **FR-18** HUD shows a strip of the last 10 window results for both players.
+(Phase 3 design change — "commit every window, prove on challenge, audit after the match"; ARCHITECTURE.md §4.)
+- **FR-13** At the end of every window the client sends `window_commit` with a commitment to its hidden state after the window (fresh random salt). The client keeps every window's private input until the match's audit ends. A commit missing by the end of the next window is `missing_commit` and breaks the chain for the rest of the round.
+- **FR-14** During play the server challenges one ended, committed, unproven window at a time per player, chosen uniformly at random with crypto randomness (unpredictable to the client). The client's proof worker proves the challenged window (Groth16, ARCHITECTURE.md §5) while play continues and sends `window_proof` (or `proof_failed`) before `PROOF_DEADLINE_MS`.
+- **FR-15** The server recomputes the public snapshot digest from snapshots it received, checks it matches the proof's public signal, checks `commitIn`/`commitOut` against the commitments the client claimed for windows k−1 and k (round's `initialCommit` for k = 0), and verifies the proof.
+- **FR-16** Result per window (full list and order in API_SPEC.md §5): `committed` (claimed, not yet proven), `valid`, `malformed`, `mismatch_bind`, `mismatch_digest`, `mismatch_commit`, `missing_commit`, `invalid`, `unprovable` (client reported that no proof could be generated), `timeout` (challenge deadline passed), `chain_broken` (an earlier window's commit is missing, or a disconnect gap — the window cannot be verified), `unaudited` (never proven by the end of the audit).
+- **FR-16a** After `match_end` the client proves every remaining committed window (one at a time) — the post-match **audit**; the server accepts audit proofs for `AUDIT_TIMEOUT_MIN`. Match audit status: `audited_clean`, `audited_failed` or `audit_incomplete`. An audit failure of the winner marks the result `overturned` without rewriting the recorded result.
+- **FR-17** Enforcement mode per match: `observe` (log only) or `strict` (the first failed challenge or `missing_commit` forfeits the match live). Default `observe` for benchmarking, `strict` for demos.
+- **FR-18** HUD shows a strip of the last 10 windows for both players (committed = hollow cell, challenged/proving = ◌, valid = ✓, failed = ✕, chain_broken = ⛓) and a live "Spot-checks: 7/7 passed" counter per player.
 
 ### 6.4 Cheats (dev only)
 - **FR-19** When `DEV_CHEATS=true`, F9 opens a cheat panel with toggles: speedhack (×2 speed), rapid-fire (cooldown 0), snap-aimbot (instant turn to opponent), infinite ammo, smooth-aimbot (turns toward opponent at `MAX_TURN`).
-- **FR-20** Cheats modify the *client's real state*, so the prover honestly runs over cheating data, not faked data. Because the rules are circuit constraints, witness generation fails and no proof exists: the honest client sends `proof_failed` and the server records `unprovable`. A cheater who stays silent instead gets `timeout` after the grace period — that timeout is the actual security guarantee.
+- **FR-20** Cheats modify the *client's real state*, so the prover honestly runs over cheating data, not faked data. Because the rules are circuit constraints, witness generation fails and no proof exists for the cheating window: when that window is challenged (or audited) the honest dev client sends `proof_failed` and the server records `unprovable`. A cheater who stays silent instead gets `timeout` (challenge) or `unaudited` (audit) — the match is never `audited_clean`; that is the actual security guarantee.
 - **FR-21** Each cheat activation is recorded in `cheat_events` with the window it started in.
 
 ### 6.5 Results & benchmarks
-- **FR-22** Results screen: winner, rounds, per-player window counts by status, mean/p95 proof time, mean verify time.
+- **FR-22** Results screen: winner, rounds, per-player window counts by status, mean/p95 proof time, mean verify time; live audit progress ("Auditing… 23/150 windows"), final audit status and `overturned` banner; research metrics (challenge count, challenge rate r, live detection latency, audit duration).
 - **FR-23** Benchmark mode (`/bench` page and CLI) runs fixed recorded inputs through each circuit variant and stores results.
 - **FR-24** Benchmark dashboard shows charts (proof time vs window size, per scheme) and exports CSV.
 
@@ -120,7 +124,7 @@ All positions and angles are **integers**. No floats inside game state. Renderin
 
 ## 8. Success criteria for the seminar
 
-1. Live demo: clean match → all green; toggle speedhack → non-valid result within 3 windows.
+1. Live demo: clean match → every spot-check green, audit `audited_clean`; toggle speedhack → caught by a spot-check during play or by the audit (never `audited_clean`), with the measured live detection probability.
 2. A chart of proof time vs window size for Groth16 and PLONK, with the 60 Hz budget line drawn.
 3. A clear statement of the smallest window that can be proven within the next window's play time on a mid-range laptop.
 4. Smooth-aimbot demo passing, with the explanation of why (the input-provenance limit).

@@ -4,7 +4,13 @@
 import { dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
-import { PROOF_GRACE_WINDOWS, SCHEMES, WINDOW_TICKS_VARIANTS } from '@zkduel/shared/constants';
+import {
+  AUDIT_TIMEOUT_MIN,
+  PROOF_DEADLINE_MS,
+  PROOF_GRACE_WINDOWS,
+  SCHEMES,
+  WINDOW_TICKS_VARIANTS,
+} from '@zkduel/shared/constants';
 
 /** Server package root; relative paths in env are resolved against it. */
 export const SERVER_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -39,6 +45,8 @@ const envSchema = z.object({
     })
     .default('groth16_60'),
   PROOF_GRACE_WINDOWS: z.coerce.number().int().min(1).default(PROOF_GRACE_WINDOWS),
+  PROOF_DEADLINE_MS: z.coerce.number().int().min(100).default(PROOF_DEADLINE_MS),
+  AUDIT_TIMEOUT_MIN: z.coerce.number().positive().default(AUDIT_TIMEOUT_MIN),
   DEFAULT_ENFORCEMENT: z.enum(['observe', 'strict']).default('observe'),
   VERIFIER_THREADS: z.coerce.number().int().min(1).default(2),
   VERIFY_TIMEOUT_MS: z.coerce.number().int().min(1).default(2000),

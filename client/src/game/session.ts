@@ -7,7 +7,7 @@
  * state goes exclusively to the optional local TickLogSink.
  */
 import { MAX_HP, STALL_TICKS, TICK_RATE, type PlayerIndex } from '@zkduel/shared/constants';
-import type { ClientMessage, ServerMessage } from '@zkduel/shared/protocol';
+import type { ClientFrame, ServerMessage } from '@zkduel/shared/protocol';
 import {
   holdTick,
   spawnState,
@@ -21,8 +21,6 @@ import {
 import type { TickLogLine } from '@zkduel/shared/ticklog';
 
 export const MS_PER_TICK = 1000 / TICK_RATE;
-/** Phase 1 placeholder for `ready.artefactSha256` (no proving key exists until Phase 3). */
-export const NO_ARTEFACT_SHA256 = '0'.repeat(64);
 
 type MatchFound = Extract<ServerMessage, { t: 'match_found' }>;
 type MatchEnd = Extract<ServerMessage, { t: 'match_end' }>;
@@ -30,7 +28,7 @@ type RoundEnd = Extract<ServerMessage, { t: 'round_end' }>;
 type StateMsg = Extract<ServerMessage, { t: 'state' }>;
 
 export interface Transport {
-  send(msg: ClientMessage): void;
+  send(msg: ClientFrame): void;
 }
 
 export interface InputContext {
@@ -51,12 +49,23 @@ export interface TickLogSink {
 
 export type SessionPhase = 'idle' | 'matched' | 'countdown' | 'live' | 'pause' | 'ended';
 
+/**
+ * Dev/test hook: rewrite the player's state after a tick, bypassing the honest clamps (the
+ * scripted cheater in tests; the Phase 4 cheat module). The rewritten state is what gets recorded
+ * and sent — the prover then runs honestly over cheating data (FR-20).
+ */
+export type StateTamper = (ctx: { roundNo: number; tick: number }, s: PlayerState) => PlayerState;
+
 export interface SessionOptions {
   now: () => number;
   constantsHash: string;
   log?: TickLogSink;
-  /** Send `ready` automatically on match_found (Phase 1: nothing to load). */
-  autoReady?: boolean;
+  /**
+   * Send `ready` with this zkey hash right on match_found (bots: artefacts already loaded).
+   * Without it the app calls `sendReady()` once the artefacts are loaded and checked.
+   */
+  readySha256?: string;
+  tamper?: StateTamper;
 }
 
 export interface OpponentSample {
@@ -84,6 +93,8 @@ export class GameSession {
   opponentStatus: 'connected' | 'reconnecting' | 'stalled' = 'connected';
   /** Last server states (both players) for rendering. */
   lastState: StateMsg | null = null;
+  /** Highest live tick of the current round the server has sent a `state` for (−1: none). */
+  serverTick = -1;
   readonly opponentBuffer: OpponentSample[] = [];
 
   /** Metrics. */
@@ -106,6 +117,11 @@ export class GameSession {
     private readonly input: InputSource,
     private readonly opts: SessionOptions,
   ) {}
+
+  /** `ready` once the proving key is loaded and its SHA-256 checked (FEATURES F4). */
+  sendReady(artefactSha256: string): void {
+    this.transport.send({ t: 'ready', artefactSha256 });
+  }
 
   onMessage(fn: (m: ServerMessage) => void): () => void {
     this.listeners.add(fn);
@@ -142,8 +158,7 @@ export class GameSession {
           constantsHash: this.opts.constantsHash,
           createdAt: Date.now(),
         });
-        if (this.opts.autoReady !== false)
-          this.transport.send({ t: 'ready', artefactSha256: NO_ARTEFACT_SHA256 });
+        if (this.opts.readySha256) this.sendReady(this.opts.readySha256);
         break;
       case 'countdown':
         this.phase = 'countdown';
@@ -153,6 +168,7 @@ export class GameSession {
         this.roundNo = m.roundNo;
         this.phase = 'live';
         this.tick = -1;
+        this.serverTick = -1;
         this.self = spawnState(this.playerIndex);
         this.prevSelf = this.self;
         this.records = [];
@@ -172,6 +188,11 @@ export class GameSession {
         this.onState(m, now);
         break;
       case 'round_end':
+        // the server ended the round at endTick; if this client lagged behind it, fill the
+        // missing ticks locally exactly like the server fills ticks it never received
+        while (this.phase === 'live' && this.tick < m.endTick) {
+          this.advance(holdTick(this.self), 0, false, now);
+        }
         this.phase = 'pause';
         this.score = [m.score[0], m.score[1]];
         this.lastRoundEnd = m;
@@ -209,6 +230,7 @@ export class GameSession {
     if (m.roundNo !== this.roundNo) return;
     this.hp = [m.players[0].hp, m.players[1].hp];
     if (m.phase !== 'live') return;
+    if (m.tick > this.serverTick) this.serverTick = m.tick;
     const o = m.players[this.opponentIndex];
     this.opponentBuffer.push({
       tick: m.tick,
@@ -249,7 +271,10 @@ export class GameSession {
     }
     while (this.tick < target) {
       const r = stepPlayer(this.self, this.input.sample(this.inputContext()));
-      this.advance(r.state, r.reloadPress, true, now);
+      const next = this.opts.tamper
+        ? this.opts.tamper({ roundNo: this.roundNo, tick: this.tick + 1 }, r.state)
+        : r.state;
+      this.advance(next, r.reloadPress, true, now);
       steps++;
     }
     return steps;

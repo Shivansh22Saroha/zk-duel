@@ -358,3 +358,134 @@ dialog::backdrop {
     animation: none !important;
   }
 }
+
+/* ---------------------------------------------------------------- proof strip (UI_UX §2, F12) */
+.side-col {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.side.right + .strip-wrap,
+.side-col.right {
+  justify-items: end;
+}
+.strip-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.strip {
+  display: flex;
+  gap: 3px;
+}
+.cell {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  display: grid;
+  place-items: center;
+  font: 500 10px/1 var(--mono);
+  color: var(--bg);
+  border: 1px solid var(--border);
+  box-sizing: border-box;
+}
+.cell.empty {
+  border-style: dashed;
+  opacity: 0.4;
+}
+.cell.committed {
+  background: transparent;
+  border-color: var(--text-muted);
+}
+.cell.challenged {
+  background: var(--pending);
+  border-color: var(--pending);
+  animation: pulse 1s ease-in-out infinite;
+}
+.cell.valid {
+  background: var(--valid);
+  border-color: var(--valid);
+}
+.cell.failed {
+  background: var(--invalid);
+  border-color: var(--invalid);
+  color: var(--text);
+}
+.cell.broken {
+  background: var(--timeout);
+  border-color: var(--timeout);
+  color: var(--text);
+}
+.cell.unaudited {
+  border-color: var(--timeout);
+  background: repeating-linear-gradient(45deg, transparent 0 2px, var(--timeout) 2px 3px);
+}
+.spot {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.spot.bad {
+  color: var(--invalid);
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cell.challenged {
+    animation: none;
+  }
+}
+.forfeit-banner {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  background: var(--invalid);
+  color: var(--text);
+  font-weight: 600;
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+/* ---------------------------------------------------------------- results: audit + metrics */
+.audit {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  background: var(--surface-2);
+}
+.audit .status {
+  font: 600 18px var(--mono);
+  letter-spacing: 0.04em;
+}
+.audit.clean .status {
+  color: var(--valid);
+}
+.audit.failed .status {
+  color: var(--invalid);
+}
+.audit.incomplete .status {
+  color: var(--timeout);
+}
+.audit progress {
+  width: 100%;
+  accent-color: var(--p0);
+}
+.overturned {
+  display: inline-block;
+  border: 2px solid var(--invalid);
+  color: var(--invalid);
+  font: 600 14px var(--mono);
+  padding: 2px 8px;
+  border-radius: 4px;
+  transform: rotate(-3deg);
+}
+.timeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}

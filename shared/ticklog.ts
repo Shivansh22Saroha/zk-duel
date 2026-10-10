@@ -59,6 +59,19 @@ export interface TickLogRoundEnd {
   winnerIndex: PlayerIndex;
 }
 
+/**
+ * Client log only (Phase 3): a window was frozen and committed. With the tick lines this is the
+ * window's full private input (salts included), so any window can be re-proved offline.
+ */
+export interface TickLogWindow {
+  type: 'window';
+  roundNo: number;
+  windowIndex: number;
+  saltIn: string;
+  saltOut: string;
+  commitOut: string;
+}
+
 export interface TickLogMatchEnd {
   type: 'match_end';
   winnerIndex: PlayerIndex | null;
@@ -72,6 +85,7 @@ export type TickLogLine =
   | TickLogClientTick
   | TickLogServerTick
   | TickLogRoundEnd
+  | TickLogWindow
   | TickLogMatchEnd;
 
 /** Keys that must never appear in a server-side log or any network frame. */

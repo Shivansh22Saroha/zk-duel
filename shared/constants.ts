@@ -67,6 +67,14 @@ export const SCHEMES = ['groth16', 'plonk'] as const;
 export const PROOF_GRACE_WINDOWS = 2;
 /** Salts are random field elements of this many bits (< p). */
 export const SALT_BITS = 248;
+/**
+ * A challenged window's proof must arrive within this time, else `timeout` (server env
+ * PROOF_DEADLINE_MS overrides). Owner's default. Measured (Phase 3): Chrome prove p95 at N=60 is
+ * 1.7 s alone, but 8.1 s with two clients proving on one laptop — 10 s was too tight.
+ */
+export const PROOF_DEADLINE_MS = 15_000;
+/** Audit proofs are accepted this long after match_end (server env AUDIT_TIMEOUT_MIN overrides). */
+export const AUDIT_TIMEOUT_MIN = 30;
 
 // ---------------------------------------------------------------- network / liveness
 /** Max ticks a missing snapshot is held before the player is `stalled`. */
@@ -84,6 +92,11 @@ export const MAX_STRIKES = 5;
 /** Per-connection WS rate limits (messages per second). */
 export const RATE_LIMIT_SNAPSHOTS_PER_S = 70;
 export const RATE_LIMIT_PROOFS_PER_S = 4;
+/**
+ * window_commit has its own budget: one per window, i.e. TICK_RATE / N per second — 15/s for the
+ * N=4 test variant, 1/s at N=60 — plus slack for bursts after a reconnect.
+ */
+export const RATE_LIMIT_COMMITS_PER_S = 20;
 export const RATE_LIMIT_OTHER_PER_S = 10;
 /** Max WS message size in bytes. */
 export const MAX_WS_PAYLOAD_BYTES = 65_536;
@@ -132,6 +145,8 @@ export const CONSTANTS = {
   SCHEMES,
   PROOF_GRACE_WINDOWS,
   SALT_BITS,
+  PROOF_DEADLINE_MS,
+  AUDIT_TIMEOUT_MIN,
   STALL_TICKS,
   RECONNECT_TIMEOUT_MS,
   RECONNECT_BACKOFF_MS,
@@ -140,6 +155,7 @@ export const CONSTANTS = {
   MAX_STRIKES,
   RATE_LIMIT_SNAPSHOTS_PER_S,
   RATE_LIMIT_PROOFS_PER_S,
+  RATE_LIMIT_COMMITS_PER_S,
   RATE_LIMIT_OTHER_PER_S,
   MAX_WS_PAYLOAD_BYTES,
   SNAPSHOT_INT_LIMIT,

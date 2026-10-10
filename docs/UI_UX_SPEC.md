@@ -24,7 +24,7 @@
 | `--arena-floor` | `#12161C` | Arena fill |
 | `--arena-grid` | `#1B2129` | 50-unit grid lines |
 
-Status is never shown by color alone: valid ✓, failure ✕ (`invalid`, `mismatch_*`, `malformed`, `unprovable` — `--invalid`), pending ◌, timeout – (`--timeout`, hatched), chain_broken ⛓ (`--timeout`) inside each cell. The tooltip always names the exact status.
+Status is never shown by color alone: committed = hollow cell (`--border` outline, not yet proven), challenged / proving ◌ (`--pending`), valid ✓ (`--valid`), failure ✕ (`invalid`, `mismatch_*`, `missing_commit`, `malformed`, `unprovable`, `timeout` — `--invalid`), chain_broken ⛓ (`--timeout`), unaudited = hollow hatched (`--timeout`) inside each cell. The tooltip always names the exact status.
 
 ### Typography
 | Role | Font | Size |
@@ -65,7 +65,7 @@ Load via Google Fonts; fall back to `system-ui` and `ui-monospace`.
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │ P0 name  ███████░░ 75   R 2–1   ░░░░░░███ 50  P1 name         │  top bar
-│ proofs ✓✓✓✓✓✓✓◌            proofs ✓✓✓✓✕✓✓◌                   │  proof strips
+│ proofs ▫▫✓▫◌▫▫▫  7/7       proofs ▫✓▫▫✕▫◌▫  4/5               │  proof strips + spot-checks
 ├──────────────────────────────────────────────────────────────┤
 │                                                              │
 │                    ARENA (1000×600, scaled to fit)            │
@@ -76,16 +76,17 @@ Load via Google Fonts; fall back to `system-ui` and `ui-monospace`.
 ```
 - **Arena:** letterboxed to keep 5:3 ratio, scaled to fit window; 50-unit grid; players are filled circles in `--p0`/`--p1` with a 2 px aim line (length 28); shots are 1-frame tracer lines; hits flash the target white for 4 frames.
 - **Top bar:** names, HP bars (smooth drain), round score in mono.
-- **Proof strips:** last 10 windows per player, newest on the right; hover/focus a cell shows tooltip `Window 14 · valid · prove 412 ms · verify 6 ms`.
+- **Proof strips:** last 10 windows per player, newest on the right; most cells are hollow (`committed`) during play — only challenged windows are proven live. Next to each strip: `Spot-checks: 7/7 passed` (challenges decided valid / decided). Hover/focus a cell shows tooltip `Window 14 · valid · challenged · prove 412 ms · verify 6 ms`.
 - **Bottom HUD (own player only):** ammo count + pips, reload progress bar, last proof time, settings cog. The opponent's ammo is **never** shown (it is hidden state).
 - **Countdown overlay:** 3-2-1 in mono 96 px, fades.
 - **Round end:** banner "Round to P0" for 1.5 s.
-- **Strict mode forfeit:** full-width red banner "Proof failed — window 14. Match forfeited." with the reason.
+- **Strict mode forfeit:** full-width red banner "Spot-check failed — window 14. Match forfeited." with the reason.
 - **Cheat panel (dev only, F9):** right-side drawer, 280 px, toggles with labels; header badge `DEV`. Active cheats show a small red `CHEAT` tag under the player's name for both players — the demo is honest about what is on.
 
 ### 3.4 Results (`/match/:id/results`)
 - Winner headline, round score.
-- Two columns (one per player): window counts per status (valid / invalid / mismatch / unprovable / timeout / chain_broken), mean & p95 prove ms, mean verify ms, cheats active.
+- **Audit banner** at the top while the audit runs: "Auditing… 23/150 windows" (own windows proven / own windows to prove) with a progress bar and the opponent's progress; then the final status `AUDITED CLEAN` (green) / `AUDIT FAILED` (red) / `AUDIT INCOMPLETE` (grey); an `OVERTURNED` stamp when the winner's audit failed (the recorded result stays visible underneath). Leaving the page during the audit asks "Stop the audit? Remaining windows will be unaudited."
+- Two columns (one per player): window counts per status (valid / failed by kind / committed / unaudited / chain_broken), spot-checks passed / issued, challenge rate r, live detection latency (Phase 4), audit duration, mean & p95 prove ms, mean verify ms, cheats active.
 - Full proof timeline: one cell per window across the match (wraps).
 - Buttons: *Back to lobby*, *Download match log (JSON)*. (Rematch dropped — not in PRD.)
 

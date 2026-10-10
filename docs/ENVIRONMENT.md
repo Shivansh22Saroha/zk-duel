@@ -15,7 +15,9 @@ Two env files: `server/.env` (secret, never committed) and `client/.env` (public
 | `DB_PATH` | no | `./data/zkduel.db` | SQLite file |
 | `ZK_ARTEFACT_DIR` | no | `../circuits/build` | Where variant folders live |
 | `ACTIVE_VARIANT` | no | `groth16_60` | Variant used for matches (`<scheme>_<N>`) |
-| `PROOF_GRACE_WINDOWS` | no | `2` | Windows allowed before `timeout` |
+| `PROOF_GRACE_WINDOWS` | no | `2` | Late-snapshot bound and digest-finalisation grace, in windows |
+| `PROOF_DEADLINE_MS` | no | `15000` (`shared/constants.ts`) | Time a challenged window's proof may take before `timeout`. Measured Chrome prove p95 at N=60: 1.7 s with one client per machine, 8.1 s with two clients on one laptop |
+| `AUDIT_TIMEOUT_MIN` | no | `30` (`shared/constants.ts`) | How long after `match_end` audit proofs are accepted; then remaining windows are `unaudited` |
 | `DEFAULT_ENFORCEMENT` | no | `observe` | `observe` \| `strict` for queue matches |
 | `VERIFIER_THREADS` | no | `2` | `worker_threads` for verification |
 | `VERIFY_TIMEOUT_MS` | no | `2000` | Per-proof verify timeout |
@@ -39,6 +41,8 @@ DB_PATH=./data/zkduel.db
 ZK_ARTEFACT_DIR=../circuits/build
 ACTIVE_VARIANT=groth16_60
 PROOF_GRACE_WINDOWS=2
+PROOF_DEADLINE_MS=15000
+AUDIT_TIMEOUT_MIN=30
 DEFAULT_ENFORCEMENT=observe
 VERIFIER_THREADS=2
 VERIFY_TIMEOUT_MS=2000

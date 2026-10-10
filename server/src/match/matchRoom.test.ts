@@ -1,5 +1,5 @@
 /** MatchRoom logic with a fake clock and in-memory links (no sockets). */
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   COUNTDOWN_SECONDS,
   DAMAGE,
@@ -10,13 +10,29 @@ import {
   STALL_TICKS,
   TICK_RATE,
 } from '@zkduel/shared/constants';
+import { poseidonReady } from '@zkduel/shared/poseidon';
 import type { ServerMessage } from '@zkduel/shared/protocol';
 import { openDb } from '../db/index';
 import { Repo } from '../db/repo';
 import { NULL_LOG } from '../log/snapshotLog';
+import type { VariantInfo } from '../zk/variant';
 import { MatchRoom } from './matchRoom';
 
 const MS = 1000 / TICK_RATE;
+const SHA = 'ab'.repeat(32);
+export const FAKE_VARIANT: VariantInfo = {
+  id: 'groth16_60',
+  scheme: 'groth16',
+  windowTicks: 60,
+  constraints: 1,
+  publicSignalOrder: ['commitOut', 'bind', 'digest', 'commitIn'],
+  zkeySha256: SHA,
+  zkeyBytes: 1,
+  wasmSha256: SHA,
+  vkeySha256: SHA,
+  ptauPower: 15,
+  builtAt: '',
+};
 
 function setup() {
   let now = 0;
@@ -36,6 +52,7 @@ function setup() {
   });
   const inbox: [ServerMessage[], ServerMessage[]] = [[], []];
   let finished = false;
+  let closed = false;
   const room = new MatchRoom(
     {
       id: 'm1',
@@ -47,6 +64,10 @@ function setup() {
       windowTicks: 60,
       constantsHash: 'h',
       proofGraceWindows: 2,
+      variant: FAKE_VARIANT,
+      proofDeadlineMs: 10_000,
+      auditTimeoutMs: 60_000,
+      storeProofs: false,
     },
     [
       {
@@ -64,7 +85,14 @@ function setup() {
         disconnectedAt: null,
       },
     ],
-    { repo, log: NULL_LOG, now: () => now, onFinished: () => (finished = true) },
+    {
+      repo,
+      log: NULL_LOG,
+      now: () => now,
+      verifier: { verify: async () => ({ ok: true, ms: 1, timedOut: false, error: null }) },
+      onMatchEnded: () => (finished = true),
+      onFinished: () => (closed = true),
+    },
   );
   const advance = (ms: number) => {
     const end = now + ms;
@@ -76,8 +104,8 @@ function setup() {
   const last = (p: 0 | 1, t: ServerMessage['t']) => [...inbox[p]].reverse().find((m) => m.t === t);
   const goLive = () => {
     room.start();
-    room.onReady(0);
-    room.onReady(1);
+    room.onReady(0, SHA);
+    room.onReady(1, SHA);
     advance(COUNTDOWN_SECONDS * 1000 + MS);
     expect(room.phase).toBe('live');
   };
@@ -95,11 +123,13 @@ function setup() {
     goLive,
     snap,
     isFinished: () => finished,
+    isClosed: () => closed,
     setNow: (v: number) => (now = v),
   };
 }
 
 let t: ReturnType<typeof setup>;
+beforeAll(() => poseidonReady());
 beforeEach(() => {
   t = setup();
 });
@@ -116,9 +146,9 @@ describe('MatchRoom', () => {
       playerIndex: 1,
       prevSnapshot: [850, 300, 1800, 0],
     });
-    t.room.onReady(0);
+    t.room.onReady(0, SHA);
     expect(t.room.phase).toBe('waiting_ready');
-    t.room.onReady(1);
+    t.room.onReady(1, SHA);
     t.advance(COUNTDOWN_SECONDS * 1000 + MS);
     const cds = t.inbox[0]
       .filter((m) => m.t === 'countdown')
@@ -127,9 +157,16 @@ describe('MatchRoom', () => {
     expect(t.last(0, 'start')).toMatchObject({ roundNo: 1, startTick: 0 });
   });
 
+  it('ready is only accepted with the active zkey hash', () => {
+    t.room.start();
+    expect(t.room.onReady(0, 'cd'.repeat(32))).toBe(false);
+    expect(t.room.seats[0].ready).toBe(false);
+    expect(t.room.onReady(0, SHA)).toBe(true);
+  });
+
   it('aborts if a player never sends ready', () => {
     t.room.start();
-    t.room.onReady(0);
+    t.room.onReady(0, SHA);
     t.advance(READY_TIMEOUT_MS + MS);
     expect(t.last(0, 'match_end')).toMatchObject({ reason: 'abort', winnerIndex: null });
   });
@@ -228,6 +265,18 @@ describe('MatchRoom', () => {
     ]); // match-absolute
     expect(s?.totalTicks).toBe(12);
     expect(t.isFinished()).toBe(true);
+    // no client committed anything: the audit closes once the commit deadlines pass
+    expect(t.isClosed()).toBe(false);
+    expect(s?.auditStatus).toBe('auditing');
+    t.advance(2000);
+    expect(t.isClosed()).toBe(true);
+    const a = t.repo.getMatchSummary('m1');
+    expect(a?.auditStatus).toBe('audited_failed');
+    expect(a?.overturned).toBe(true); // winner P0 never committed
+    expect(a?.players.map((p) => p.proofs.byStatus)).toEqual([
+      { missing_commit: 3 },
+      { missing_commit: 3 },
+    ]);
   });
 
   it('simultaneous lethal hits → both survive at 1 HP', () => {

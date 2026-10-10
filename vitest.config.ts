@@ -30,6 +30,8 @@ export default defineConfig({
           name: 'integration',
           include: ['server/test/int/**/*.test.ts'],
           testTimeout: 60_000,
+          // files share the CPU with real provers: run them one at a time (timing-sensitive)
+          fileParallelism: false,
         },
       },
     ],

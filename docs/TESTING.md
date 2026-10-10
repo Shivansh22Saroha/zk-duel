@@ -39,8 +39,10 @@ npm run lint && npm run typecheck
 - `DigestBuilder` output equals the JS reference Poseidon chain and the circuit's `digest` for the same window (cross-check with circom_tester).
 - Snapshot gap fill (≤ `STALL_TICKS`) and stall detection; late snapshot replaces the held value in the digest.
 - Digest finalised at window end; only digests + last snapshot retained.
-- Timeout sweep marks exactly window k at end of window k+2.
-- Results decided in window order; first non-valid → later windows in the round `chain_broken`; chain resets next round.
+- Commit deadline: no `window_commit` within one window after window k ended → `missing_commit`, later windows of the round `chain_broken`; chain resets next round.
+- Challenges: at most one outstanding per player; drawn only from ended, digest-final, still-`committed` windows of the current round; deadline → `timeout`; draw distribution is uniform (chi-square over many draws, seeded only by `crypto.randomInt`).
+- Verification against claimed commitments: wrong `commitIn` or `commitOut` → `mismatch_commit`; any window order.
+- Audit close: remaining `committed` → `unaudited`; `audited_clean` / `audited_failed` / `audit_incomplete`; `overturned` only when the winner failed.
 - JWT issue/verify/revoke; expired token rejected.
 
 **client**
@@ -84,30 +86,33 @@ Using two `ws` clients driven by scripted input logs and real proofs from the N=
 
 | Scenario | Expected |
 |---|---|
-| Clean match, 3 rounds | All windows `valid`; match ends `rounds` |
+| Clean match, 3 rounds | Every window committed, every challenge `valid`, audit → every window `valid`, `audited_clean` |
+| Scripted cheater cheats in one window | That window fails (live challenge or audit); match never `audited_clean` |
+| Commit missing | `missing_commit`; rest of the round `chain_broken` |
+| Challenge not answered | `timeout` at `PROOF_DEADLINE_MS` |
+| Proof for a window that is not challenged (during play) | Dropped |
 | Proof from window k sent as k+1 | `mismatch_bind` |
 | Proof from another match | `mismatch_bind` |
 | Snapshots altered after proving | `mismatch_digest` |
 | Wrong `commitIn` | `mismatch_commit` |
 | Corrupted `pi_a` | `invalid` |
-| No proof sent | `timeout` at end of k+2 |
-| `proof_failed` sent for window k | `unprovable` immediately; windows k+1… of the round `chain_broken` |
-| Window k non-valid, valid-looking proof for k+1 | `chain_broken` (no rewind) |
+| `proof_failed` sent for a challenged window | `unprovable` immediately |
+| Wrong claimed `commitOut` (proof ends elsewhere) | `mismatch_commit` |
 | Next round after a broken chain | Chain restarts from `initialCommit`; windows `valid` |
 | Round ends mid-window | Truncated + padded final window is `valid` |
 | Integer out-of-range snapshot | Accepted into digest, strike counted, proof fails |
 | Strict mode + invalid | `match_end` `forfeit_proof` within 1 tick |
-| Frame inspector over the whole match | No `ammo`, `cooldown`, `reload`, `salt` keys in any client→server frame |
+| Frame inspector over the whole match (incl. audit) | No `ammo`, `cooldown`, `reload`, `salt` keys in any client→server frame; `window_commit` carries only `commitOut`, `window_proof` only proof + public signals |
 | 5 malformed messages | Socket closed `4400` |
 | 200 snapshots in 1 s | Rate-limited, strikes counted |
-| Reconnect within 10 s | Match resumes; `resume` sent with `chainStatus:'broken'`; gap windows `timeout`; rest of that round `chain_broken`; next round valid |
+| Reconnect within 10 s | Match resumes; `resume` sent with `chainStatus:'broken'`, the held commits and the outstanding challenge; windows from the gap on `chain_broken`; next round valid |
 | `cheat_toggle` with `DEV_CHEATS=false` | Rejected `FORBIDDEN` |
 
 ## 5. End-to-end (Playwright)
 
 - Two browser contexts, scripted keyboard/mouse via `page.keyboard`/`page.mouse`, `WINDOW_TICKS=30` variant.
-- **E2E-1:** queue → match → play 20 s → strip shows ≥ 30 ✓ per player.
-- **E2E-2:** private room with strict mode → enable speedhack in context A → match ends with forfeit banner within 3 windows (expected status `unprovable`, since the dev client reports `proof_failed`).
+- **E2E-1:** queue → match → play 20 s → every spot-check ✓, then the audit ends `audited_clean`.
+- **E2E-2:** private room with strict mode → enable speedhack in context A → the match ends with a forfeit banner at the first challenged cheating window (`unprovable`), or the audit ends `audited_failed`.
 - **E2E-3:** smooth-aim enabled → strip stays ✓.
 - **E2E-4:** results page numbers equal API values.
 - **E2E-5:** performance trace while proving → frame time p95 < 20 ms (run on the baseline machine, not in CI).

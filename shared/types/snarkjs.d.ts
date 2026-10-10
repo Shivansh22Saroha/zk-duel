@@ -22,7 +22,9 @@ declare module 'snarkjs' {
     ): Promise<{ proof: Groth16Proof; publicSignals: string[] }>;
     prove(
       zkey: string | Uint8Array,
-      witness: string | Uint8Array,
+      witness: string | Uint8Array | { type: 'mem'; data?: Uint8Array },
+      logger?: unknown,
+      options?: { singleThread?: boolean },
     ): Promise<{ proof: Groth16Proof; publicSignals: string[] }>;
     verify(vkey: unknown, publicSignals: string[], proof: Groth16Proof): Promise<boolean>;
   };

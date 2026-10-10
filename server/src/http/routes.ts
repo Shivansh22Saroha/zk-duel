@@ -6,6 +6,7 @@ import { AuthError, type Auth, type Session } from '../auth/jwt';
 import type { Config } from '../config';
 import type { Repo } from '../db/repo';
 import type { MatchManager } from '../match/manager';
+import { listVariants, publicVariant } from '../zk/variant';
 
 export function sendError(
   reply: FastifyReply,
@@ -51,8 +52,8 @@ export function registerRoutes(app: FastifyInstance, d: RouteDeps): void {
   app.get('/api/health', async () => ({
     status: 'ok',
     uptimeS: Math.floor((Date.now() - d.startedAt) / 1000),
-    activeMatches: d.manager.rooms.size,
-    circuits: [] as string[], // Phase 2/3: built variants
+    activeMatches: d.manager.liveCount,
+    circuits: listVariants(d.cfg.artefactDir).map((v) => v.id),
   }));
 
   app.post(
@@ -86,7 +87,7 @@ export function registerRoutes(app: FastifyInstance, d: RouteDeps): void {
 
   app.get('/api/circuit/info', async () => ({
     active: d.cfg.ACTIVE_VARIANT,
-    variants: [] as unknown[], // Phase 2/3: read from circuits/build/<variant>/info.json
+    variants: listVariants(d.cfg.artefactDir).map(publicVariant),
     constants: CONSTANTS,
     constantsHash: d.constantsHash,
   }));
@@ -105,4 +106,20 @@ export function registerRoutes(app: FastifyInstance, d: RouteDeps): void {
       you: m.players.find((p) => p.playerId === s.playerId)?.playerIndex ?? null,
     };
   });
+
+  app.get<{ Params: { id: string }; Querystring: { player?: string } }>(
+    '/api/matches/:id/windows',
+    async (req, reply) => {
+      const s = requireAuth(req, reply);
+      if (!s) return reply;
+      const m = d.repo.getMatchSummary(req.params.id);
+      if (!m) return sendError(reply, 404, 'NOT_FOUND', 'Match not found.');
+      if (!m.players.some((p) => p.playerId === s.playerId) && !d.cfg.PUBLIC_MATCHES)
+        return sendError(reply, 403, 'FORBIDDEN', 'Not a participant.');
+      const q = req.query.player;
+      if (q !== undefined && q !== '0' && q !== '1')
+        return sendError(reply, 400, 'INVALID_BODY', 'player must be 0 or 1.');
+      return { windows: d.repo.getWindows(req.params.id, q === undefined ? undefined : Number(q)) };
+    },
+  );
 }

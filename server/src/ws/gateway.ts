@@ -13,11 +13,18 @@ import {
   HELLO_TIMEOUT_MS,
   MAX_STRIKES,
   MAX_WS_PAYLOAD_BYTES,
+  RATE_LIMIT_COMMITS_PER_S,
   RATE_LIMIT_OTHER_PER_S,
   RATE_LIMIT_PROOFS_PER_S,
   RATE_LIMIT_SNAPSHOTS_PER_S,
 } from '@zkduel/shared/constants';
-import { clientMessage, helloMsg, type ServerMessage } from '@zkduel/shared/protocol';
+import {
+  clientMessage,
+  helloMsg,
+  windowProofHeader,
+  windowProofMsg,
+  type ServerMessage,
+} from '@zkduel/shared/protocol';
 import { AuthError, type Auth } from '../auth/jwt';
 import type { MatchManager } from '../match/manager';
 import type { PlayerLink } from '../match/matchRoom';
@@ -30,10 +37,11 @@ export const CLOSE = {
   SERVER: 4500,
 } as const;
 
-type Category = 'snapshot' | 'proof' | 'other';
+type Category = 'snapshot' | 'proof' | 'commit' | 'other';
 const LIMITS: Record<Category, number> = {
   snapshot: RATE_LIMIT_SNAPSHOTS_PER_S,
   proof: RATE_LIMIT_PROOFS_PER_S,
+  commit: RATE_LIMIT_COMMITS_PER_S,
   other: RATE_LIMIT_OTHER_PER_S,
 };
 
@@ -52,7 +60,7 @@ class Conn implements PlayerLink {
   closed = false;
   helloTimer: NodeJS.Timeout | null = null;
   private windowStart = 0;
-  private counts: Record<Category, number> = { snapshot: 0, proof: 0, other: 0 };
+  private counts: Record<Category, number> = { snapshot: 0, proof: 0, commit: 0, other: 0 };
 
   constructor(readonly ws: WebSocket) {}
 
@@ -70,7 +78,7 @@ class Conn implements PlayerLink {
   allow(cat: Category, now: number): boolean {
     if (now - this.windowStart >= 1000) {
       this.windowStart = now;
-      this.counts = { snapshot: 0, proof: 0, other: 0 };
+      this.counts = { snapshot: 0, proof: 0, commit: 0, other: 0 };
     }
     this.counts[cat]++;
     return this.counts[cat] <= LIMITS[cat];
@@ -164,10 +172,12 @@ export class Gateway {
         ? 'snapshot'
         : t === 'window_proof' || t === 'proof_failed'
           ? 'proof'
-          : 'other';
+          : t === 'window_commit'
+            ? 'commit'
+            : 'other';
     if (!c.allow(cat, Date.now())) return this.strike(c, 'RATE_LIMITED', `rate limit for ${cat}`);
 
-    if (t === 'window_proof') return; // proof verification arrives in Phase 3
+    if (t === 'window_proof') return this.onWindowProof(c, c.playerId, json);
     const r = clientMessage.safeParse(json);
     if (!r.success)
       return this.strike(c, 'INVALID_BODY', r.error.issues[0]?.message ?? 'invalid message');
@@ -195,7 +205,13 @@ export class Gateway {
           message: 'private rooms are not available yet',
         });
       case 'ready':
-        if (room && p !== null) room.onReady(p);
+        if (room && p !== null && !room.onReady(p, m.artefactSha256)) {
+          c.send({
+            t: 'error',
+            code: 'FORBIDDEN',
+            message: 'artefactSha256 does not match the active proving key',
+          });
+        }
         return;
       case 'input_snapshot': {
         if (!room || p === null) return;
@@ -208,8 +224,18 @@ export class Gateway {
           this.strike(c, 'INVALID_BODY', 'snapshot value out of range');
         return;
       }
-      case 'proof_failed':
-        return; // Phase 3
+      case 'window_commit': {
+        const r2 = mgr.commitRoomOf(pid);
+        const p2 = r2?.indexOf(pid) ?? null;
+        if (r2 && p2 !== null) r2.onCommit(p2, m.roundNo, m.windowIndex, m.commitOut);
+        return;
+      }
+      case 'proof_failed': {
+        const r2 = mgr.roomFor(pid, m.matchId);
+        const p2 = r2?.indexOf(pid) ?? null;
+        if (r2 && p2 !== null) r2.onProofFailed(p2, m);
+        return;
+      }
       case 'cheat_toggle':
         if (!this.opts.devCheats) return this.strike(c, 'FORBIDDEN', 'cheats are disabled');
         return; // Phase 4
@@ -217,6 +243,25 @@ export class Gateway {
         if (room && p !== null) room.onForfeit(p);
         return;
     }
+  }
+
+  /**
+   * window_proof: header first (so a malformed body is still attributed to its window →
+   * `malformed`), then the full schema. Routed by matchId (live match or its audit).
+   */
+  private onWindowProof(c: Conn, pid: string, json: unknown): void {
+    const h = windowProofHeader.safeParse(json);
+    if (!h.success) return this.strike(c, 'INVALID_BODY', 'window_proof header invalid');
+    const room = this.manager().roomFor(pid, h.data.matchId);
+    const p = room?.indexOf(pid) ?? null;
+    if (!room || p === null) return; // not this player's match: dropped
+    const full = windowProofMsg.safeParse(json);
+    if (!full.success) {
+      const reason = full.error.issues[0]?.message ?? 'malformed proof';
+      room.onProofMalformed(p, h.data.roundNo, h.data.windowIndex, reason);
+      return this.strike(c, 'INVALID_BODY', reason);
+    }
+    room.onProof(p, full.data);
   }
 
   private onHello(c: Conn, json: unknown): void {
@@ -250,6 +295,8 @@ export class Gateway {
     c.playerId = playerId;
     this.byPlayer.set(playerId, c);
     c.send({ t: 'welcome', playerId, serverVersion: this.opts.serverVersion });
+    // back into a running match (or its audit): resume (API_SPEC §4)
+    this.manager().onReconnect(playerId, c);
   }
 
   close(): void {

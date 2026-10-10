@@ -9,7 +9,92 @@ Every entry that changes the circuit must state: new constraint count per varian
 ## [Unreleased]
 
 ### Planned (see TODO.md)
-- Phase 3: live proving + server verification (pending the performance decision below).
+- Phase 3: commit / challenge / audit (design change below).
+
+### Phase 3 — Commit, challenge & audit — 2026-10-10
+#### Added
+- **Shared:** `window_commit`, `challenge`, `audit_end` messages; `matchId` on `window_proof`/`proof_failed`/`proof_result`; `phase` on `proof_result`; `resume.committed` + `resume.challenge`; `match_found.variant`; `match_end.auditTimeoutMs`; statuses `committed`, `missing_commit`, `unaudited`; `FAILURE_STATUSES`; `ClientFrame` type. Constants `PROOF_DEADLINE_MS` (15 000), `AUDIT_TIMEOUT_MIN` (30), `RATE_LIMIT_COMMITS_PER_S` (20, new: N=4 commits 15/s). `poseidonSync` (after `poseidonReady`) for the per-tick digest. Tick-log `window` line (salts + commitment, client logs only).
+- **Server (`server/src/zk/`):** `DigestBuilder` (hashes tick t only when t ≤ processed tick and its value is final: arrived, skipped, or past the late bound; round-end padding; mid-round cut-off), `ProofTracker` (commit store, commit deadline → `missing_commit` + `chain_broken`, challenge scheduler with `crypto.randomInt`, pipeline bind → digest → commitIn → commitOut → verify against the claimed commitments, strict-mode forfeit, disconnect chain break, resume info, audit close + `overturned` + metrics), `VerifierPool` (worker_threads, timeout, worker replacement), variant loader (`info.json` + vkey; `/api/circuit/info` and `/api/health` list built variants). `MatchRoom`: `ready` checks the zkey hash, room stays registered until its audit closes (players are freed at `match_end`), late snapshots accepted into the ended round's final window during the pause/after the match, reconnect → `resume` + `state`. Gateway: `window_commit` (own rate budget, routed to the live room or the latest auditing room), `window_proof` header-first (malformed bodies attributed → `malformed` + strike), routing by `matchId`. Migration `002_proofs` (`proof_windows`, `matches.audit_status/overturned/audit_ended_at`, `match_players` metric columns). `GET /api/matches/:id` adds audit + per-player stats/metrics; new `GET /api/matches/:id/windows`.
+- **Client (`client/src/zk/`):** artefact loader (download progress, SHA-256 via `crypto.subtle`, Cache API keyed by hash), `WindowRecorder` (freeze on state/round_end, truncate + pad, salts, commitments), `ProofClient` (commits, challenge-first queue then audit, resume/reconnect handling, per-window status for both players), Proof Worker (builds the input in the worker; warm-up proof during the countdown), `WorkerProver`. `GameSession`: explicit `ready` with the zkey hash, hold-fill up to `endTick` when lagging at round end, dev/test `tamper` hook. UI: proof strips (hollow / ◌ / ✓ / ✕ / ⛓) + "Spot-checks: x/y passed" + tooltips, last prove time, strict-forfeit banner; queue screen shows "Loading proving key… n%"; results screen: audit banner with live "Auditing… x/y windows", final status, `OVERTURNED` stamp, per-player status counts, spot-checks, r, detection latency (Phase 4), audit duration, prove/verify times, full window timeline; leaving during the audit asks first. Auto-reconnect (0.5/1/2 s backoff up to `RECONNECT_TIMEOUT_MS`).
+- **Tooling:** `npm run perf:match` (two visible Chrome windows play through spot-checks + audit; `--stop-after` for a fixed length), `npm run perf:prove` + `/bench.html` (Step 1), `server/scripts/zk-node-bench.ts` (Node prove + pool verify on an idle machine). Bots: `NodeProver` (worker_threads, artefacts read once, thread cap), `BotClient` proving / tamper / drop + reconnect.
+- **Tests:** unit — 7 DigestBuilder (= JS reference/circuit digest incl. gaps, late values, ticks past endTick, padding, cut-off), 13 ProofTracker (deadlines, chain_broken, challenge eligibility, uniformity χ² over 4 000 draws, every pipeline status, strict, disconnect/resume, audit close/overturned), 4 WindowRecorder (= `sliceLogWindows`, server digest = client input digest at round end, salts < p), MatchRoom ready-hash + audit close, protocol schemas; integration (real sockets, real N=4 proofs) — clean match → `audited_clean` + frame inspector, speed and hidden-ammo cheaters → never clean, every mismatch/invalid/malformed/timeout, `missing_commit` → `chain_broken`, strict forfeit, reconnect + resume; circuit — `ammoSafety.test.ts`.
+
+#### Fixed (found by tests during the phase)
+- **Every challenge was proven twice**: after sending a proof the window stayed `committed` until the result arrived, so the queue proved it again. Windows with a proof in flight are now skipped (`onReconnected()` re-queues them if the socket died).
+- DigestBuilder would have hashed a tick a client sent past `endTick` before the server processed `endTick` (now: only ticks ≤ the processed tick are hashed).
+- snarkjs/ffjavascript could not run inside a `worker_thread` at all: its `web-worker` shim treats every worker thread as its own child. Workers now present themselves as main thread before loading snarkjs. Capping the verifier's ffjavascript pool to 1 thread doubled verify time (p50 26 → 65 ms) — not capped.
+- A worker exiting without an `error` event, or an exception in the async pipeline, could leave a window "verifying" forever and block the audit until its timeout.
+- Test hook: a withheld proof was retried forever (all later challenges timed out).
+- Integration files now run sequentially (`fileParallelism: false`) and failed matches close their bots: leftover provers were loading the CPU for later tests.
+
+#### Measured (Intel Core 5 210H, 8C/12T, Node 22.23.3, Chrome 155)
+- **Integration, real proofs, N=4 test circuit (bots in Node):** clean match → 95/95 windows valid per player, challenges 4/4 passed, r = 0.042, audit 117 s, **`audited_clean`**; frame inspector 1,146 client frames (190 `window_commit`, 196 `window_proof`), wire keys only `angle, artefactSha256, clientVersion, commitOut, constantsHash, curve, fired, matchId, pi_a, pi_b, pi_c, proof, protocol, proveMs, publicSignals, roundNo, scheme, t, tick, token, windowIndex, x, y` — no hidden key. Speed cheat (one tick, window 7) → `unprovable`, caught by the **audit** (not challenged live; r ≈ 0.05), `audited_failed` + `OVERTURNED` (the cheater won). Hidden ammo refill (window 7) → same. Mutated answers → exactly `mismatch_bind, mismatch_digest, mismatch_commit (in), mismatch_commit (out), invalid, malformed, timeout`, then `valid`. Missing commit r1w5 → `missing_commit`, 45 later round-1 windows `chain_broken`, round 2 all valid. Strict → `forfeit_proof` in the same step as the result. Reconnect: resume `{chainStatus: broken, committed: 10 windows, challenge: w0 with 2.6 s left}`, w10+ `chain_broken`, next round valid, `audit_incomplete`.
+- **Verify (VerifierPool, worker_threads, one worker, idle machine):** p50 26.1 / p95 32.8 ms (groth16_4, 100 verifies) — NFR-4 met. Under integration load (two bot provers in the same process): p50 34 / p95 48 ms (190 verifies); worst run p95 72 ms (two test files in parallel, since disabled). In the browser matches the server shared the laptop with two proving browsers: verify mean 34–148 ms per player — NFR-4 **not** met under that load.
+- **Node proving (bot worker, idle):** groth16_4 prove p50 656 ms (12 threads) / 1,530 ms (2 threads); groth16_60 witness 326 ms, prove p50 4,371 / p95 4,651 ms — ≈ 2.8× slower than Chrome on the same laptop.
+- **Browser match (two visible Chrome windows, one laptop, both clients proving):** see the Phase 3 report — results with the laptop **on battery (13 %, "Silent" power plan)** for at least the last run: Chrome capped rendering at 30 Hz (frame interval p50 33.3 / p95 33.5 ms, per-frame work p95 1.7 ms) and proving slowed (challenge prove mean 5.6 s, p95 6.4 s; the earlier run 6.8–8.3 s). Clean match of 66 s of play (64 windows per player): **9/9 spot-checks passed per player, r = 0.141, audit 321–323 s, every window valid → `audited_clean`**; warm-up proof 8.2–8.4 s. First run (10 s deadline, no warm-up, 41 s match): frame interval p95 17.0 ms, both players' first challenge `timeout` (cold first proof > 10 s) → `audited_failed` — led to the deadline revert + warm-up. A 6.7-minute run (395 windows/player) had every challenge valid; its audit (≈ 6 s per window with two browsers proving) was interrupted at 13.6 min with 209 windows left per player by my own code edit (Vite reloaded the pages) — no final status for it.
+
+#### Exit check status — NOT complete
+- ✅ Integration: scripted cheaters never `audited_clean` (speed + hidden ammo); frame inspector clean (no hidden state; `window_commit` = `{t, roundNo, windowIndex, commitOut}`, `window_proof` = proof + public signals).
+- ⚠️ Clean browser match: `audited_clean` with all challenges valid achieved, but over **66 s**, not 3 minutes (natural match end; the fixed-length option `--stop-after 180` was added after that run and is untested).
+- ❌/unmeasured: **frame time p95 < 20 ms while proving** — the valid-power run gave 17.0 ms (but that run failed the clean check); the clean run was capped at 30 Hz by battery saver (33.5 ms). Must be re-run on AC power.
+
+#### Deviations / decisions to confirm
+- `RATE_LIMIT_COMMITS_PER_S = 20` (new constant; `window_commit` has its own budget — at N=4 a client commits 15 windows/s).
+- `window_commit` has no `matchId` (as specified); after `match_end` it is routed to the player's most recent room still auditing.
+- Live late snapshots of a round that arrive after the **next** round started are lost (the protocol's snapshots carry no round number); honest RTT is far below the 1.5 s pause.
+- Each challenge proof is retried after a reconnect only if the server still lists it (`resume.challenge`); audit proofs lost on a dead socket are re-proven on reconnect.
+- `witnessMs` reported by the live client now includes building the circuit input (digest chain) in the worker.
+- Dev-only URL params (`vite dev` builds only): `?bot=<seed>&acc=<jitter>&threads=<n>&stopAfter=<s>`.
+- At N=4 the commit deadline is one window = 67 ms (as specified); integration tests on a loaded machine are timing-sensitive because of it.
+- Research metric "live detection latency" column exists but stays NULL until `cheat_events` (Phase 4); benchmark export of the metrics is Phase 5.
+
+### Phase 3 design change — commit every window, prove on challenge, audit after the match — 2026-10-10
+Decided by the owner after the Phase 2 performance preview (options (a) then (d)). Recorded before any Phase 3 code. Docs changed: ARCHITECTURE §1/§2/§4/§5.3/§6/§7/§9, API_SPEC §3/§4/§5, PRD G2/G4/§5/FR-13–FR-18/FR-20/FR-22/§8, FEATURES F9–F14, DATABASE_SCHEMA, SECURITY §6/§7 (A3, A7, new A15–A17, new §7.3), UI_UX §2/§3.3/§3.4, USER_FLOWS 3–6, TESTING §2/§4/§5, ENVIRONMENT, TODO.
+
+1. **Commit every window.** At the end of each window the client sends `window_commit{roundNo, windowIndex, commitOut}`; the server stores it as the claimed commitment (`committed`). Missing by the end of the next window → `missing_commit`, rest of the round `chain_broken`.
+2. **Challenges.** One outstanding challenge per player; drawn uniformly with `crypto.randomInt` among the player's ended, digest-final, still-`committed` windows of the current round; `challenge{playerIndex, roundNo, windowIndex, deadlineMs}` with `deadlineMs = PROOF_DEADLINE_MS`.
+3. **Proving a challenged window** against the claimed commitments: `commitIn` = claimed `commitOut_{k−1}` (or `initialCommit`), `commitOut` = claimed `commitOut_k`; a different `commitOut` → `mismatch_commit`. Every window's private input stays in client memory (and the dev tick log) until the audit ends.
+4. **Statuses:** `committed`, `valid`, `invalid`, `mismatch_bind`, `mismatch_digest`, `mismatch_commit`, `missing_commit`, `unprovable`, `timeout` (challenge deadline), `chain_broken`, `malformed`, plus `unaudited` (audit closed). DB CHECK updated.
+5. **Post-match audit:** the client proves every remaining committed window; the server accepts audit proofs for `AUDIT_TIMEOUT_MIN`; `matches.audit_status` = `audited_clean` / `audited_failed` / `audit_incomplete`.
+6. **Enforcement:** `strict` forfeits on the first live failure; an audit failure sets `overturned` without rewriting history.
+7. **HUD:** hollow = committed, ◌ = challenged/proving, ✓, ✕, ⛓; "Spot-checks: 7/7 passed".
+8. **Research metrics per match:** challenge count, challenge rate r, live detection latency, audit duration (results screen; benchmark export in Phase 5).
+9. **SECURITY §7.3:** why challenges must be unpredictable, why commit-every-window prevents rewriting history, live detection probability 1 − (1 − r)^m, the audit is the full guarantee.
+
+**Decisions taken while writing the design down (please confirm):**
+- `PROOF_DEADLINE_MS` default **15 000 ms** (owner's value). After Step 1 I first lowered it to 10 000 (≈ 6× the single-client prove p95); the first browser exit-check run then showed that two clients proving on one laptop need 8–9 s per challenge and that the cold first proof exceeded 10 s → both players' first challenge timed out. Reverted to 15 000, and the worker now runs one warm-up proof during the countdown. `AUDIT_TIMEOUT_MIN` = 30. Both live in `shared/constants.ts` (rule 1) with server env overrides.
+- **Only `missing_commit` breaks the chain.** A failed window does not: claimed commitments are immutable, so no rewind is possible, and later windows are still checked against the claims. (Before: the first non-valid result broke the chain.)
+- **`strict` forfeits on a failed challenge *or* a `missing_commit`** (both are live failures).
+- **`overturned` = the winner's audit failed.** A loser who cheated makes the match `audited_failed` but the result is not "overturned". Literal alternative: any audit failure → overturned.
+- **`window_proof` / `proof_failed` gain `matchId`** so audit proofs after `match_end` (and after a reconnect) are routed unambiguously, even if the player is already in the lobby.
+- **`challenge` is broadcast** (with `playerIndex`) so the opponent's strip shows ◌ too; `proof_result` gains `phase: 'live' | 'audit'` and is also sent for `committed`; new `audit_end`; `resume` gains `committed[]` and `challenge`; `match_end` gains `auditTimeoutMs`; `match_found` gains `variant`.
+- **Disconnects:** windows from the first tick the server did not receive become `chain_broken` (not a failure — they contain held values the client never played), so a reconnect makes that round `audit_incomplete` at best. A cheater can use this to turn "failed" into "incomplete" for one round (SECURITY A16).
+- **G4 / FR-20 / §8 reworded:** "non-valid within 3 windows" is no longer a property of the system; the guarantee is "never `audited_clean`", with the live detection probability measured.
+- **Residual predictability (SECURITY A15):** the first window of a round can be the only candidate (certain challenge); windows late in a round face fewer draws. Implemented as specified; documented and measured, not fixed.
+
+#### Step 1 — browser proving measured (before the redesign was coded)
+Chrome 154 (Playwright, headed, tab visible), Intel Core 5 210H (8C/12T), `client/bench.html` → Proof Worker, 10 real windows from the Phase 1 fixture logs + 1 warm-up per setting, synthetic arena rendering on the main thread. All public signals equal the JS reference.
+
+| Variant | snarkjs threads | witness p50/p95 | prove p50/p95 | prove ÷ play | frame interval while proving p50/p95/max |
+|---|---|---|---|---|---|
+| groth16_60 | 12 (default = hardwareConcurrency) | 75 / 128 ms | 1,579 / 1,732 ms | 1.6× | 6.9 / 7.1 / 8 ms |
+| groth16_60 | 8 | 68 / 96 | 1,555 / 1,739 | 1.6× | 6.9 / 7.1 / 9 |
+| groth16_60 | 4 | 76 / 146 | 2,019 / 2,189 | 2.0× | 6.9 / 7.1 / 9 |
+| groth16_60 | 2 | 73 / 97 | 3,098 / 3,164 | 3.1× | 6.9 / 7.1 / 9 |
+| groth16_60 | single | 73 / 131 | 5,628 / 6,572 | 5.6× | 6.9 / 7.1 / 8 |
+| groth16_30 | 12 (default) | 52 / 79 | 1,014 / 1,081 | 2.0× | 6.9 / 7.1 / 8 |
+| groth16_30 | 8 | 47 / 65 | 1,010 / 1,085 | 2.0× | 6.9 / 7.1 / 8 |
+| groth16_30 | 4 | 50 / 83 | 1,347 / 1,429 | 2.7× | 6.9 / 7.1 / 8 |
+| groth16_30 | 2 | 44 / 69 | 2,092 / 2,225 | 4.2× | 6.9 / 7.1 / 8 |
+| groth16_30 | single | 41 / 53 | 3,574 / 3,958 | 7.1× | 6.9 / 7.1 / 8 |
+
+- Idle frame interval p95 was 7.0–7.1 ms in every run: proving in the worker does not affect main-thread frame time at any thread setting, so threads are **not** capped (capping only slows proving).
+- Browser proving is ≈ 3× faster than the Phase 2 Node preview (4.8 s at N=60), but still slower than real time (1.6× at N=60) — proving every window live remains infeasible on this laptop.
+- New variant **groth16_30**: 16,968 constraints, ptau power 15, zkeySha256 `c2f21eb60a3baf8d10ba6e8a55f8b4b94f227f0b092d398ce87fd4d3829144fc`, zkey 18.84 MiB; `publicSignalOrder` `[commitOut, bind, digest, commitIn]` (unchanged). Circuit unchanged → groth16_4/60 constraint counts unchanged.
+- Tooling: `client/bench.html` + `src/bench/proveBench.ts` (dev page), `npm run perf:prove` (Playwright driver); Vite dev middleware serves `/zk/<variant>/{window.wasm,window_final.zkey,info.json}` and `/__dev/fixtures/`; Vite aliases `circomlibjs` to its `poseidon_wasm.js` (the package index pulls in blake-hash/Buffer, which breaks in browsers).
+
+#### "ammo < MAG" as "ammo ≠ MAG" — checked, safe, no circuit change
+`circuits/test/ammoSafety.test.ts` (5 tests): `WeaponStep`'s equations transcribed literally in F_p; BFS from (MAG, 0, 0) gives **1,571 reachable hidden states**, closed under the circuit relation and bounded (ammo ∈ [0, 10], cooldown ∈ [0, 11], reloadT ∈ [0, 90]); on all of them the circuit relation equals `stepWeapon` ("<") for all 4 inputs; the compiled template agrees with the transcription on every reachable (state, input); window 0 opening `initialCommit` forces (MAG, 0, 0). So "≠" is safe for every window whose `commitIn` traces back to `initialCommit` through verified windows. The test also shows why that hypothesis matters under spot-checks: a window whose `commitIn` is only *claimed* can start from ammo = 1000 and still verify — only the window that produced the claim (or the audit) exposes it. A range check would not change that (a cheater would claim a legal-looking refilled magazine instead), so the circuit was not rebuilt.
 
 ### Phase 2 — Circuit (offline) — 2026-10-09
 #### Added

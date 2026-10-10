@@ -36,6 +36,7 @@ function setup(playerIndex: 0 | 1) {
     enforcement: 'observe',
     spawns,
     initialCommit: '2',
+    variant: 'groth16_60',
     prevSnapshot: [150, 300, 0, 0],
   };
   game.handle(mf);

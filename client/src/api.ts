@@ -1,5 +1,6 @@
 /** REST client + guest session storage (FEATURES F1: token in sessionStorage). */
 import { ENV } from './env';
+import type { VariantMeta } from './zk/artefacts';
 
 const TOKEN_KEY = 'zkd.token';
 const NAME_KEY = 'zkd.name';
@@ -32,6 +33,7 @@ async function call<T>(path: string, init: RequestInit = {}, token?: string): Pr
 
 export interface CircuitInfo {
   active: string;
+  variants: VariantMeta[];
   constants: Record<string, unknown>;
   constantsHash: string;
 }
@@ -43,6 +45,8 @@ export interface MatchSummary {
   endReason: string | null;
   windowTicks: number;
   totalTicks: number;
+  auditStatus: 'auditing' | 'audited_clean' | 'audited_failed' | 'audit_incomplete' | null;
+  overturned: boolean;
   you: number | null;
   players: {
     playerIndex: number;
@@ -50,6 +54,20 @@ export interface MatchSummary {
     roundsWon: number;
     hits: number;
     shots: number;
+    windows: number;
+    windowsCommitted: number;
+    challenges: number;
+    challengesPassed: number;
+    challengeRate: number | null;
+    detectionLatencyWindows: number | null;
+    auditMs: number | null;
+    proofs: {
+      byStatus: Record<string, number>;
+      failed: number;
+      proveMsMean: number | null;
+      proveMsP95: number | null;
+      verifyMsMean: number | null;
+    };
   }[];
   rounds: {
     roundNo: number;

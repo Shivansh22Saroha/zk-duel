@@ -56,29 +56,32 @@ Feature-by-feature behaviour. Constants refer to `shared/constants.ts` (PRD §5)
 - `ROUND_PAUSE_TICKS` (1.5 s) pause between rounds (server keeps sending `state` with `phase:'pause'`, but no input is applied and no windows are counted); then `start` for the next round.
 - **AC:** window indices restart at 0 each round; a proof from round 1 can't be accepted in round 2 because `bind = Poseidon(matchField, playerIndex, roundNo, windowIndex)`.
 
-## F9. Window recording & proving
-- WindowRecorder collects N ticks; once the server's `state` for the window's last tick arrives (or `round_end` with `endTick` inside the window) it builds the circuit input (ARCHITECTURE.md §5.2), generates a fresh `saltOut` with `crypto.getRandomValues` reduced mod p.
+## F9. Window recording, commitments & proving
+(Phase 3 design change — commit every window, prove on challenge, audit after the match; ARCHITECTURE.md §4.)
+- **Commit every window.** WindowRecorder freezes window k once the server's `state` for its last tick has arrived and the local sim has reached it (or on `round_end` with `endTick` inside it — truncated + padded, API_SPEC §5), draws a fresh `saltOut` (`crypto.getRandomValues`, 248 bits), computes `commitOut_k` = Poseidon4 of the window's last hidden state and sends `window_commit{roundNo, windowIndex, commitOut}`. Nothing else about the window leaves the client.
+- **Keep everything until the audit ends.** Every window's full private input (records, `prev`, hidden state in, salts) stays in memory until the match's audit ends (and in the dev tick log when `VITE_LOG_TICKS=true`).
+- **Proof Queue.** The challenged window first (at most one is outstanding), then — after `match_end` — every window still `committed`, in window order. Proof Worker: one proof at a time; builds the circuit input, computes the witness, proves; reports `witnessMs`, `proveMs` to the HUD and in `window_proof`.
 - If witness generation/proving throws, the client sends `proof_failed` (→ `unprovable`) and shows a local "proof could not be generated" note.
-- After any non-valid result in a round the client stops proving the rest of that round (the server marks those windows `chain_broken`).
-- Proof Worker: one proof at a time; queue max 2; if the queue would exceed 2, the oldest unproven window is dropped (it will time out) and a warning is logged.
-- Reports `witnessMs`, `proveMs` to the HUD and in the `window_proof` message.
-- A partial window at round end is padded (API_SPEC.md §5).
-- **AC:** with N=60 on the baseline laptop, frame time p95 < 20 ms while proving; no window skipped in a clean 3-minute match (if prove time < window duration).
+- After `resume.chainStatus = 'broken'` the client stops committing for the rest of that round; it resumes at the next round.
+- **AC:** with N=60 on the baseline laptop, frame time p95 < 20 ms while proving; in a clean 3-minute match every window is committed, every challenge `valid`, and the audit ends `audited_clean`; no hidden state in any `window_commit`/`window_proof` frame.
 
-## F10. Server verification
-- Order: chain_broken → schema → bind → digest → commitIn → `verify` in worker pool (2 s timeout). Decided in window order. `proof_failed` → `unprovable` immediately.
-- Results persisted per window; `proof_result` broadcast to both players.
-- Timeout sweep runs every tick: any window k without a result by end of window k+2 → `timeout`.
-- First non-valid window in a round → all later windows of that round `chain_broken`.
-- **AC:** each mismatch type is produced by a dedicated integration test; verify p95 < 50 ms.
+## F10. Server verification, challenges & audit
+- **Commits:** stored as the claimed `commitOut_k` (status `committed`). Missing by the end of the next window → `missing_commit`, rest of the round `chain_broken`.
+- **Challenges:** whenever a player has no outstanding challenge, the server draws one of that player's ended, digest-final, still-`committed` windows of the current round uniformly at random (`crypto.randomInt`) and broadcasts `challenge{playerIndex, roundNo, windowIndex, deadlineMs}` (`PROOF_DEADLINE_MS`, env-tunable, default 15 000). Deadline passed → `timeout`.
+- **Verification order:** malformed → bind → digest → commitIn (claimed k−1 / `initialCommit`) → commitOut (claimed k) → `verify` in the worker pool (`VERIFY_TIMEOUT_MS` timeout). Any window order. `proof_failed` → `unprovable` immediately.
+- Results persisted per window; `proof_result` broadcast to both players (also for `committed`).
+- **Audit:** after `match_end`, audit proofs for that match are accepted for `AUDIT_TIMEOUT_MIN` (env, default 30). Closes early when nothing is left `committed`. Never-proven windows → `unaudited`. `matches.audit_status` = `audited_clean` / `audited_failed` / `audit_incomplete`; winner's audit failure → `overturned` (history not rewritten). `audit_end` broadcast.
+- **Research metrics per match and player:** windows committed, challenge count, challenges passed, challenge rate r, live detection latency (windows from cheat activation to the first failed challenge — needs `cheat_events`, Phase 4), audit duration.
+- **AC:** each mismatch type is produced by a dedicated integration test; verify p95 < 50 ms in the worker pool; a scripted cheater's match is never `audited_clean`.
 
 ## F11. Enforcement modes
 - `observe`: results shown and stored; match continues.
-- `strict`: first non-valid result → `match_end` (`forfeit_proof`), opponent wins.
+- `strict`: the first live failure (failed challenge or `missing_commit`) → `match_end` (`forfeit_proof`), opponent wins. Audit failures after the match set `overturned` instead.
 - **AC:** strict mode ends the match within 1 tick of the failing result.
 
 ## F12. Proof strip HUD
-- Two strips (own + opponent), last 10 windows, newest right, statuses ✓ valid, ✕ any failure (`invalid`, `mismatch_*`, `malformed`, `unprovable`), ◌ pending, – `timeout`, ⛓ `chain_broken` (UI_UX_SPEC §2).
+- Two strips (own + opponent), last 10 windows, newest right: hollow cell = `committed`, ◌ = challenged / proving, ✓ = `valid`, ✕ = any failure (`invalid`, `mismatch_*`, `missing_commit`, `malformed`, `unprovable`, `timeout`), ⛓ = `chain_broken` (UI_UX_SPEC §2).
+- Live "Spot-checks: 7/7 passed" per player (challenges decided valid / challenges decided).
 - Tooltip: window index, status, prove ms (own only), verify ms.
 - **AC:** status visible within 100 ms of `proof_result`; readable by symbol without color.
 
@@ -88,17 +91,17 @@ Feature-by-feature behaviour. Constants refer to `shared/constants.ts` (PRD §5)
 
 | Cheat | What it does | Expected result |
 |---|---|---|
-| Speedhack | `MAX_SPEED × 2` | No proof (speed constraint) → `unprovable` (honest client) / `timeout` (silent cheater) |
-| Rapid-fire | Ignores cooldown | No proof (weapon constraint) → `unprovable` / `timeout` |
-| Infinite ammo | Never decrements ammo | No proof (ammo transition) → `unprovable` / `timeout` |
-| Snap-aim | Sets angle straight at opponent each tick | No proof when turn > `MAX_TURN` → `unprovable` / `timeout` |
+| Speedhack | `MAX_SPEED × 2` | Cheating windows have no proof (speed constraint) → `unprovable` when challenged/audited (honest dev client) / `timeout` or `unaudited` (silent cheater) |
+| Rapid-fire | Ignores cooldown | No proof (weapon constraint) → `unprovable` / `timeout` / `unaudited` |
+| Infinite ammo | Never decrements ammo | No proof (ammo transition) → `unprovable` / `timeout` / `unaudited` |
+| Snap-aim | Sets angle straight at opponent each tick | No proof when turn > `MAX_TURN` → `unprovable` / `timeout` / `unaudited` |
 | Smooth-aim | Turns toward opponent at ≤ `MAX_TURN` | **Valid** proofs — demonstrates the limitation |
 
 - Toggle state broadcast via `cheat_flag`; both players see a `CHEAT` tag.
-- **AC:** each rule-breaking cheat yields a non-valid result within 3 windows; smooth-aim yields valid results.
+- **AC:** a match with a rule-breaking cheat is never `audited_clean` (caught by a challenge live or by the audit; the live detection latency is reported); smooth-aim yields valid results.
 
 ## F14. Results screen
-- Data from `GET /api/matches/:id`; timeline of all windows; per-player stats; cheat events with "windows to detect".
+- Data from `GET /api/matches/:id`; timeline of all windows; per-player stats; cheat events with "windows to detect"; audit progress ("Auditing… 23/150 windows") while the audit runs, then the audit status and an `OVERTURNED` banner when the winner failed; research metrics (challenge count, rate r, detection latency, audit duration).
 - **AC:** numbers match the DB exactly; download produces valid JSON with no hidden state.
 
 ## F15. Benchmark mode

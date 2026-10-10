@@ -42,6 +42,7 @@ const plonk = {
 };
 const windowProof = {
   t: 'window_proof',
+  matchId: UUID,
   roundNo: 1,
   windowIndex: 3,
   scheme: 'groth16',
@@ -105,6 +106,8 @@ const cases: Case[] = [
       ['float roundNo', { ...windowProof, roundNo: 1.5 }],
       ['roundNo 0', { ...windowProof, roundNo: 0 }],
       ['roundNo > 5', { ...windowProof, roundNo: 6 }],
+      ['missing matchId', { ...windowProof, matchId: undefined }],
+      ['matchId not a uuid', { ...windowProof, matchId: 'abc' }],
       [
         'pi_a coord = q',
         { ...windowProof, proof: { ...groth16, pi_a: [BN254_Q.toString(), F, '1'] } },
@@ -128,13 +131,25 @@ const cases: Case[] = [
   [
     'proof_failed',
     P.proofFailedMsg,
-    { t: 'proof_failed', roundNo: 2, windowIndex: 7, reason: 'Assert Failed' },
+    { t: 'proof_failed', matchId: UUID, roundNo: 2, windowIndex: 7, reason: 'Assert Failed' },
     [
       [
         'oversized reason',
-        { t: 'proof_failed', roundNo: 2, windowIndex: 7, reason: 'x'.repeat(201) },
+        { t: 'proof_failed', matchId: UUID, roundNo: 2, windowIndex: 7, reason: 'x'.repeat(201) },
       ],
-      ['missing windowIndex', { t: 'proof_failed', roundNo: 2, reason: '' }],
+      ['missing windowIndex', { t: 'proof_failed', matchId: UUID, roundNo: 2, reason: '' }],
+      ['missing matchId', { t: 'proof_failed', roundNo: 2, windowIndex: 7, reason: '' }],
+    ],
+  ],
+  [
+    'window_commit',
+    P.windowCommitMsg,
+    { t: 'window_commit', roundNo: 1, windowIndex: 0, commitOut: P_MINUS_1 },
+    [
+      ['commitOut = p', { t: 'window_commit', roundNo: 1, windowIndex: 0, commitOut: P_STR }],
+      ['commitOut as number', { t: 'window_commit', roundNo: 1, windowIndex: 0, commitOut: 5 }],
+      ['negative window', { t: 'window_commit', roundNo: 1, windowIndex: -1, commitOut: F }],
+      ['missing commitOut', { t: 'window_commit', roundNo: 1, windowIndex: 0 }],
     ],
   ],
   [
@@ -165,6 +180,7 @@ const cases: Case[] = [
       ],
       initialCommit: F,
       prevSnapshot: [150, 300, 0, 0],
+      variant: 'groth16_60',
     },
     [['playerIndex 2', { t: 'match_found', matchId: UUID, matchField: F, playerIndex: 2 }]],
   ],
@@ -214,11 +230,13 @@ const cases: Case[] = [
     P.proofResultMsg,
     {
       t: 'proof_result',
+      matchId: UUID,
       playerIndex: 0,
       roundNo: 1,
       windowIndex: 0,
-      status: 'chain_broken',
+      status: 'committed',
       verifyMs: null,
+      phase: 'live',
     },
     [
       [
@@ -235,10 +253,65 @@ const cases: Case[] = [
     ],
   ],
   [
+    'challenge',
+    P.challengeMsg,
+    { t: 'challenge', playerIndex: 1, roundNo: 2, windowIndex: 9, deadlineMs: 10000 },
+    [
+      [
+        'negative deadline',
+        { t: 'challenge', playerIndex: 1, roundNo: 2, windowIndex: 9, deadlineMs: -1 },
+      ],
+      ['missing playerIndex', { t: 'challenge', roundNo: 2, windowIndex: 9, deadlineMs: 1 }],
+    ],
+  ],
+  [
+    'audit_end',
+    P.auditEndMsg,
+    {
+      t: 'audit_end',
+      matchId: UUID,
+      auditStatus: 'audited_clean',
+      overturned: false,
+      players: [
+        { valid: 10, failed: 0, unaudited: 0, chainBroken: 0 },
+        { valid: 9, failed: 0, unaudited: 0, chainBroken: 0 },
+      ],
+    },
+    [
+      [
+        'unknown audit status',
+        { t: 'audit_end', matchId: UUID, auditStatus: 'clean', overturned: false, players: [] },
+      ],
+    ],
+  ],
+  [
     'resume',
     P.resumeMsg,
-    { t: 'resume', roundNo: 2, nextWindowIndex: 4, chainStatus: 'broken' },
-    [['bad chainStatus', { t: 'resume', roundNo: 2, nextWindowIndex: 4, chainStatus: 'ok' }]],
+    {
+      t: 'resume',
+      roundNo: 2,
+      nextWindowIndex: 4,
+      chainStatus: 'broken',
+      committed: [0, 1, 2],
+      challenge: { roundNo: 2, windowIndex: 1, deadlineMs: 4200 },
+    },
+    [
+      [
+        'bad chainStatus',
+        {
+          t: 'resume',
+          roundNo: 2,
+          nextWindowIndex: 4,
+          chainStatus: 'ok',
+          committed: [],
+          challenge: null,
+        },
+      ],
+      [
+        'missing committed',
+        { t: 'resume', roundNo: 2, nextWindowIndex: 4, chainStatus: 'intact', challenge: null },
+      ],
+    ],
   ],
   [
     'error',
@@ -370,6 +443,7 @@ describe('shared/protocol schemas', () => {
   it('window_proof header can be parsed from an otherwise malformed body', () => {
     const r = P.windowProofHeader.safeParse({
       t: 'window_proof',
+      matchId: UUID,
       roundNo: 1,
       windowIndex: 2,
       proof: 'garbage',
@@ -378,6 +452,7 @@ describe('shared/protocol schemas', () => {
     expect(
       P.windowProofMsg.safeParse({
         t: 'window_proof',
+        matchId: UUID,
         roundNo: 1,
         windowIndex: 2,
         proof: 'garbage',

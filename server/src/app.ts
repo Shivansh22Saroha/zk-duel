@@ -6,7 +6,7 @@ import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { TICK_RATE } from '@zkduel/shared/constants';
 import { constantsHash } from '@zkduel/shared/canonical';
-import { initialCommit } from '@zkduel/shared/poseidon';
+import { initialCommit, poseidonReady } from '@zkduel/shared/poseidon';
 import { Auth } from './auth/jwt';
 import type { Config } from './config';
 import { openDb, type DB } from './db/index';
@@ -15,6 +15,8 @@ import { registerRoutes, sendError } from './http/routes';
 import { FixedLoop } from './match/loop';
 import { MatchManager } from './match/manager';
 import { Gateway } from './ws/gateway';
+import { loadVariant } from './zk/variant';
+import { VerifierPool } from './zk/verifierPool';
 
 export const SERVER_VERSION = '0.1.0';
 
@@ -25,6 +27,7 @@ export interface AppHandle {
   auth: Auth;
   manager: MatchManager;
   gateway: Gateway;
+  verifier: VerifierPool;
   constantsHash: string;
 }
 
@@ -38,8 +41,18 @@ export async function buildApp(cfg: Config, opts: BuildOptions = {}): Promise<Ap
   repo.pruneSessions();
   const auth = new Auth(repo, cfg.JWT_SECRET, cfg.JWT_TTL_HOURS);
   const hash = await constantsHash();
-  // Build Poseidon once at boot: a cold build takes seconds and would delay the first match_found.
+  // Build Poseidon once at boot: a cold build takes seconds and would delay the first match_found
+  // (and the per-tick DigestBuilder uses the synchronous hasher).
+  await poseidonReady();
   await initialCommit();
+  const variant = loadVariant(cfg.artefactDir, cfg.ACTIVE_VARIANT);
+  const verifier = new VerifierPool(
+    variant.vkeyPath,
+    cfg.scheme,
+    cfg.VERIFIER_THREADS,
+    cfg.VERIFY_TIMEOUT_MS,
+  );
+  await verifier.ready();
 
   const app = Fastify({
     logger: cfg.LOG_LEVEL === 'silent' ? false : { level: cfg.LOG_LEVEL },
@@ -96,6 +109,11 @@ export async function buildApp(cfg: Config, opts: BuildOptions = {}): Promise<Ap
     snapshotLogDir: cfg.snapshotLogDir,
     constantsHash: hash,
     proofGraceWindows: cfg.PROOF_GRACE_WINDOWS,
+    variant: variant.info,
+    verifier,
+    proofDeadlineMs: cfg.PROOF_DEADLINE_MS,
+    auditTimeoutMs: cfg.AUDIT_TIMEOUT_MIN * 60_000,
+    storeProofs: cfg.STORE_PROOFS,
     now: () => performance.now(),
   });
   ref.manager = manager;
@@ -108,8 +126,9 @@ export async function buildApp(cfg: Config, opts: BuildOptions = {}): Promise<Ap
   app.addHook('onClose', async () => {
     loop.stop();
     gateway.close();
+    await verifier.close();
     db.close();
   });
 
-  return { app, db, repo, auth, manager, gateway, constantsHash: hash };
+  return { app, db, repo, auth, manager, gateway, verifier, constantsHash: hash };
 }

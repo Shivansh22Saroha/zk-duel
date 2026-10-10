@@ -5,6 +5,8 @@ import { matchField } from '@zkduel/shared/matchField';
 import { initialCommit } from '@zkduel/shared/poseidon';
 import type { Repo } from '../db/repo';
 import { NULL_LOG, openSnapshotLog } from '../log/snapshotLog';
+import type { VariantInfo } from '../zk/variant';
+import type { Verifier } from '../zk/verifierPool';
 import { MatchRoom, type PlayerLink } from './matchRoom';
 
 export interface ManagerOptions {
@@ -15,15 +17,19 @@ export interface ManagerOptions {
   snapshotLogDir: string;
   constantsHash: string;
   proofGraceWindows: number;
+  variant: VariantInfo;
+  verifier: Verifier;
+  proofDeadlineMs: number;
+  auditTimeoutMs: number;
+  storeProofs: boolean;
   now: () => number;
 }
 
-/** Phase 1: no proving key exists yet, so matches record this placeholder circuit hash. */
-export const NO_CIRCUIT_HASH = 'none';
-
 export class MatchManager {
   private readonly queue: string[] = [];
+  /** Every room until its audit closes (live rooms and finished rooms still auditing). */
   readonly rooms = new Map<string, MatchRoom>();
+  /** Player → the room they are playing in (removed at match_end). */
   private readonly byPlayer = new Map<string, MatchRoom>();
   private readonly pairing = new Set<string>();
 
@@ -33,8 +39,33 @@ export class MatchManager {
     private readonly opts: ManagerOptions,
   ) {}
 
+  /** Matches being played (not counting finished matches whose audit is still open). */
+  get liveCount(): number {
+    let n = 0;
+    for (const r of this.rooms.values()) if (r.phase !== 'finished') n++;
+    return n;
+  }
+
   roomOf(playerId: string): MatchRoom | undefined {
     return this.byPlayer.get(playerId);
+  }
+
+  /** The player's room for match `matchId` — live, or finished with its audit still open. */
+  roomFor(playerId: string, matchId: string): MatchRoom | undefined {
+    const r = this.rooms.get(matchId);
+    return r && r.indexOf(playerId) !== null ? r : undefined;
+  }
+
+  /**
+   * Where a `window_commit` (which carries no matchId) goes: the live room, else the player's most
+   * recent room still auditing (the final window is committed after round_end = match_end).
+   */
+  commitRoomOf(playerId: string): MatchRoom | undefined {
+    const live = this.byPlayer.get(playerId);
+    if (live) return live;
+    let latest: MatchRoom | undefined;
+    for (const r of this.rooms.values()) if (r.indexOf(playerId) !== null) latest = r;
+    return latest;
   }
 
   isBusy(playerId: string): boolean {
@@ -57,9 +88,18 @@ export class MatchManager {
 
   onDisconnect(playerId: string): void {
     this.leaveQueue(playerId);
-    const room = this.byPlayer.get(playerId);
-    const p = room?.indexOf(playerId);
-    if (room && p !== null && p !== undefined) room.onDisconnect(p);
+    for (const room of this.rooms.values()) {
+      const p = room.indexOf(playerId);
+      if (p !== null) room.onDisconnect(p);
+    }
+  }
+
+  /** A `hello` from a player: re-attach their socket to every room they are seated in. */
+  onReconnect(playerId: string, link: PlayerLink): void {
+    for (const room of this.rooms.values()) {
+      const p = room.indexOf(playerId);
+      if (p !== null) room.onReconnect(p, link);
+    }
   }
 
   /** Called at 60 Hz by the fixed-step loop. */
@@ -96,7 +136,7 @@ export class MatchManager {
       enforcement: this.opts.defaultEnforcement,
       scheme: this.opts.scheme,
       windowTicks: this.opts.windowTicks,
-      circuitHash: NO_CIRCUIT_HASH,
+      circuitHash: this.opts.variant.zkeySha256,
       roomCode: null,
       players,
     });
@@ -111,6 +151,10 @@ export class MatchManager {
         windowTicks: this.opts.windowTicks,
         constantsHash: this.opts.constantsHash,
         proofGraceWindows: this.opts.proofGraceWindows,
+        variant: this.opts.variant,
+        proofDeadlineMs: this.opts.proofDeadlineMs,
+        auditTimeoutMs: this.opts.auditTimeoutMs,
+        storeProofs: this.opts.storeProofs,
       },
       [0, 1].map((i) => {
         const pid = players[i] as string;
@@ -126,7 +170,9 @@ export class MatchManager {
       {
         repo: this.repo,
         log: this.opts.logSnapshots ? openSnapshotLog(this.opts.snapshotLogDir, id) : NULL_LOG,
+        verifier: this.opts.verifier,
         now: this.opts.now,
+        onMatchEnded: (r) => this.freePlayers(r),
         onFinished: (r) => this.removeRoom(r),
       },
     );
@@ -136,10 +182,14 @@ export class MatchManager {
     return room;
   }
 
-  private removeRoom(room: MatchRoom): void {
-    this.rooms.delete(room.id);
+  private freePlayers(room: MatchRoom): void {
     for (const s of room.seats) {
       if (this.byPlayer.get(s.playerId) === room) this.byPlayer.delete(s.playerId);
     }
+  }
+
+  private removeRoom(room: MatchRoom): void {
+    this.freePlayers(room);
+    this.rooms.delete(room.id);
   }
 }

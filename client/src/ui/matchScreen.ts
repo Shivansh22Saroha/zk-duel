@@ -1,16 +1,19 @@
 /**
- * Match screen (UI_UX §3.3): top bar (names, HP, score), arena, own-player bottom HUD,
- * countdown / round banners, settings overlay on Esc, optional debug overlay.
+ * Match screen (UI_UX §3.3): top bar (names, HP, score, proof strips + spot-checks), arena,
+ * own-player bottom HUD, countdown / round banners, settings overlay on Esc, optional debug overlay.
  * Owns the requestAnimationFrame loop that drives the GameSession.
  */
 import { MAG_SIZE, MAX_HP, RELOAD_TICKS, type PlayerIndex } from '@zkduel/shared/constants';
 import type { ServerMessage } from '@zkduel/shared/protocol';
+import { isFailedStatus } from '../zk/proofClient';
 import type { FrameStats } from '../game/frameStats';
 import type { KeyboardMouseInput } from '../game/input';
 import { createRenderer } from '../game/renderer';
 import type { GameSession } from '../game/session';
 import { FrameBuilder, type GameRenderer } from '../game/view';
+import type { ProofClient } from '../zk/proofClient';
 import { h, mono, setText } from './dom';
+import { proofStrip } from './proofStrip';
 
 const ROUND_BANNER_MS = 1500;
 /** The debug overlay sorts the sample buffers; refresh it at 4 Hz, not every frame. */
@@ -24,6 +27,10 @@ export interface MatchScreenOptions {
   showDebug: boolean;
   rtt: () => number;
   onForfeit: () => void;
+  /** Commits / challenges / proofs (Phase 3); null only before the proving key loaded. */
+  proof: ProofClient | null;
+  /** Called every frame after the sim stepped (commits windows that became final). */
+  afterUpdate?: () => void;
 }
 
 export function matchScreen(o: MatchScreenOptions): {
@@ -40,17 +47,25 @@ export function matchScreen(o: MatchScreenOptions): {
   ];
   const hpText: [HTMLSpanElement, HTMLSpanElement] = [mono(String(MAX_HP)), mono(String(MAX_HP))];
   const scoreEl = mono('0 – 0', 'score');
+  const strips = o.proof
+    ? ([0, 1] as const).map((p) => proofStrip(o.proof as ProofClient, p, p === me))
+    : [];
   const side = (p: PlayerIndex, right: boolean) =>
     h(
       'div',
-      { class: `side${right ? ' right' : ''}` },
-      h('span', { class: `name p${p}` }, `${o.names[p]}${p === me ? ' (you)' : ''}`),
+      { class: `side-col${right ? ' right' : ''}` },
       h(
         'div',
-        { class: 'hpbar', role: 'progressbar', 'aria-label': `${o.names[p]} health` },
-        hpFill[p],
+        { class: `side${right ? ' right' : ''}` },
+        h('span', { class: `name p${p}` }, `${o.names[p]}${p === me ? ' (you)' : ''}`),
+        h(
+          'div',
+          { class: 'hpbar', role: 'progressbar', 'aria-label': `${o.names[p]} health` },
+          hpFill[p],
+        ),
+        hpText[p],
       ),
-      hpText[p],
+      strips[p]?.el ?? null,
     );
 
   const canvas = h('canvas', { id: 'arena', 'aria-label': 'Arena' });
@@ -62,6 +77,8 @@ export function matchScreen(o: MatchScreenOptions): {
   );
   const debug = o.showDebug ? h('div', { class: 'debug', id: 'debug' }) : null;
   const statusNote = h('span', { class: 'status-note' });
+  const proveNote = mono('prove –', 'muted');
+  const forfeitBanner = h('div', { class: 'forfeit-banner', role: 'alert', hidden: true });
 
   const pips = h(
     'div',
@@ -113,7 +130,7 @@ export function matchScreen(o: MatchScreenOptions): {
       'div',
       { class: 'match' },
       h('header', { class: 'topbar' }, side(0, false), scoreEl, side(1, true)),
-      h('div', { class: 'arena-wrap' }, canvas, overlay, hint, settings, debug),
+      h('div', { class: 'arena-wrap' }, canvas, overlay, hint, settings, forfeitBanner, debug),
       h(
         'footer',
         { class: 'bottombar' },
@@ -127,7 +144,7 @@ export function matchScreen(o: MatchScreenOptions): {
           h('div', { class: 'reload' }, reloadFill),
         ),
         statusNote,
-        h('span', { class: 'muted' }, 'proofs: Phase 3'),
+        proveNote,
       ),
     ),
     h(
@@ -141,11 +158,24 @@ export function matchScreen(o: MatchScreenOptions): {
   const frames = new FrameBuilder(game);
   let bannerUntil = 0;
   let bannerText = '';
+  let failedLive: string | null = null;
 
   const off = game.onMessage((m: ServerMessage) => {
     if (m.t === 'round_end') {
       bannerText = `Round to ${o.names[m.winnerIndex]}`;
       bannerUntil = performance.now() + ROUND_BANNER_MS;
+    }
+    if (
+      m.t === 'proof_result' &&
+      failedLive === null &&
+      m.phase === 'live' &&
+      isFailedStatus(m.status)
+    ) {
+      failedLive = `${m.status} — round ${m.roundNo}, window ${m.windowIndex} (${o.names[m.playerIndex]})`;
+    }
+    if (m.t === 'match_end' && m.reason === 'forfeit_proof') {
+      forfeitBanner.textContent = `Spot-check failed${failedLive ? `: ${failedLive}` : ''}. Match forfeited.`;
+      forfeitBanner.hidden = false;
     }
   });
 
@@ -170,6 +200,7 @@ export function matchScreen(o: MatchScreenOptions): {
     const t0 = performance.now();
 
     game.update(now);
+    o.afterUpdate?.();
     renderer.resize();
     renderer.draw(frames.build(now));
 
@@ -198,6 +229,8 @@ export function matchScreen(o: MatchScreenOptions): {
       statusNote,
       game.opponentStatus === 'connected' ? '' : `Opponent ${game.opponentStatus}…`,
     );
+    const pm = o.proof?.lastProveMs;
+    setText(proveNote, pm === null || pm === undefined ? 'prove –' : `prove ${Math.round(pm)} ms`);
 
     let overlayText = '';
     if (game.phase === 'countdown' || game.phase === 'matched')
@@ -233,6 +266,7 @@ export function matchScreen(o: MatchScreenOptions): {
     dispose: () => {
       cancelAnimationFrame(raf);
       off();
+      strips.forEach((st) => st.dispose());
       frames.dispose();
       renderer.dispose();
       document.removeEventListener('pointerlockchange', onLockChange);

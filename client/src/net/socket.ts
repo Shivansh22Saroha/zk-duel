@@ -1,5 +1,5 @@
 /** WebSocket connection: hello handshake, validated server messages, RTT pings. */
-import { serverMessage, type ClientMessage, type ServerMessage } from '@zkduel/shared/protocol';
+import { serverMessage, type ClientFrame, type ServerMessage } from '@zkduel/shared/protocol';
 import { ENV } from '../env';
 
 const PING_EVERY_MS = 2000;
@@ -43,7 +43,7 @@ export class Net {
     });
   }
 
-  send(m: ClientMessage): void {
+  send(m: ClientFrame): void {
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(m));
   }
 

@@ -58,6 +58,9 @@ Index: `idx_sessions_player (player_id)`.
 | `started_at` | INTEGER | NOT NULL |
 | `ended_at` | INTEGER | NULL |
 | `total_ticks` | INTEGER | NOT NULL DEFAULT 0 — match-absolute, computed server-side |
+| `audit_status` | TEXT | NULL, CHECK IN ('auditing','audited_clean','audited_failed','audit_incomplete') — Phase 3 (migration 002). `auditing` from `match_end` until the audit closes; NULL for aborted matches without windows |
+| `overturned` | INTEGER | NOT NULL DEFAULT 0, CHECK IN (0,1) — 1 when the winner's audit failed. `winner_index`/`end_reason` are never rewritten |
+| `audit_ended_at` | INTEGER | NULL — when the audit closed |
 
 Indexes: `idx_matches_started (started_at DESC)`, `idx_matches_status (status)`.
 
@@ -71,6 +74,13 @@ Indexes: `idx_matches_started (started_at DESC)`, `idx_matches_status (status)`.
 | `hits` | INTEGER | NOT NULL DEFAULT 0 |
 | `shots` | INTEGER | NOT NULL DEFAULT 0 |
 | `user_agent` | TEXT | NULL — for benchmark device context |
+| `windows` | INTEGER | NOT NULL DEFAULT 0 — windows that ended (all rounds) — Phase 3 research metrics from here on |
+| `windows_committed` | INTEGER | NOT NULL DEFAULT 0 — of those, windows whose commit arrived (denominator of r) |
+| `challenges` | INTEGER | NOT NULL DEFAULT 0 — challenges issued during play |
+| `challenges_passed` | INTEGER | NOT NULL DEFAULT 0 — challenges decided `valid` |
+| `challenge_rate` | REAL | NULL — r = challenges / windows_committed |
+| `detection_latency_windows` | INTEGER | NULL — windows from the first cheat activation to the first failed challenge (needs `cheat_events`, Phase 4) |
+| `audit_ms` | INTEGER | NULL — `match_end` → this player's last audit result (or the audit close) |
 
 PK `(match_id, player_index)`. Unique `(match_id, player_id)`. Index `idx_mp_player (player_id)`.
 
@@ -96,11 +106,14 @@ One row per player per window. The core research table.
 | `round_no` | INTEGER | NOT NULL, CHECK ≥ 1 |
 | `window_index` | INTEGER | NOT NULL, CHECK ≥ 0 — restarts at 0 each round |
 | `start_tick` | INTEGER | NOT NULL — round-relative (= window_index × N) |
-| `status` | TEXT | NOT NULL, CHECK IN ('valid','invalid','mismatch_digest','mismatch_commit','mismatch_bind','timeout','malformed','unprovable','chain_broken') |
-| `digest` | TEXT | NOT NULL — server-computed digest (decimal string), stored when the window ends |
+| `status` | TEXT | NOT NULL, CHECK IN ('committed','valid','invalid','mismatch_digest','mismatch_commit','mismatch_bind','missing_commit','timeout','malformed','unprovable','chain_broken','unaudited') |
+| `digest` | TEXT | NULL — server-computed digest (decimal string) once final; NULL only for windows that were never finalised (e.g. `chain_broken` after a disconnect) |
+| `challenged` | INTEGER | NOT NULL DEFAULT 0, CHECK IN (0,1) — 1 when the window was challenged during play |
+| `challenged_at` | INTEGER | NULL |
+| `decided_phase` | TEXT | NULL, CHECK IN ('live','audit') — when the result was decided |
 | `fail_reason` | TEXT | NULL — client-reported `proof_failed.reason` (informational) |
-| `commit_in` | TEXT | NULL |
-| `commit_out` | TEXT | NULL |
+| `commit_in` | TEXT | NULL — claimed commitment entering the window (claimed `commit_out` of k−1, or `initialCommit`) |
+| `commit_out` | TEXT | NULL — commitment claimed in `window_commit` |
 | `prove_ms` | INTEGER | NULL — client-reported, informational only |
 | `verify_ms` | REAL | NULL — server-measured |
 | `proof_bytes` | INTEGER | NULL |
@@ -109,6 +122,8 @@ One row per player per window. The core research table.
 
 Unique `(match_id, player_index, round_no, window_index)`.
 Indexes: `idx_pw_match (match_id, player_index, round_no, window_index)`, `idx_pw_status (status)`.
+
+A row is written when a window ends and is first decided (`committed`, `missing_commit` or `chain_broken`) and updated on every later status change (challenge, result, audit close → `unaudited`). Windows that never ended (match ended mid-window) have no row.
 
 ### `cheat_events`
 | Column | Type | Constraints |
@@ -181,9 +196,13 @@ CREATE TABLE proof_windows (
   round_no INTEGER NOT NULL CHECK (round_no >= 1),
   window_index INTEGER NOT NULL CHECK (window_index >= 0),
   start_tick INTEGER NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('valid','invalid','mismatch_digest',
-    'mismatch_commit','mismatch_bind','timeout','malformed','unprovable','chain_broken')),
-  digest TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('committed','valid','invalid','mismatch_digest',
+    'mismatch_commit','mismatch_bind','missing_commit','timeout','malformed','unprovable',
+    'chain_broken','unaudited')),
+  digest TEXT,
+  challenged INTEGER NOT NULL DEFAULT 0 CHECK (challenged IN (0,1)),
+  challenged_at INTEGER,
+  decided_phase TEXT CHECK (decided_phase IN ('live','audit')),
   fail_reason TEXT,
   commit_in TEXT, commit_out TEXT,
   prove_ms INTEGER, verify_ms REAL, proof_bytes INTEGER,
@@ -192,6 +211,8 @@ CREATE TABLE proof_windows (
 );
 -- remaining tables follow §2 exactly
 ```
+
+Migrations as built: `001_init` (Phase 1 tables), `002_proofs` (Phase 3: `proof_windows`, the `matches` audit columns and the `match_players` metric columns).
 
 ## 4. Retention
 
@@ -202,14 +223,19 @@ CREATE TABLE proof_windows (
 ## 5. Useful queries
 
 ```sql
--- Detection latency per cheat activation
+-- Live detection latency per cheat activation: first FAILED CHALLENGE at or after activation
 SELECT c.cheat, MIN(p.window_index) - c.window_index AS windows_to_detect
 FROM cheat_events c
 JOIN proof_windows p ON p.match_id = c.match_id
   AND p.player_index = c.player_index AND p.round_no = c.round_no
-  AND p.window_index >= c.window_index AND p.status <> 'valid'
+  AND p.window_index >= c.window_index AND p.challenged = 1 AND p.decided_phase = 'live'
+  AND p.status NOT IN ('valid','committed','chain_broken','unaudited')
 WHERE c.enabled = 1
 GROUP BY c.id;
+
+-- Achieved challenge rate and audit duration per match
+SELECT match_id, player_index, windows_committed, challenges, challenge_rate, audit_ms
+FROM match_players WHERE match_id = ?;
 
 -- Prove-time percentiles per variant (compute p95 in app code)
 SELECT scheme, window_ticks, COUNT(*), AVG(prove_ms), AVG(verify_ms), AVG(proof_bytes)

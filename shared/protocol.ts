@@ -63,17 +63,33 @@ export const tick = z.number().int().min(0).max(MAX_COUNTER);
 const snapshotInt = z.number().int().gt(-SNAPSHOT_INT_LIMIT).lt(SNAPSHOT_INT_LIMIT);
 const finiteNonNeg = z.number().finite().min(0);
 
+/** Per-window status (API_SPEC §5). `committed` = claimed, not yet proven; `unaudited` = audit closed first. */
 export const proofStatus = z.enum([
+  'committed',
   'valid',
   'malformed',
   'mismatch_bind',
   'mismatch_digest',
   'mismatch_commit',
+  'missing_commit',
   'invalid',
   'unprovable',
   'timeout',
   'chain_broken',
+  'unaudited',
 ]);
+/** Statuses that count as a failed window (a rule violation or a withheld proof/commit). */
+export const FAILURE_STATUSES = [
+  'malformed',
+  'mismatch_bind',
+  'mismatch_digest',
+  'mismatch_commit',
+  'missing_commit',
+  'invalid',
+  'unprovable',
+  'timeout',
+] as const satisfies readonly z.infer<typeof proofStatus>[];
+export const auditStatus = z.enum(['audited_clean', 'audited_failed', 'audit_incomplete']);
 export const cheatName = z.enum([
   'speedhack',
   'rapid_fire',
@@ -167,15 +183,23 @@ export const inputSnapshotMsg = z.object({
   angle: snapshotInt,
   fired: snapshotInt,
 });
+export const windowCommitMsg = z.object({
+  t: z.literal('window_commit'),
+  roundNo,
+  windowIndex,
+  commitOut: fieldElement,
+});
 /** Header of a window_proof — parsed first so a malformed body can still be attributed to a window. */
 export const windowProofHeader = z.object({
   t: z.literal('window_proof'),
+  matchId: z.string().uuid(),
   roundNo,
   windowIndex,
 });
 export const windowProofMsg = z
   .object({
     t: z.literal('window_proof'),
+    matchId: z.string().uuid(),
     roundNo,
     windowIndex,
     scheme,
@@ -189,6 +213,7 @@ export const windowProofMsg = z
   });
 export const proofFailedMsg = z.object({
   t: z.literal('proof_failed'),
+  matchId: z.string().uuid(),
   roundNo,
   windowIndex,
   reason: z.string().max(PROOF_FAILED_REASON_MAX),
@@ -203,6 +228,7 @@ export const pingMsg = z.object({ t: z.literal('ping'), ts: z.number().finite() 
 export const forfeitMsg = z.object({ t: z.literal('forfeit') });
 
 /** window_proof is validated separately (header first, then full) — see windowProofHeader. */
+// (`window_commit` carries only a commitment — a field element; never any hidden value.)
 export const clientMessage = z.discriminatedUnion('t', [
   helloMsg,
   queueJoinMsg,
@@ -210,6 +236,7 @@ export const clientMessage = z.discriminatedUnion('t', [
   roomJoinMsg,
   readyMsg,
   inputSnapshotMsg,
+  windowCommitMsg,
   proofFailedMsg,
   cheatToggleMsg,
   pingMsg,
@@ -245,6 +272,8 @@ export const matchFoundMsg = z.object({
   spawns: z.tuple([spawn, spawn]),
   initialCommit: fieldElement,
   prevSnapshot: snapshotTuple,
+  /** Artefact id, e.g. groth16_60 (`/zk/<variant>/…`). */
+  variant: z.string().regex(/^(groth16|plonk)_\d{1,3}$/),
 });
 export const countdownMsg = z.object({
   t: z.literal('countdown'),
@@ -274,19 +303,44 @@ export const roundEndMsg = z.object({
   initialCommit: fieldElement,
   prevSnapshot: snapshotTuple,
 });
+export const challengeMsg = z.object({
+  t: z.literal('challenge'),
+  playerIndex,
+  roundNo,
+  windowIndex,
+  deadlineMs: z.number().int().min(0),
+});
 export const proofResultMsg = z.object({
   t: z.literal('proof_result'),
+  matchId: z.string().uuid(),
   playerIndex,
   roundNo,
   windowIndex,
   status: proofStatus,
   verifyMs: finiteNonNeg.nullable(),
+  phase: z.enum(['live', 'audit']),
+});
+const auditCounts = z.object({
+  valid: z.number().int().min(0),
+  failed: z.number().int().min(0),
+  unaudited: z.number().int().min(0),
+  chainBroken: z.number().int().min(0),
+});
+export const auditEndMsg = z.object({
+  t: z.literal('audit_end'),
+  matchId: z.string().uuid(),
+  auditStatus,
+  overturned: z.boolean(),
+  players: z.tuple([auditCounts, auditCounts]),
 });
 export const resumeMsg = z.object({
   t: z.literal('resume'),
   roundNo,
   nextWindowIndex: windowIndex,
   chainStatus: z.enum(['intact', 'broken']),
+  /** Window indices of the current round whose commit the server holds. */
+  committed: z.array(windowIndex).max(MAX_COUNTER),
+  challenge: z.object({ roundNo, windowIndex, deadlineMs: z.number().int().min(0) }).nullable(),
 });
 export const cheatFlagMsg = z.object({
   t: z.literal('cheat_flag'),
@@ -304,6 +358,8 @@ export const matchEndMsg = z.object({
   reason: endReason,
   score,
   resultsUrl: z.string().max(256),
+  /** The post-match audit window that starts now (AUDIT_TIMEOUT_MIN). */
+  auditTimeoutMs: z.number().int().min(0),
 });
 export const pongMsg = z.object({
   t: z.literal('pong'),
@@ -324,7 +380,9 @@ export const serverMessage = z.discriminatedUnion('t', [
   startMsg,
   stateMsg,
   roundEndMsg,
+  challengeMsg,
   proofResultMsg,
+  auditEndMsg,
   resumeMsg,
   cheatFlagMsg,
   opponentStatusMsg,
@@ -381,8 +439,13 @@ export const restError = z.object({
 
 export type ClientMessage = z.infer<typeof clientMessage>;
 export type WindowProofMessage = z.infer<typeof windowProofMsg>;
+/** Everything a client may send (window_proof is validated outside the discriminated union). */
+export type ClientFrame = ClientMessage | WindowProofMessage;
 export type ServerMessage = z.infer<typeof serverMessage>;
 export type ProofStatus = z.infer<typeof proofStatus>;
+export type AuditStatus = z.infer<typeof auditStatus>;
+export type WindowCommitMessage = z.infer<typeof windowCommitMsg>;
+export type ProofFailedMessage = z.infer<typeof proofFailedMsg>;
 export type CheatName = z.infer<typeof cheatName>;
 export type EndReason = z.infer<typeof endReason>;
 export type Groth16Proof = z.infer<typeof groth16Proof>;

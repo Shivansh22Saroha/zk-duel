@@ -38,7 +38,9 @@
     "bots": "npm run bots -w server --",
     "circuits:prove-log": "npm run prove-log -w circuits --",
     "circuits:mutate-log": "npm run mutate-log -w circuits --",
-    "circuits:lint": "npm run lint -w circuits"
+    "circuits:lint": "npm run lint -w circuits",
+    "perf:prove": "tsx client/scripts/perf-prove.ts",
+    "perf:match": "tsx client/scripts/perf-match.ts"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

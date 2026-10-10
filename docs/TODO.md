@@ -36,20 +36,26 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **P0** must-have · **P
 - [x] Full N=60 Groth16 build; record constraint count (32,748)
 - [x] JS reference (`shared/poseidon.ts`, `shared/zkInput.ts`) matches circuit outputs
 - [x] **Exit check:** proofs generated offline from Phase 1 logs all verify (26/26 windows, 4 logs); mutated logs fail exactly at the cheating window (speed, rapid-fire, infinite ammo)
-- [ ] **Decision needed before Phase 3:** Node proving is ~4.8× slower than real time at N=60 — see CHANGELOG Phase 2 "Performance preview"
+- [x] **Decision before Phase 3:** owner chose (a) measure browser proving, then (d) "commit every window, prove on challenge, audit after the match" (CHANGELOG "Phase 3 design change")
 
-## Phase 3 — Live proving & verification (Weeks 5–6) — P0
-- [ ] Client artefact loader + SHA-256 check + Cache API
-- [ ] WindowRecorder + partial-window padding
-- [ ] Proof Worker (snarkjs in Web Worker), queue cap 2
-- [ ] Server `DigestBuilder`, commitment chain store, `VerifierPool` (worker_threads)
-- [ ] Digest finalisation waits for late honest snapshots: window k's digest is finalised only when the snapshot for its last tick has arrived **or** the grace deadline (end of window k + PROOF_GRACE_WINDOWS) passes, so a late honest snapshot never causes `mismatch_digest` (ARCHITECTURE §4). Late snapshots older than PROOF_GRACE_WINDOWS × WINDOW_TICKS are already rejected with a strike (Phase 1 follow-up)
-- [ ] Status pipeline: chain_broken → malformed → bind → digest → commit → verify; `proof_failed` → unprovable; timeout sweep; window-order decisions
-- [ ] `proof_windows` table + `proof_result` messages
-- [ ] Proof strip HUD + tooltips
-- [ ] Enforcement modes (observe/strict)
-- [ ] Reconnect flow with `resume` message (chain broken for the rest of the round, fresh chain next round)
-- [ ] **Exit check:** clean 3-minute match, 100% `valid`, frame time p95 < 20 ms
+## Phase 3 — Commit, challenge & audit (Weeks 5–6) — P0
+Design changed before coding (CHANGELOG "Phase 3 design change"): commit every window, prove on challenge, audit after the match.
+- [x] Ammo-safety check: "ammo ≠ MAG" safe on every state reachable from `initialCommit` (`circuits/test/ammoSafety.test.ts`)
+- [x] Step 1: browser proving measured (groth16_60 + groth16_30, 10 real windows each, thread sweep, frame time) → `PROOF_DEADLINE_MS`
+- [x] Docs updated for the design change (ARCHITECTURE §4/§5, API_SPEC, PRD, FEATURES F9–F12, DATABASE_SCHEMA, SECURITY, UI_UX, USER_FLOWS, TESTING, ENVIRONMENT)
+- [x] Client artefact loader + SHA-256 check + Cache API; server checks `ready.artefactSha256`
+- [x] WindowRecorder + partial-window padding + `window_commit`; private inputs kept until the audit ends
+- [x] Proof Worker (snarkjs in Web Worker) + Proof Queue (challenge first, audit after the match)
+- [x] Server `DigestBuilder`, commit store, challenge scheduler (crypto randomness), `VerifierPool` (worker_threads) — re-measure verify p95 there
+- [x] Digest finalisation waits for late honest snapshots: window k's digest is finalised only when the snapshot for its last tick has arrived **or** the grace deadline (end of window k + PROOF_GRACE_WINDOWS) passes, so a late honest snapshot never causes `mismatch_digest` (ARCHITECTURE §4). Late snapshots older than PROOF_GRACE_WINDOWS × WINDOW_TICKS are already rejected with a strike (Phase 1 follow-up)
+- [x] Status pipeline: malformed → bind → digest → commitIn → commitOut → verify; `proof_failed` → unprovable; challenge timeout; `missing_commit` → chain_broken
+- [x] Post-match audit (`AUDIT_TIMEOUT_MIN`): `unaudited`, `audit_status`, `overturned`, `audit_end`
+- [x] Research metrics per match: challenge count, challenge rate r, audit duration (detection latency: column now, filled once `cheat_events` exist in Phase 4)
+- [x] `proof_windows` table (migration 002) + `proof_result` / `challenge` / `audit_end` messages
+- [x] Proof strip HUD (hollow / ◌ / ✓ / ✕ / ⛓) + "Spot-checks: 7/7 passed" + tooltips; results screen audit progress + status + metrics
+- [x] Enforcement modes (observe/strict: forfeit on a failed challenge)
+- [x] Reconnect flow with `resume` (outstanding challenge + held commits; chain broken for the rest of the round, fresh chain next round)
+- [~] **Exit check:** clean 3-minute match — all challenges valid, full audit `audited_clean`; frame time p95 < 20 ms while proving; scripted cheater never `audited_clean`; frame inspector clean
 
 ## Phase 4 — Cheats & demo (Week 6) — P0
 - [ ] Cheat module behind `VITE_DEV_CHEATS` / `DEV_CHEATS`
@@ -60,7 +66,8 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **P0** must-have · **P
 
 ## Phase 5 — Benchmarks (Week 7) — P0
 - [ ] Build all 6 variants (groth16/plonk × 30/60/120)
-- [ ] `bench/run.ts` (Node) + `/bench` browser runner
+- [ ] `bench/run.ts` (Node) + `/bench` browser runner (extends the Phase 3 dev page `client/bench.html`)
+- [ ] Benchmark export includes the per-match research metrics (challenge count, rate r, detection latency, audit duration)
 - [ ] `benchmark_runs` / `benchmark_results` tables + upload endpoint
 - [ ] Dashboard charts with real-time reference lines + CSV export
 - [ ] Run on baseline laptop (≥ 20 samples per variant) and one stronger machine
@@ -89,10 +96,10 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **P0** must-have · **P
 - [ ] Match history: `GET /api/matches`, "My matches" list (F16, Flow 8)
 
 ## Known risks / open questions
-- [ ] Browser Groth16 proving time for ~50k constraints is unmeasured. A bigger window does not help (prove and play time both scale with N). If proving is slower than real time, report the real prove/play ratio as a finding (proofs lag play → near-real-time / post-match audit)
-- [ ] snarkjs worker threads may hurt frame time; measure and, if needed, cap thread usage and report the setting
+- [x] Browser Groth16 proving time measured (Phase 3 Step 1): N=60 prove p50 1.58 s (1.6× real time), N=30 1.01 s (2.0×) in Chrome on the dev laptop → commit/challenge/audit design
+- [x] snarkjs worker threads vs frame time: no effect measured (12 threads = hardwareConcurrency; capping only slows proving) — default kept
 - [ ] PLONK zkey and proof sizes may be large; check download size before using PLONK for live play (benchmark-only is acceptable)
 - [ ] Confirm current official ptau download URL and checksum at setup
 
 ## Bugs
-_None yet — log here with steps to reproduce, expected vs actual, and the affected variant._
+- Phase 3 exit check pending on AC power: last browser runs were on battery (Chrome capped at 30 Hz). Re-run `npm run perf:match -- --acc 1800 --stop-after 180` plugged in.

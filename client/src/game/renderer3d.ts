@@ -34,8 +34,9 @@ import {
   Vector3,
   WebGLRenderer,
 } from 'three';
-import { ANGLE_UNITS, PLAYER_RADIUS, RAY_LENGTH } from '@zkduel/shared/constants';
+import { PLAYER_RADIUS, RAY_LENGTH } from '@zkduel/shared/constants';
 import type { GameRenderer, RenderFrame, RenderPlayer } from './view';
+import { placeFirstPerson, placeOverview, radiansOf, yawOf } from './renderer3dCamera';
 
 export type CameraMode = 'third' | 'first';
 
@@ -43,7 +44,6 @@ const GRID = 50;
 const WALL_H = 22;
 const WALL_T = 8;
 const BODY_LEN = 20; // capsule cylinder part; total height = BODY_LEN + 2·R
-const EYE_H = 40;
 const BARREL_H = 28;
 const TRACER_MS = 140;
 const FLASH_COLOR = new Color('#FFFFFF');
@@ -228,17 +228,7 @@ export class ThreeRenderer implements GameRenderer {
 
   /** Angled top-down camera that keeps the whole arena in view for the current aspect ratio. */
   private placeOverview(): void {
-    const { w, h } = this.arena;
-    const tilt = (58 * Math.PI) / 180; // camera pitch below the horizon
-    const vfov = (this.cam3.fov * Math.PI) / 180;
-    const hfov = 2 * Math.atan(Math.tan(vfov / 2) * this.cam3.aspect);
-    // distance so that both the arena width (horizontally) and depth (foreshortened) fit
-    const dW = (w * 0.56) / Math.tan(hfov / 2);
-    const dH = (h * 0.62 * Math.sin(tilt) + h * 0.1) / Math.tan(vfov / 2);
-    const d = Math.max(dW, dH);
-    const target = new Vector3(w / 2, 0, h / 2);
-    this.cam3.position.set(target.x, d * Math.sin(tilt), target.z + d * Math.cos(tilt));
-    this.cam3.lookAt(target);
+    placeOverview(this.cam3, this.arena.w, this.arena.h);
   }
 
   draw(frame: RenderFrame): void {
@@ -257,7 +247,7 @@ export class ThreeRenderer implements GameRenderer {
       if (p.isSelf) self = p;
       v.group.visible = !(p.isSelf && this.mode === 'first');
       v.group.position.set(p.x, 0, p.y);
-      v.group.rotation.y = -(p.angle * 2 * Math.PI) / ANGLE_UNITS;
+      v.group.rotation.y = yawOf(p.angle);
       v.body.emissive.copy(p.flashing ? FLASH_COLOR : v.base);
       v.body.emissiveIntensity = p.flashing ? 0.9 : BODY_GLOW;
     });
@@ -279,9 +269,7 @@ export class ThreeRenderer implements GameRenderer {
     let cam: PerspectiveCamera = this.cam3;
     const me = self as RenderPlayer | null;
     if (this.mode === 'first' && me) {
-      const a = (me.angle * 2 * Math.PI) / ANGLE_UNITS;
-      this.cam1.position.set(me.x, EYE_H, me.y);
-      this.cam1.lookAt(me.x + Math.cos(a) * 100, EYE_H, me.y + Math.sin(a) * 100);
+      placeFirstPerson(this.cam1, me.x, me.y, me.angle);
       cam = this.cam1;
     }
     this.renderer.render(this.scene, cam);
@@ -289,7 +277,7 @@ export class ThreeRenderer implements GameRenderer {
 
   /** Horizontal hit-scan ray at barrel height, clipped to the arena walls. */
   private addTracer(x: number, y: number, angle: number, player: number, now: number): void {
-    const a = (angle * 2 * Math.PI) / ANGLE_UNITS;
+    const a = radiansOf(angle);
     const dx = Math.cos(a);
     const dy = Math.sin(a);
     let len = RAY_LENGTH;

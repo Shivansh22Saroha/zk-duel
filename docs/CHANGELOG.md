@@ -36,6 +36,10 @@ Rendering only: game rules, sim, protocol, input and circuit are unchanged (posi
 - **First-person movement stays world-aligned** (W = −y), because input is outside this phase's scope ("rendering only"). View-relative WASD in first-person would be an input-layer change (quantised to the 8 legal directions; no rule change) — not done; ask if wanted.
 - Top-down is a fixed angled camera over the whole arena (projector-friendly) rather than a chase camera following the own player.
 - PRD §3 non-goal "3D graphics" reworded to "3D gameplay" (the renderer is presentation only).
+#### Direction check (bug report "W moves left in 3D")
+- **Top-down axis mapping verified, no sign flip:** arena x → three X (screen right), arena y → three Z (screen down, camera looks from the +Z edge), heading (cos a, 0, sin a) via `rotation.y = −a`. New unit test `client/src/game/axisMapping.test.ts` (50 cases) projects W/A/S/D/W+D/S+A from 5 positions and 16 aim angles through the real top-down camera and the 2D transform: every sign matches; the only difference is perspective (arena-vertical lines lean ≤ 16° towards the vanishing point at the left/right edges), always within the same one of the 8 compass directions. A right mouse move turns the aim clockwise on screen in both.
+- **Cause of "W moves left": first-person mode.** Movement is world-aligned (W = −y), and facing east (P0 spawn, angle 0) arena-up is the view's left. The camera mode is remembered per browser, so a match can start in first-person. The test documents this behaviour; changing it (view-relative WASD) is the pending first-person change.
+- Camera math moved to `client/src/game/renderer3dCamera.ts` (pure, Node-testable) and the WASD mapping to `movementFromKeys()` in `input.ts` — refactors, no behaviour change.
 
 ### Phase 4 findings (owner-approved, 2026-10-11)
 - **1 − (1 − r)^m is a lower bound** on the live catch probability, not a prediction: it assumes every window is spot-checked independently with probability r. For single-window cheats it predicted ≈ 55 % while **85 %** (34/40) were caught live.

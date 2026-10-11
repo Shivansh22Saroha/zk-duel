@@ -12,6 +12,14 @@ export const DEFAULT_SENSITIVITY = 3; // angle units (0.1°) per mouse pixel
 /** Cap on queued turn so a huge flick doesn't keep turning for seconds. */
 const MAX_PENDING_TURN = 1800;
 
+/** WASD → world-aligned move direction (W = −y = up on screen, D = +x = right). */
+export function movementFromKeys(keys: ReadonlySet<string>): { moveX: number; moveY: number } {
+  return {
+    moveX: (keys.has('d') ? 1 : 0) - (keys.has('a') ? 1 : 0),
+    moveY: (keys.has('s') ? 1 : 0) - (keys.has('w') ? 1 : 0),
+  };
+}
+
 export class KeyboardMouseInput implements InputSource {
   private keys = new Set<string>();
   private mouseDown = false;
@@ -86,8 +94,7 @@ export class KeyboardMouseInput implements InputSource {
     this.pendingTurn -= turn;
     const k = this.keys;
     return {
-      moveX: (k.has('d') ? 1 : 0) - (k.has('a') ? 1 : 0),
-      moveY: (k.has('s') ? 1 : 0) - (k.has('w') ? 1 : 0),
+      ...movementFromKeys(k),
       aimTarget: ctx.self.pub.angle + turn,
       fire: this.mouseDown && this.locked,
       reload: k.has('r'),

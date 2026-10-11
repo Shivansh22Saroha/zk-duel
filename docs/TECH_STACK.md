@@ -27,8 +27,9 @@ Versions are the **major.minor lines to target**. At project setup, install the 
 | Library | Version | Purpose |
 |---|---|---|
 | Vite | 6.x or later | Dev server + build; serves `/zk/*` artefacts as static files |
-| Vanilla TS + Canvas 2D | — | Game rendering (no game engine — keeps the sim fully under our control and deterministic) |
+| Vanilla TS + Canvas 2D | — | Game rendering fallback (`?renderer=2d`); no game engine — the sim stays fully under our control and deterministic |
 | `snarkjs` | 0.7.x | `groth16.fullProve` / `plonk.fullProve` inside a Web Worker |
+| `three` | 0.186.1 (+ `@types/three` 0.186.0) | 3D renderer (Phase 4.5): a second `GameRenderer` behind the renderer seam; loaded lazily; presentation only |
 | `chart.js` | 4.x | Benchmark charts |
 | Fonts | Inter, JetBrains Mono (Google Fonts) | |
 

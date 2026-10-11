@@ -31,6 +31,8 @@ export interface MatchScreenOptions {
   proof: ProofClient | null;
   /** Called every frame after the sim stepped (commits windows that became final). */
   afterUpdate?: () => void;
+  /** Renderer factory (3D by default, Canvas 2D with ?renderer=2d); Canvas 2D when absent. */
+  makeRenderer?: (canvas: HTMLCanvasElement) => GameRenderer;
   /** Dev cheat drawer (VITE_DEV_CHEATS builds only). */
   cheatDrawer?: HTMLElement | null;
 }
@@ -89,7 +91,7 @@ export function matchScreen(o: MatchScreenOptions): {
   const hint = h(
     'div',
     { class: 'hint' },
-    'Click the arena to capture the mouse · WASD move · mouse aim · click fire · R reload · Esc settings',
+    `Click the arena to capture the mouse · WASD move · mouse aim · click fire · R reload · Esc settings${o.makeRenderer ? ' · V camera' : ''}`,
   );
   const debug = o.showDebug ? h('div', { class: 'debug', id: 'debug' }) : null;
   const statusNote = h('span', { class: 'status-note' });
@@ -180,7 +182,12 @@ export function matchScreen(o: MatchScreenOptions): {
     ),
   );
 
-  const renderer: GameRenderer = createRenderer(canvas);
+  let renderer: GameRenderer;
+  try {
+    renderer = (o.makeRenderer ?? createRenderer)(canvas);
+  } catch {
+    renderer = createRenderer(canvas); // e.g. no WebGL: fall back to Canvas 2D
+  }
   const frames = new FrameBuilder(game);
   let bannerUntil = 0;
   let bannerText = '';

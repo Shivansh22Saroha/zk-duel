@@ -68,6 +68,14 @@ Design changed before coding (CHANGELOG "Phase 3 design change"): commit every w
 - [x] Tests: E2E-2, E2E-3 (`npm run e2e:cheats`), winner closes the tab during the audit → `unverified` (integration)
 - [x] **Exit check:** rule-breaking cheats 124/124 `audited_failed`; smooth-aim 11/11 `audited_clean`; private rooms in two browser windows; frame inspector clean. Live catch vs 1 − (1 − r)^m: matches for m ≥ 5, under-predicts m = 1 (85 % observed vs 55 %; scheduler-aware 81 %) — reported (CHANGELOG Phase 4)
 
+## Phase 4.5 — 3D renderer (before benchmarks) — owner request
+- [x] Three.js renderer behind the `GameRenderer` seam; Canvas 2D kept as fallback (`?renderer=2d`, and when WebGL is unavailable)
+- [x] Camera modes on V: first-person (yaw, no pitch, crosshair) and angled top-down
+- [x] Arena floor + grid + low walls + lighting; capsule players with aim direction; tracers + hit flash; interpolation unchanged
+- [x] HTML overlays unchanged (HUD, strips, cheat drawer, banners); UI_UX colours
+- [x] Frame time p50/p95 while proving in both renderers (production build, AC) — CHANGELOG Phase 4.5
+- [x] UI_UX_SPEC, TECH_STACK, CHANGELOG updated
+
 ## Phase 5 — Benchmarks (Week 7) — P0
 - [ ] Build all 6 variants (groth16/plonk × 30/60/120)
 - [ ] `bench/run.ts` (Node) + `/bench` browser runner (extends the Phase 3 dev page `client/bench.html`)
@@ -82,7 +90,7 @@ Design changed before coding (CHANGELOG "Phase 3 design change"): commit every w
 - [ ] Limitations section (smooth-aim / input provenance, single-party phase-2 setup, no walls in circuit)
 - [ ] Update final PPT with live-demo screenshots and benchmark charts
 - [ ] Demo checklist (TESTING.md §9) run twice
-- [ ] 3D renderer (Three.js), 2D rules unchanged — a new `GameRenderer` implementation behind the seam in `client/src/game/view.ts` (draws `RenderFrame`); sim, input and networking untouched
+- [x] 3D renderer (Three.js), 2D rules unchanged — done early as Phase 4.5
 - [ ] CHANGELOG entry for v1.0.0
 
 ---

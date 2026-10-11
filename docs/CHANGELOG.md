@@ -11,6 +11,38 @@ Every entry that changes the circuit must state: new constraint count per varian
 ### Planned (see TODO.md)
 - Phase 5: benchmarks (all 6 variants, Node + browser runner, dashboard, CSV).
 
+### Phase 4.5 — 3D renderer — 2026-10-11
+Rendering only: game rules, sim, protocol, input and circuit are unchanged (positions stay integer x, y on a flat floor, aim is one yaw angle, shots are horizontal rays).
+#### Added
+- **Three.js renderer** (`client/src/game/renderer3d.ts`, three **0.186.1**, `@types/three` 0.186.0) behind the existing `GameRenderer` seam (`view.ts`); same lint rule as the 2D renderer (no sim / protocol / session / input / network imports). Lazily loaded (own 539 kB / 135 kB-gzip chunk) — the 2D path never downloads it.
+  - Arena: 1000×600 floor, 50-unit grid (brightened for projectors), low walls on the edges, hemisphere + directional light, no shadows.
+  - Players: low-poly capsules at their true radius in the P0/P1 colours (self-lit base to match the HUD), barrel + floor arrow for the aim direction, white hit flash; opponent interpolation unchanged.
+  - Shots: tracer lines at barrel height in the shooter's colour, clipped to the walls, 140 ms fade.
+  - Camera modes on **V** (remembered per browser): angled top-down over the whole arena (default) and first-person (yaw from the aim angle, no pitch, own capsule hidden, crosshair). Mode badge bottom-right; the hint line mentions V.
+- **Canvas 2D kept as fallback:** `?renderer=2d`, and automatically if WebGL cannot start.
+- `perf:match` gained `--renderer 2d|3d` and `--camera third|first`.
+#### Fixed
+- The Settings overlay (and any element toggled with the `hidden` attribute whose class sets `display`) was visible from the start of a match until the pointer was locked — `.settings { display: grid }` overrode `hidden`. A global `[hidden] { display: none !important }` fixes it (also affected the 2D renderer since Phase 1).
+#### Measured — frame time while proving (AC power, production `--mode perf` build, two Chrome windows on one laptop, both proving throughout; `npm run perf:match -- --acc 1800 --miss 300 --stop-after 90`; ≈ 144 Hz display)
+| Renderer | frame interval p50 | p95 (worst 20 s sample, both windows) | per-frame work p95 | max | match |
+|---|---|---|---|---|---|
+| Canvas 2D | 6.9 ms | **7.1 ms** | 0.7–0.8 ms | 132 ms | 90/90 windows valid per player, `audited_clean` |
+| 3D top-down | 6.9–7.0 ms | **13.9 ms** (first 40 s; then 7.3–7.6 ms) | 1.6–1.8 ms | 146 ms | 90/90 valid, `audited_clean` |
+| 3D first-person | 6.9–7.0 ms | **13.9 ms** | 1.8–1.9 ms | 153 ms | 90/90 valid, `audited_clean` |
+
+- Both renderers meet NFR-2 (< 20 ms p95 while proving). In 3D, p95 = 13.8–13.9 ms is exactly two refresh intervals: ≈ 5 % of frames miss one vsync on the 144 Hz display; per-frame CPU work stays under 2 ms.
+- The 2D run happened to show slower proving (challenge prove mean 4.3 s, audit 316 s) than both 3D runs (2.3–2.4 s, audit 135 s) and than Phase 3's 2D run (2.2 s) — background load on the laptop during that run, not the renderer (2D does less work per frame); recorded as observed.
+#### Notes / decisions
+- **First-person movement stays world-aligned** (W = −y), because input is outside this phase's scope ("rendering only"). View-relative WASD in first-person would be an input-layer change (quantised to the 8 legal directions; no rule change) — not done; ask if wanted.
+- Top-down is a fixed angled camera over the whole arena (projector-friendly) rather than a chase camera following the own player.
+- PRD §3 non-goal "3D graphics" reworded to "3D gameplay" (the renderer is presentation only).
+
+### Phase 4 findings (owner-approved, 2026-10-11)
+- **1 − (1 − r)^m is a lower bound** on the live catch probability, not a prediction: it assumes every window is spot-checked independently with probability r. For single-window cheats it predicted ≈ 55 % while **85 %** (34/40) were caught live.
+- **The scheduler-aware model fits:** replaying each run's real challenge draws through the actual scheduler (uniform over the round's still-unproven windows) predicts **81 %** — within the binomial margin of the observed 85 %. For m ≥ 5 every model and every run is at 97–100 %.
+- **Windows late in a round are the least likely to be spot-checked live:** a window stays in the challenge pool from the moment it ends until the round ends, so early windows face many draws and the last windows of a round face few or none. Live spot-checks therefore cannot be relied on for every window — **the full post-match audit is required** for the guarantee (124/124 rule-breaking runs ended `audited_failed` because of it).
+- Accepted as decided: an unanswered spot-check when leaving → `timeout` → `overturned` (not `unverified`); the experiment bot behaviour, the Node-based matrix and the smaller additions.
+
 ### Phase 4 — Cheats, private rooms and the detection experiment — 2026-10-10
 #### Added
 - **Result verdict** (audit policy gap): `matches.result_verdict` = `verified` (winner's own audit clean) / `overturned` (winner failed) / `unverified` (winner's audit incomplete — e.g. the winner closed the tab during the audit; the result is not changed) / NULL (no winner). In `audit_end.resultVerdict`, `GET /api/matches/:id`, and as an `UNVERIFIED` stamp on the results screen. Migration `004_phase4`.

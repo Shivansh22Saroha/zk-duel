@@ -113,7 +113,7 @@ npm run perf:serve
 1. Open `http://localhost:5173` in two Chrome windows side by side (both visible).
 2. Window A: enter a name → **Private Room ▾** → choose **strict** → **Create room**. Note the 6-letter code.
 3. Window B: enter a name → **Private Room ▾** → type the code → **Join**. Both windows load the proving key and the countdown starts.
-4. In window A, click the arena (pointer lock), play a few seconds, then press **F9** and tick **Speedhack**. Both windows show `CHEAT: speedhack` under A's name.
+4. In window A, click the arena (pointer lock), play a few seconds (press **V** to switch between the top-down and first-person camera; add `?renderer=2d` to the URL for the 2D view), then press **F9** and tick **Speedhack**. Both windows show `CHEAT: speedhack` under A's name.
 5. Watch the proof strips: cells turn ◌ when challenged. The first challenged cheating window fails (✕ `unprovable`) and, in strict mode, the match ends with *"Spot-check failed … Match forfeited."*
 6. Smooth-aim demo: new room (strict) → in A press F9 → **Smooth-aimbot**. Every spot-check stays ✓, the match never forfeits, and after the match the audit ends **AUDITED CLEAN** — the input-provenance limitation.
 7. Observe-mode demo: create the room with **observe** instead; cheat for a few seconds, switch it off, finish the match. Cheating windows that were not spot-checked are caught by the audit: **AUDIT FAILED** (and **OVERTURNED** if the cheater won).

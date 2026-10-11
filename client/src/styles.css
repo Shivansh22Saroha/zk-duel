@@ -1,3 +1,8 @@
+/* elements toggled with the hidden attribute must stay hidden even when a class sets display */
+[hidden] {
+  display: none !important;
+}
+
 :root {
   --bg: #0e1116;
   --surface: #161b22;
@@ -540,4 +545,31 @@ dialog::backdrop {
 }
 .rooms > * + * {
   margin-top: 8px;
+}
+
+/* ---------------------------------------------------------------- 3D renderer overlays */
+.crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background:
+    linear-gradient(var(--text), var(--text)) center / 2px 100% no-repeat,
+    linear-gradient(var(--text), var(--text)) center / 100% 2px no-repeat;
+  opacity: 0.85;
+  mix-blend-mode: difference;
+}
+.camera-badge {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: rgba(14, 17, 22, 0.75);
+  padding: 3px 8px;
+  border-radius: 4px;
+  pointer-events: none;
 }

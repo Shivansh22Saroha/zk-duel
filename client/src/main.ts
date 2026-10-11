@@ -28,6 +28,7 @@ import type { CheatName } from '@zkduel/shared/protocol';
 import type { Cheats } from './game/cheats';
 import type * as CheatsModule from './game/cheats';
 import type * as CheatPanelModule from './ui/cheatPanel';
+import type { GameRenderer } from './game/view';
 
 /**
  * Dev cheats (FEATURES F13) exist only in builds with VITE_DEV_CHEATS=true: this is a compile-time
@@ -39,6 +40,18 @@ type CheatMods = {
   cheatPanel: typeof CheatPanelModule.cheatPanel;
 };
 let cheatMods: CheatMods | null = null;
+
+/** 3D renderer (Phase 4.5) unless `?renderer=2d`; loaded lazily so the 2D path never pulls in three.js. */
+type MakeRenderer = (canvas: HTMLCanvasElement) => GameRenderer;
+let make3d: MakeRenderer | null = null;
+async function loadRenderer(): Promise<void> {
+  if (new URLSearchParams(location.search).get('renderer') === '2d') return;
+  try {
+    make3d = (await import('./game/renderer3d')).createThreeRenderer;
+  } catch {
+    make3d = null; // Canvas 2D fallback
+  }
+}
 async function loadCheatMods(): Promise<void> {
   if (!CHEATS_BUILT || cheatMods) return;
   const [c, p] = await Promise.all([import('./game/cheats'), import('./ui/cheatPanel')]);
@@ -436,6 +449,7 @@ function showMatch(): void {
     proof: state.proof,
     afterUpdate: () => state.proof?.poll(),
     cheatDrawer: drawer?.el ?? null,
+    makeRenderer: make3d ?? undefined,
   });
   mount(ms.el, () => {
     ms.dispose();
@@ -556,7 +570,7 @@ async function boot(): Promise<void> {
   } catch {
     state.versionError = `Cannot reach the server at ${ENV.API_URL}.`;
   }
-  await loadCheatMods();
+  await Promise.all([loadCheatMods(), loadRenderer()]);
   state.store = await IndexedDbAuditStore.open();
   if (!state.versionError) await resumeAudit();
   route();

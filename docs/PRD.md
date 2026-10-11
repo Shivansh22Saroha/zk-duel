@@ -33,7 +33,7 @@ The game must be small, stable and fun enough to play a real match. Every featur
 - Production anti-cheat. No kernel components, no anti-tamper, no obfuscation.
 - Proving every single tick in real time (expected to be infeasible — this is a finding, not a failure).
 - Proving that inputs came from a human (impossible with ZKPs alone — see SECURITY.md §7).
-- 3D graphics, physics engines, sound design beyond simple SFX.
+- 3D gameplay, physics engines, sound design beyond simple SFX. (Phase 4.5 adds a **3D renderer** — presentation only: the game stays 2D and integer, see UI_UX_SPEC §3.3.)
 
 ## 4. Users
 

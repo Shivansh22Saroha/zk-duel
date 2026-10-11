@@ -27,6 +27,9 @@ const acc = Number(arg('acc', '400'));
 const stopAfter = Number(arg('stop-after', '0'));
 /** Minimum bot aim error in angle units (bots fire but never hit → the match lasts until stop-after). */
 const miss = Number(arg('miss', '0'));
+/** Renderer (3d default, or 2d) and, for 3d, the camera mode measured (third = top-down, first). */
+const rendererKind = arg('renderer', '3d');
+const camera = arg('camera', 'third');
 const tag = arg('tag', 'phase3-browser-match');
 
 type Zkd = {
@@ -66,11 +69,14 @@ async function main(): Promise<void> {
       if (m.type() === 'error') console.error(`[console ${seed}] ${m.text()}`);
     });
     await page.goto(
-      `${BASE}?bot=${seed}&acc=${acc}&miss=${miss}${i === 1 && stopAfter > 0 ? `&stopAfter=${stopAfter + 4}` : ''}`,
+      `${BASE}?bot=${seed}&acc=${acc}&miss=${miss}${rendererKind === '2d' ? '&renderer=2d' : ''}${i === 1 && stopAfter > 0 ? `&stopAfter=${stopAfter + 4}` : ''}`,
     );
     pages.push(page);
   }
   await Promise.all(pages.map((p) => waitPhase(p, 'live', 120_000)));
+  if (rendererKind !== '2d' && camera === 'first') {
+    for (const p of pages) await p.keyboard.press('v'); // 3D: switch both windows to first-person
+  }
   const t0 = Date.now();
   await Promise.all(
     pages.map((p) => zkd(p)(() => (window as unknown as { __zkd: Zkd }).__zkd.resetStats())),
@@ -128,7 +134,7 @@ async function main(): Promise<void> {
   // frame interval: worst p95 across the 20 s samples (each sample = that window's frames)
   const lines: string[] = [
     `${new Date().toISOString()} Chrome headed, 2 visible windows — ${ua}`,
-    `match ${matchId}: live play ${(matchMs / 1000).toFixed(0)} s, audit ${(auditMs / 1000).toFixed(0)} s, acc=${acc}`,
+    `match ${matchId}: renderer ${rendererKind}${rendererKind === '2d' ? '' : ` (${camera === 'first' ? 'first-person' : 'top-down'})`}, live play ${(matchMs / 1000).toFixed(0)} s, audit ${(auditMs / 1000).toFixed(0)} s, acc=${acc}`,
   ];
   samples.forEach((ss, i) => {
     const p95s = ss.map((s) => s.intervalP95 ?? 0);

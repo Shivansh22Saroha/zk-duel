@@ -42,9 +42,15 @@ export interface PlayerState {
 
 /** Per-tick input (what the player asked for; the rules decide what happens). */
 export interface TickInput {
-  /** −1, 0 or +1 per axis. */
+  /** −1, 0 or +1 per axis: a full MAX_SPEED step on each held axis (arena-aligned WASD). */
   moveX: number;
   moveY: number;
+  /**
+   * Optional exact integer step (first-person, facing-relative WASD). Overrides moveX/moveY;
+   * each axis is clamped to [−MAX_SPEED, MAX_SPEED] — the same per-axis bound `checkTick` and the
+   * circuit enforce, so any such step is legal.
+   */
+  step?: { dx: number; dy: number };
   /** Desired aim angle (any integer; normalised). The turn is clamped to MAX_TURN. */
   aimTarget: number;
   fire: boolean;
@@ -119,6 +125,20 @@ export function stepMovement(
   };
 }
 
+/** Exact step: each axis rounded and clamped to ±`speed`, then clamped to the arena. */
+export function stepExact(
+  x: number,
+  y: number,
+  dx: number,
+  dy: number,
+  speed: number = MAX_SPEED,
+): { x: number; y: number } {
+  return {
+    x: clamp(x + clamp(Math.round(dx), -speed, speed), X_MIN, X_MAX),
+    y: clamp(y + clamp(Math.round(dy), -speed, speed), Y_MIN, Y_MAX),
+  };
+}
+
 // ------------------------------------------------------------------ aim
 
 /** Shortest-arc angle difference magnitude in [0, ANGLE_UNITS/2]. */
@@ -183,7 +203,9 @@ export function stepPlayer(
   prev: PlayerState,
   input: TickInput,
 ): { state: PlayerState; reloadPress: number } {
-  const { x, y } = stepMovement(prev.pub.x, prev.pub.y, input.moveX, input.moveY);
+  const { x, y } = input.step
+    ? stepExact(prev.pub.x, prev.pub.y, input.step.dx, input.step.dy)
+    : stepMovement(prev.pub.x, prev.pub.y, input.moveX, input.moveY);
   const angle = stepAim(prev.pub.angle, input.aimTarget);
   const autoReload = prev.hidden.ammo === 0 && prev.hidden.reloadTimer === 0;
   const reloadPress = input.reload || autoReload ? 1 : 0;

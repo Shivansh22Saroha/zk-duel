@@ -4,6 +4,7 @@
  * MAX_TURN of it, so the sim's clamp never discards input and the turn direction is kept.
  */
 import { MAX_TURN } from '@zkduel/shared/constants';
+import { relativeStep } from './facing';
 import type { TickInput } from '@zkduel/shared/sim';
 import type { InputContext, InputSource } from './session';
 
@@ -20,11 +21,23 @@ export function movementFromKeys(keys: ReadonlySet<string>): { moveX: number; mo
   };
 }
 
+/** WASD → facing-relative step (W forward along the aim, S back, A/D strafe). */
+export function stepFromKeysFacing(
+  keys: ReadonlySet<string>,
+  angle: number,
+): { dx: number; dy: number } {
+  const forward = (keys.has('w') ? 1 : 0) - (keys.has('s') ? 1 : 0);
+  const right = (keys.has('d') ? 1 : 0) - (keys.has('a') ? 1 : 0);
+  return relativeStep(forward, right, angle);
+}
+
 export class KeyboardMouseInput implements InputSource {
   private keys = new Set<string>();
   private mouseDown = false;
   private pendingTurn = 0;
   sensitivity: number;
+  /** True while the view turns with the aim (3D first-person): WASD becomes facing-relative. */
+  viewRelative: () => boolean = () => false;
   private readonly abort = new AbortController();
 
   constructor(private readonly target: HTMLElement) {
@@ -93,8 +106,10 @@ export class KeyboardMouseInput implements InputSource {
     const turn = Math.round(Math.max(-MAX_TURN, Math.min(MAX_TURN, this.pendingTurn)));
     this.pendingTurn -= turn;
     const k = this.keys;
+    const facing = this.viewRelative();
     return {
-      ...movementFromKeys(k),
+      ...(facing ? { moveX: 0, moveY: 0 } : movementFromKeys(k)),
+      ...(facing ? { step: stepFromKeysFacing(k, ctx.self.pub.angle) } : {}),
       aimTarget: ctx.self.pub.angle + turn,
       fire: this.mouseDown && this.locked,
       reload: k.has('r'),

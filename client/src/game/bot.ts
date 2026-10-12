@@ -6,6 +6,7 @@
 import { ANGLE_UNITS } from '@zkduel/shared/constants';
 import { mulberry32, randInt } from '@zkduel/shared/rng';
 import { turnDelta } from '@zkduel/shared/sim';
+import { relativeStep } from './facing';
 import type { InputContext, InputSource } from './session';
 
 export class BotInput implements InputSource {
@@ -20,6 +21,8 @@ export class BotInput implements InputSource {
     private readonly accuracy = 120, // ± angle units of aim jitter (misses → longer rounds, reloads)
     /** Minimum aim error (angle units): the bot still fires (weapon rules exercised) but never hits. */
     private readonly missBy = 0,
+    /** Move like a first-person player: moveX/moveY become strafe/forward relative to the aim. */
+    private readonly facingRelative = false,
   ) {
     this.rng = mulberry32(seed);
   }
@@ -42,6 +45,18 @@ export class BotInput implements InputSource {
       const ideal = Math.round((Math.atan2(dy, dx) * ANGLE_UNITS) / (2 * Math.PI));
       aimTarget = (((ideal + this.jitter) % ANGLE_UNITS) + ANGLE_UNITS) % ANGLE_UNITS;
       fire = turnDelta(ctx.self.pub.angle, aimTarget) < 40;
+    }
+    if (this.facingRelative) {
+      // moveY −1 = W (forward), moveX +1 = D (strafe right) — same keys as KeyboardMouseInput
+      const step = relativeStep(-this.moveY, this.moveX, ctx.self.pub.angle);
+      return {
+        moveX: 0,
+        moveY: 0,
+        step,
+        aimTarget,
+        fire,
+        reload: ctx.self.hidden.ammo < 4 && this.rng() < 0.02,
+      };
     }
     return {
       moveX: this.moveX,

@@ -135,6 +135,10 @@ export class ThreeRenderer implements GameRenderer {
     this.setMode(this.mode === 'third' ? 'first' : 'third');
   };
 
+  isFirstPerson(): boolean {
+    return this.mode === 'first';
+  }
+
   setMode(m: CameraMode): void {
     this.mode = m;
     try {

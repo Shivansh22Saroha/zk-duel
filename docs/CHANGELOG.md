@@ -11,6 +11,25 @@ Every entry that changes the circuit must state: new constraint count per varian
 ### Planned (see TODO.md)
 - Phase 5: benchmarks (all 6 variants, Node + browser runner, dashboard, CSV).
 
+### First-person WASD (input only, owner request) — 2026-10-12
+No change to sim rules, protocol, circuit or constants: the per-axis bound |Δx|, |Δy| ≤ MAX_SPEED that `checkTick` and `SpeedCheck` enforce is unchanged; only what the input layer asks for changes.
+#### Changed
+- **3D first-person: WASD is facing-relative** — W forward along the aim yaw, S back, A/D strafe, combinations allowed. `client/src/game/facing.ts` `relativeStep()` rotates (forward, right) by the yaw with the integer sin/cos table (`TRIG_SCALE` 1024): forward = (cos a, sin a), right = (−sin a, cos a); each axis = round(MAX_SPEED · v / TRIG_SCALE) clamped to ±MAX_SPEED. Top-down (and the 2D renderer) keep arena-axis WASD. The keyboard input asks the active renderer (`GameRenderer.isFirstPerson?()`) every tick, so V switches the mapping immediately.
+- `shared/sim.ts`: `TickInput.step?: {dx, dy}` (optional exact integer step, overrides moveX/moveY) and `stepExact()` (round, clamp each axis to ±MAX_SPEED, then to the arena). Additive; the arena-axis path is unchanged. Diagonal steps are e.g. (3, 3) at 45°; W+D at 45° is (0, 4), i.e. no diagonal speed bonus beyond the existing per-axis rule.
+- Speedhack is still caught in first-person: a facing-relative step always has one axis ≥ 3, so doubling it exceeds MAX_SPEED.
+- Bot: `?fpmove=1` moves with facing-relative WASD; `perf:match --fp-move` (implies `--camera first`) and runs the rule checker (`checkSequence`, the circuit mirror) over each page's own tick log in memory (hidden state never written out), plus a count of off-axis steps.
+- UI_UX_SPEC camera note updated. `axisMapping.test.ts`: the old "first-person W goes left" test now checks, through the real first-person camera, that W lands straight ahead, S behind, D right and A left of the view at 7 yaws.
+#### Added (diagnostics)
+- Server logs `ws strike` (player id, error code, fixed reason, strike count) and `ws closed` (player id, close code, reason, strikes); the client logs `[net] socket closed (<code>)` to the console. Codes and fixed strings only — no game state. Added because an earlier run lost a client with no trace (below).
+#### Tests
+- `facingMove.test.ts` (60): W/S/A/D and the four diagonals at yaw 0, 450, 900, 1234, 1800, 2700, 3150 give integer steps ≤ MAX_SPEED in the right direction (< 15° from the float direction, exact at the cardinals), applied unchanged by `stepPlayer` and accepted by `checkTick`; S = −W, A = −D, opposite keys cancel; all 3600 yaws × 9 combinations legal and equal to the table formula; a 2000-tick walk along the walls stays legal. Unit suite 310/310; typecheck, ESLint, Prettier clean.
+- **Recorded first-person match** (`npm run perf:match -- --fp-move --acc 1800 --miss 300 --stop-after 60`, dev server, real groth16_60 key): rule checker **all legal** for both players (3569 ticks each; 2991 / 3054 moving, 2293 / 2415 of them off-axis facing-relative steps); 59/59 windows valid per player, spot-checks 7/7 + 7/7, **`audited_clean`**, verdict verified; zero strikes. An earlier run of the same match (5e0b5470) was also `audited_clean` (120/120 valid) but crashed before the rule check (script bug: tick logs read after `browser.close()`, fixed).
+- These runs were on **battery** with the "Silent" power scheme: prove mean 5.5 s (vs ≈ 2.3 s on AC in Phase 4.5) and a 60 Hz display — not usable as performance numbers.
+- Integration suite: 24/26. The two failures — `matches.test.ts` tick-loop p99 2.25 ms (bound < 2 ms) and `phase4.test.ts` loser's audit `audit_incomplete` — fail identically with this change's server files stashed (p99 2.89 ms), i.e. machine state (battery, Silent scheme), not this change. To re-run on AC.
+#### Incidents while testing (environment)
+- Run 1 lost its WebSocket: the laptop entered **Modern Standby** 10:18:54–10:21:33 on battery (Kernel-Power 506/507, "connectivity in standby: disconnected"); the match aborted at tick 0. Later standbys 10:56–12:59 stalled a test run.
+- Run 3 hung on "Waiting for opponent…": 33 s into the match one window returned to the lobby without a reconnect attempt (new guest login, no page reload), the server ended the match `disconnect` 10 s later, and the bot auto-re-queued alone. No standby at that time; strikes and close codes were not logged then, so the cause is **not confirmed** — the diagnostics above were added and the next run had no strikes or unexpected closes. `perf:match` itself still waits up to 15 min if a page re-queues (it does not detect a lost match).
+
 ### Phase 4.5 — 3D renderer — 2026-10-11
 Rendering only: game rules, sim, protocol, input and circuit are unchanged (positions stay integer x, y on a flat floor, aim is one yaw angle, shots are horizontal rays).
 #### Added

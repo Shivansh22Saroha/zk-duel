@@ -71,6 +71,7 @@ Design changed before coding (CHANGELOG "Phase 3 design change"): commit every w
 ## Phase 4.5 — 3D renderer (before benchmarks) — owner request
 - [x] Three.js renderer behind the `GameRenderer` seam; Canvas 2D kept as fallback (`?renderer=2d`, and when WebGL is unavailable)
 - [x] Camera modes on V: first-person (yaw, no pitch, crosshair) and angled top-down
+- [x] First-person WASD facing-relative (input only; owner request 2026-10-12)
 - [x] Arena floor + grid + low walls + lighting; capsule players with aim direction; tracers + hit flash; interpolation unchanged
 - [x] HTML overlays unchanged (HUD, strips, cheat drawer, banners); UI_UX colours
 - [x] Frame time p50/p95 while proving in both renderers (production build, AC) — CHANGELOG Phase 4.5

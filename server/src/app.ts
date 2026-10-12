@@ -100,6 +100,7 @@ export async function buildApp(cfg: Config, opts: BuildOptions = {}): Promise<Ap
     constantsHash: hash,
     serverVersion: SERVER_VERSION,
     onClientFrame: opts.onClientFrame,
+    log: app.log,
   });
   const manager = new MatchManager(repo, (pid) => gateway.linkOf(pid), {
     scheme: cfg.scheme,

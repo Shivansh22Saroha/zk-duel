@@ -1,13 +1,13 @@
 /**
  * On-screen direction check: every movement key and every aim angle must point the same way in
  * the 3D top-down view as in the Canvas 2D renderer (2D: screen = origin + (x, y)·scale, y down).
- * First-person is checked separately — there the view turns with the aim, movement does not.
+ * First-person is checked separately — there the view and WASD both turn with the aim.
  */
 import { describe, expect, it } from 'vitest';
 import { Object3D, PerspectiveCamera, Vector3 } from 'three';
 import { ANGLE_UNITS, ARENA_H, ARENA_W, MAX_TURN, SPAWNS } from '@zkduel/shared/constants';
 import { stepMovement } from '@zkduel/shared/sim';
-import { movementFromKeys } from './input';
+import { movementFromKeys, stepFromKeysFacing } from './input';
 import { placeFirstPerson, placeOverview, radiansOf, worldOf, yawOf } from './renderer3dCamera';
 
 const [P0_SPAWN, P1_SPAWN] = SPAWNS;
@@ -153,16 +153,23 @@ describe('3D first-person view', () => {
     }
   });
 
-  it('movement is world-aligned: facing +x (P0 spawn), W (−y) goes to the left of the view', () => {
-    // Documents current behaviour (input is unchanged by the renderer): in first-person, W is
-    // "arena up", not "forward". Facing east, arena up is the player's left.
-    const cam = fp(P0_SPAWN.x, P0_SPAWN.y, 0);
-    const { moveX, moveY } = movementFromKeys(new Set(['w']));
-    const next = stepMovement(P0_SPAWN.x, P0_SPAWN.y, moveX, moveY);
-    // a point ahead, shifted the way W moves (×20 so it is well off-centre)
-    const dy = (next.y - P0_SPAWN.y) * 20;
-    const p = toScreen(cam, worldOf(P0_SPAWN.x + 200, P0_SPAWN.y + dy, 40));
-    expect(dy).toBeLessThan(0);
-    expect(p.x).toBeLessThan(VIEW_W / 2);
+  it('first-person WASD is facing-relative: W ahead, S behind, D right, A left of the view', () => {
+    for (const angle of [0, 450, 900, 1234, 1800, 2700, 3150]) {
+      const r = radiansOf(angle);
+      const at = (keys: string[]) => {
+        const { dx, dy } = stepFromKeysFacing(new Set(keys), angle);
+        // the moved-to floor point, ×20 so it is well off-centre, seen from 200 units behind
+        const bx = P0_SPAWN.x - Math.cos(r) * 200;
+        const by = P0_SPAWN.y - Math.sin(r) * 200;
+        return toScreen(fp(bx, by, angle), worldOf(P0_SPAWN.x + dx * 20, P0_SPAWN.y + dy * 20, 0));
+      };
+      const centre = at([]);
+      expect(Math.abs(at(['w']).x - centre.x)).toBeLessThan(VIEW_W * 0.08); // straight ahead
+      expect(at(['d']).x).toBeGreaterThan(centre.x + VIEW_W * 0.1);
+      expect(at(['a']).x).toBeLessThan(centre.x - VIEW_W * 0.1);
+      // on the floor: forward is further away (closer to the horizon, higher on screen), back nearer
+      expect(at(['w']).y).toBeLessThan(centre.y);
+      expect(at(['s']).y).toBeGreaterThan(centre.y);
+    }
   });
 });

@@ -25,6 +25,7 @@ import {
   windowProofMsg,
   type ServerMessage,
 } from '@zkduel/shared/protocol';
+import type { FastifyBaseLogger } from 'fastify';
 import { AuthError, type Auth } from '../auth/jwt';
 import type { MatchManager } from '../match/manager';
 import type { PlayerLink } from '../match/matchRoom';
@@ -50,6 +51,8 @@ export interface GatewayOptions {
   devCheats: boolean;
   constantsHash: string;
   serverVersion: string;
+  /** Strikes and socket closes (player id, fixed reason strings and close codes only). */
+  log?: Pick<FastifyBaseLogger, 'info' | 'warn'>;
   /** Test hook: every raw client→server frame (the "frame inspector"). */
   onClientFrame?: (playerId: string | null, raw: string) => void;
 }
@@ -120,7 +123,13 @@ export class Gateway {
     const c = new Conn(ws);
     c.helloTimer = setTimeout(() => c.close(CLOSE.AUTH, 'hello timeout'), HELLO_TIMEOUT_MS);
     ws.on('message', (data: RawData, isBinary: boolean) => this.onMessage(c, data, isBinary));
-    ws.on('close', () => this.onClose(c));
+    ws.on('close', (code: number, reason: Buffer) => {
+      this.opts.log?.info(
+        { playerId: c.playerId, code, reason: reason.toString('utf8'), strikes: c.strikes },
+        'ws closed',
+      );
+      this.onClose(c);
+    });
     ws.on('error', () => c.close(CLOSE.INVALID, 'socket error'));
   }
 
@@ -139,6 +148,7 @@ export class Gateway {
     message: string,
   ): void {
     c.strikes++;
+    this.opts.log?.warn({ playerId: c.playerId, code, message, strikes: c.strikes }, 'ws strike');
     c.send({ t: 'error', code, message });
     if (c.strikes >= MAX_STRIKES) {
       c.close(code === 'RATE_LIMITED' ? CLOSE.RATE : CLOSE.INVALID, 'too many invalid messages');

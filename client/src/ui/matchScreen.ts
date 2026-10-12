@@ -40,6 +40,7 @@ export interface MatchScreenOptions {
 export function matchScreen(o: MatchScreenOptions): {
   el: HTMLElement;
   canvas: HTMLCanvasElement;
+  isFirstPerson: () => boolean;
   dispose: () => void;
 } {
   const { game } = o;
@@ -297,6 +298,8 @@ export function matchScreen(o: MatchScreenOptions): {
   return {
     el,
     canvas,
+    /** Whether the active renderer's view turns with the aim (input uses facing-relative WASD). */
+    isFirstPerson: () => renderer.isFirstPerson?.() ?? false,
     dispose: () => {
       cancelAnimationFrame(raf);
       off();

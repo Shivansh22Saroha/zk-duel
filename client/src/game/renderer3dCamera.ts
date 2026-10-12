@@ -44,7 +44,12 @@ export function placeOverview(cam: PerspectiveCamera, w: number, h: number): voi
 }
 
 /** First-person camera at the own position, yaw = aim angle, no pitch. */
-export function placeFirstPerson(cam: PerspectiveCamera, x: number, y: number, angle: number): void {
+export function placeFirstPerson(
+  cam: PerspectiveCamera,
+  x: number,
+  y: number,
+  angle: number,
+): void {
   const a = radiansOf(angle);
   cam.up.set(0, 1, 0);
   cam.position.copy(worldOf(x, y, EYE_H));

@@ -42,6 +42,8 @@ export interface GameRenderer {
   resize(): void;
   draw(frame: RenderFrame): void;
   dispose(): void;
+  /** True when the camera turns with the aim (3D first-person); absent = never. */
+  isFirstPerson?(): boolean;
 }
 
 const OPPONENT_DELAY_MS = 50;

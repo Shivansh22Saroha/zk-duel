@@ -323,6 +323,7 @@ async function findMatch(name: string, way: MatchWay = null): Promise<void> {
 /** Unexpected socket close during a match or its audit → reconnect (Flow 5). */
 function onNetClose(net: Net, code: number): void {
   if (state.net !== net || state.reconnecting) return;
+  console.warn(`[net] socket closed (${code}), phase ${state.game?.phase ?? 'none'}`);
   const game = state.game;
   const inMatch = game !== null && game.phase !== 'idle' && game.phase !== 'ended';
   const auditing = state.proof?.auditing === true || state.resumer?.auditing === true;
@@ -456,7 +457,13 @@ function showMatch(): void {
     drawer?.dispose();
   });
   if (botSeed !== null) {
-    state.input.inner = new BotInput(botSeed, botAccuracy, Number(params.get('miss')) || 0);
+    state.input.inner = new BotInput(
+      botSeed,
+      botAccuracy,
+      Number(params.get('miss')) || 0,
+      // dev-only: `&fpmove=1` — the bot moves with first-person (facing-relative) WASD
+      params.has('fpmove'),
+    );
     // dev-only: `&stopAfter=<s>` forfeits after that much play — a match of a fixed length
     const stopAfter = Number(params.get('stopAfter'));
     if (stopAfter > 0) {
@@ -466,6 +473,7 @@ function showMatch(): void {
     }
   } else {
     state.kbm = new KeyboardMouseInput(ms.canvas);
+    state.kbm.viewRelative = ms.isFirstPerson;
     state.input.inner = state.kbm;
   }
   state.stats.reset();

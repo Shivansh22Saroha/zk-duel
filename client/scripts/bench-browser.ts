@@ -178,6 +178,8 @@ async function main(): Promise<void> {
       const t0 = Date.now();
       let res: BrowserBenchResult | null = null;
       let error: string | null = null;
+      // cleared after the race: a pending 90-min timer kept the process alive after the run
+      let timer: NodeJS.Timeout | undefined;
       try {
         res = (await Promise.race([
           page.evaluate(
@@ -189,11 +191,13 @@ async function main(): Promise<void> {
           ),
           new Promise<never>((_, rej) => {
             page.once('crash', () => rej(new Error('tab crashed (out of memory?)')));
-            setTimeout(() => rej(new Error('variant timed out')), VARIANT_TIMEOUT_MS);
+            timer = setTimeout(() => rej(new Error('variant timed out')), VARIANT_TIMEOUT_MS);
           }),
         ])) as BrowserBenchResult;
       } catch (e) {
         error = e instanceof Error ? e.message : String(e);
+      } finally {
+        clearTimeout(timer);
       }
       const mem = await sampler.stop();
       const run: BrowserVariantRun & { baseMemMb?: number } = res?.runs[0] ?? {
@@ -284,7 +288,10 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((e: unknown) => {
-  console.error(e);
-  process.exit(1);
-});
+main().then(
+  () => process.exit(process.exitCode ?? 0),
+  (e: unknown) => {
+    console.error(e);
+    process.exit(1);
+  },
+);

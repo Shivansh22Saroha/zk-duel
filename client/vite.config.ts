@@ -8,8 +8,8 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BUILD_DIR = join(ROOT, 'circuits', 'build');
 const FIXTURES_DIR = join(ROOT, 'circuits', 'test', 'fixtures');
 
-/** Only these artefacts are ever served (never r1cs/sym/intermediate zkeys). */
-const SERVED = new Set(['window.wasm', 'window_final.zkey', 'info.json']);
+/** Only these artefacts are ever served (never r1cs/sym/intermediate zkeys); vkeys are public. */
+const SERVED = new Set(['window.wasm', 'window_final.zkey', 'info.json', 'verification_key.json']);
 const VARIANT_RE = /^(groth16|plonk)_\d{1,3}$/;
 
 /**

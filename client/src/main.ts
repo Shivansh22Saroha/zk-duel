@@ -1,5 +1,5 @@
 /**
- * App controller + tiny router: `/`, `/match/:id`, `/match/:id/results`.
+ * App controller + tiny router: `/`, `/match/:id`, `/match/:id/results`, `/bench`.
  * Flow 1 (USER_FLOWS): landing → guest auth → WS hello → queue (proving key preloads) → match →
  * results (+ post-match audit). Flow 5: auto-reconnect with resume.
  */
@@ -208,11 +208,20 @@ function route(): void {
   const results = /^\/match\/([^/]+)\/results$/.exec(path);
   const match = /^\/match\/([^/]+)$/.exec(path);
   if (results) return void showResults(decodeURIComponent(results[1] as string));
+  if (path === '/bench') return void showBench();
   if (match) {
     if (state.game?.match?.matchId === match[1]) return showMatch();
     return go('/'); // a reload loses the in-memory windows: no rejoin after a page reload
   }
   showLanding();
+}
+
+/** Benchmarks page (lazy: Chart.js and the bench runner stay out of the game bundle). */
+async function showBench(): Promise<void> {
+  teardownMatch();
+  const { benchPage } = await import('./ui/benchPage');
+  const p = benchPage(() => go('/'));
+  mount(p.el, p.dispose);
 }
 
 function showLanding(): void {
@@ -223,6 +232,7 @@ function showLanding(): void {
       versionError: state.versionError,
       onFindMatch: (name) => void findMatch(name),
       onCreateRoom: (name, enforcement) => void findMatch(name, { create: enforcement }),
+      onBench: () => go('/bench'),
       onJoinRoom: (name, code) => void findMatch(name, { join: code }),
     }),
   );

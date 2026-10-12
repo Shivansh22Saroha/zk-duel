@@ -157,6 +157,7 @@ One row per detection-experiment match (`npm run exp:detect`, `npm run exp:brows
 | `user_agent` | TEXT | NULL |
 | `cpu_threads` | INTEGER | NULL |
 | `input_log` | TEXT | NOT NULL — filename of replayed log |
+| `input_log_sha256` | TEXT | NULL — SHA-256 of that log (migration 005) |
 | `seed` | INTEGER | NOT NULL |
 | `git_commit` | TEXT | NULL |
 | `notes` | TEXT | NULL |
@@ -174,7 +175,8 @@ One row per detection-experiment match (`npm run exp:detect`, `npm run exp:brows
 | `prove_ms` | REAL | NOT NULL |
 | `verify_ms` | REAL | NOT NULL |
 | `proof_bytes` | INTEGER | NOT NULL |
-| `valid` | INTEGER | NOT NULL, CHECK IN (0,1) |
+| `valid` | INTEGER | NOT NULL, CHECK IN (0,1) — verified AND public signals equal the JS reference |
+| `peak_mem_mb` | REAL | NULL — peak memory during the sample, where measurable (migration 005) |
 
 Unique `(run_id, scheme, window_ticks, sample_no)`. Index `idx_br_run_variant (run_id, scheme, window_ticks)`.
 

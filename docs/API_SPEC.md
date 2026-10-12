@@ -86,7 +86,7 @@ Downloadable JSON match log (summary + windows + cheat events). No hidden state 
 `{ "runs": [ { "id": "uuid", "createdAt": 0, "environment": "browser", "deviceLabel": "…", "samples": 360 } ] }`
 
 ### `GET /api/bench/runs/:id`
-Aggregates per variant: `{ scheme, windowTicks, constraints, n, proveMs: { mean, p50, p95, p5 }, verifyMs: { mean }, proofBytes, witnessMs: { mean } }`.
+`{ run, variants }`; aggregates per variant (`shared/benchStats.ts`): `{ scheme, windowTicks, constraints, n, valid, proveMs, witnessMs, verifyMs: { mean, p5, p50, p95 }, proofBytes, peakMemMb, playMs, proveToPlay, rMax }` — `playMs` = N / TICK_RATE, `rMax` = playMs / mean prove time.
 
 ### `GET /api/bench/runs/:id/csv`
 `text/csv` of all raw `benchmark_results` rows.
@@ -100,7 +100,7 @@ Used by the CLI / browser bench page to upload results.
     "sampleNo": 1, "witnessMs": 38.2, "proveMs": 612.4, "verifyMs": 6.1,
     "proofBytes": 805, "valid": true } ] }
 ```
-Server re-verifies nothing here (bench data is self-reported); max 2000 results per request. `201 { "runId": "uuid" }`.
+Optional (Phase 5): `inputLogSha256` (run level — identical inputs across Node and browser runs) and `peakMemMb` (per result; Node: process RSS, browser: Chrome private bytes of the test browser). Server re-verifies nothing here (bench data is self-reported); max `BENCH_MAX_RESULTS` (2000) results per request, body ≤ `BENCH_UPLOAD_MAX_BYTES`. Missing / wrong `X-Bench-Token` → 401. `201 { "runId": "uuid" }`. The browser page never holds the token unless the operator types it in; the Playwright driver uploads from Node.
 
 ## 4. WebSocket protocol (`/ws`)
 

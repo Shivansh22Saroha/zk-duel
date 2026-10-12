@@ -11,6 +11,7 @@ import { Auth } from './auth/jwt';
 import type { Config } from './config';
 import { openDb, type DB } from './db/index';
 import { Repo } from './db/repo';
+import { BenchStore, registerBenchRoutes } from './http/bench';
 import { registerRoutes, sendError } from './http/routes';
 import { FixedLoop } from './match/loop';
 import { MatchManager } from './match/manager';
@@ -120,6 +121,7 @@ export async function buildApp(cfg: Config, opts: BuildOptions = {}): Promise<Ap
   ref.manager = manager;
 
   registerRoutes(app, { cfg, repo, auth, manager, constantsHash: hash, startedAt: Date.now() });
+  registerBenchRoutes(app, new BenchStore(db), cfg.BENCH_TOKEN);
 
   app.server.on('upgrade', gateway.handleUpgrade);
   const loop = new FixedLoop(TICK_RATE, () => manager.tick());

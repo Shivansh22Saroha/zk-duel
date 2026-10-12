@@ -1,8 +1,11 @@
 /**
- * Build Groth16 circuit variants (ARCHITECTURE §5.5).
+ * Build circuit variants (ARCHITECTURE §5.5): Groth16 (live play + benchmarks) and PLONK
+ * (benchmark comparison only, Phase 5).
  *
- *   npm run circuits:build                 groth16_60 (ACTIVE default) + groth16_4 (tests)
- *   npm run circuits:build -- --n 4        one variant
+ *   npm run circuits:build                              groth16_60 (ACTIVE default) + groth16_4 (tests)
+ *   npm run circuits:build -- --n 4                     one Groth16 variant
+ *   npm run circuits:build -- --n 120 --scheme plonk    one PLONK variant
+ *   npm run circuits:build -- --all                     the 6 variants of build.config.json
  *
  * Steps per variant:
  *  1. generate main_<N>.circom from shared/constants.ts
@@ -10,14 +13,26 @@
  *  3. ptau power from the REAL constraint count (snarkjs's rule), smallest Hermez file that fits,
  *     downloaded + blake2b-verified if missing
  *  4. Groth16 phase 2 with ONE local contribution; entropy = crypto.randomBytes, never stored or
- *     printed (single-party setup — SECURITY A8 limitation); intermediate _0000.zkey deleted
+ *     printed (single-party setup — SECURITY A8 limitation); intermediate _0000.zkey deleted.
+ *     PLONK: universal setup from the ptau alone (no circuit-specific contribution). Its gate count
+ *     ("PLONK constraints" = R1CS constraints + linear-combination additions) decides the ptau
+ *     power, so it is read from a first setup against the largest local ptau, then the setup is
+ *     redone against the smallest Hermez file that fits.
  *  5. export verification_key.json, copy window.wasm
  *  6. prove + verify one honest window and derive publicSignalOrder by matching the JS values
  *  7. info.json { constraints, publicInputs, publicSignalOrder, ptauPower, zkeySha256, … }
  */
 import { execFileSync } from 'node:child_process';
-import { createHash, randomBytes } from 'node:crypto';
-import { copyFileSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
+import {
+  copyFileSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
@@ -31,16 +46,22 @@ import {
   type PublicSignalName,
 } from '@zkduel/shared/zkInput';
 import { CIRCUITS_DIR, genMain, MAIN_PUBLIC_INPUTS } from './gen-main';
-import { ensurePtau } from './ptau';
+import { sha256File } from './bigFile';
+import { ensurePtau, PTAU_DIR } from './ptau';
 
 const NODE_MODULES = join(CIRCUITS_DIR, '..', 'node_modules');
 export const BUILD_DIR = join(CIRCUITS_DIR, 'build');
 
+export type Scheme = 'groth16' | 'plonk';
+
 export interface VariantInfo {
   id: string;
-  scheme: 'groth16';
+  scheme: Scheme;
   windowTicks: number;
+  /** R1CS constraints (the same circuit for both schemes). */
   constraints: number;
+  /** PLONK only: gates after snarkjs's R1CS → PLONK conversion (this sets the ptau power). */
+  plonkConstraints?: number;
   publicInputs: number;
   publicOutputs: number;
   privateInputs: number;
@@ -52,7 +73,11 @@ export interface VariantInfo {
   zkeySha256: string;
   zkeyBytes: number;
   wasmSha256: string;
+  wasmBytes?: number;
   vkeySha256: string;
+  vkeyBytes?: number;
+  /** Wall time of the setup step (zkey generation), ms. */
+  setupMs?: number;
   constantsHash: string;
   circomVersion: string;
   snarkjsVersion: string;
@@ -60,9 +85,6 @@ export interface VariantInfo {
   setup: string;
   builtAt: string;
 }
-
-const sha256File = (p: string): string =>
-  createHash('sha256').update(readFileSync(p)).digest('hex');
 
 /** snarkjs zkey_new.js: cirPower = floor(log2(nConstraints + nPubInputs + nOutputs)) + 1. */
 export function ptauPowerFor(r: {
@@ -72,6 +94,47 @@ export function ptauPowerFor(r: {
 }): number {
   const n = r.nConstraints + r.nPubInputs + r.nOutputs;
   return Math.max(8, Math.floor(Math.log2(n)) + 1);
+}
+
+/** snarkjs plonk_setup.js: cirPower = log2(nPlonk − 1) + 1 (bit length), at least 3. */
+export function plonkPowerFor(nPlonk: number): number {
+  return Math.max(3, Math.floor(Math.log2(nPlonk - 1)) + 1);
+}
+
+/**
+ * PLONK setup against `ptauPath`. Returns the PLONK gate count; negative when the ptau was too
+ * small (no zkey written).
+ */
+async function plonkSetup(r1cs: string, ptauPath: string, zkey: string): Promise<number> {
+  let nPlonk = 0;
+  let tooBig = false;
+  const logger = {
+    info: (m: string) => {
+      const x = /^Plonk constraints: (\d+)/.exec(m);
+      if (x) nPlonk = Number(x[1]);
+    },
+    error: (m: string) => {
+      if (m.includes('too big')) tooBig = true;
+    },
+    warn: () => undefined,
+    debug: () => undefined,
+  };
+  const r = (await snarkjs.plonk.setup(r1cs, ptauPath, zkey, logger)) as unknown;
+  if (!nPlonk) throw new Error('plonk setup did not report its constraint count');
+  if (tooBig || r === -1) {
+    rmSync(zkey, { force: true });
+    return -nPlonk;
+  }
+  return nPlonk;
+}
+
+function largestLocalPtau(): number {
+  const powers = readdirSync(PTAU_DIR)
+    .map((f) => /final_(\d+)\.ptau$/.exec(f)?.[1])
+    .filter((p): p is string => p !== undefined)
+    .map(Number);
+  if (!powers.length) throw new Error('no local ptau file');
+  return Math.max(...powers);
 }
 
 function pkgVersion(name: string): string {
@@ -94,8 +157,8 @@ function sampleWindow(n: number): TickRecord[] {
   return out;
 }
 
-export async function buildVariant(n: number): Promise<VariantInfo> {
-  const id = `groth16_${n}`;
+export async function buildVariant(n: number, scheme: Scheme = 'groth16'): Promise<VariantInfo> {
+  const id = `${scheme}_${n}`;
   const dir = join(BUILD_DIR, id);
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
@@ -115,23 +178,43 @@ export async function buildVariant(n: number): Promise<VariantInfo> {
     `compiled: ${info.nConstraints} constraints, ${info.nPubInputs} public inputs, ${info.nOutputs} outputs`,
   );
 
-  // 3. ptau
-  const power = ptauPowerFor(info);
-  const ptau = await ensurePtau(power);
-  log(`ptau power ${power} (${ptau.file})`);
-
-  // 4. Groth16 setup: one local phase-2 contribution
-  const zkey0 = join(dir, 'window_0000.zkey');
   const zkey = join(dir, 'window_final.zkey');
-  await snarkjs.zKey.newZKey(r1csPath, ptau.path, zkey0);
-  await snarkjs.zKey.contribute(
-    zkey0,
-    zkey,
-    'zk-duel local phase-2 contribution',
-    randomBytes(64).toString('hex'),
-  );
-  rmSync(zkey0);
-  log('zkey ready (single local contribution; entropy discarded)');
+  let power: number;
+  let ptau: Awaited<ReturnType<typeof ensurePtau>>;
+  let plonkConstraints: number | undefined;
+  const ts = Date.now();
+  if (scheme === 'groth16') {
+    // 3. ptau
+    power = ptauPowerFor(info);
+    ptau = await ensurePtau(power);
+    log(`ptau power ${power} (${ptau.file})`);
+
+    // 4. Groth16 setup: one local phase-2 contribution
+    const zkey0 = join(dir, 'window_0000.zkey');
+    await snarkjs.zKey.newZKey(r1csPath, ptau.path, zkey0);
+    await snarkjs.zKey.contribute(
+      zkey0,
+      zkey,
+      'zk-duel local phase-2 contribution',
+      randomBytes(64).toString('hex'),
+    );
+    rmSync(zkey0);
+    log('zkey ready (single local contribution; entropy discarded)');
+  } else {
+    // 3–4. PLONK: gate count from a setup against the largest local ptau, then the smallest fit
+    const local = await ensurePtau(largestLocalPtau());
+    const first = await plonkSetup(r1csPath, local.path, zkey);
+    plonkConstraints = Math.abs(first);
+    power = plonkPowerFor(plonkConstraints);
+    log(`${plonkConstraints} PLONK constraints → ptau power ${power}`);
+    ptau = await ensurePtau(power);
+    if (first < 0 || ptau.path !== local.path) {
+      if ((await plonkSetup(r1csPath, ptau.path, zkey)) < 0)
+        throw new Error(`plonk setup still too big for ptau power ${power}`);
+    }
+    log(`zkey ready (PLONK universal setup on ${ptau.file})`);
+  }
+  const setupMs = Date.now() - ts;
 
   // 5. artefacts
   const vkey = await snarkjs.zKey.exportVerificationKey(zkey);
@@ -156,8 +239,9 @@ export async function buildVariant(n: number): Promise<VariantInfo> {
     },
     recs,
   );
-  const { proof, publicSignals } = await snarkjs.groth16.fullProve(input, wasm, zkey);
-  if (!(await snarkjs.groth16.verify(vkey, publicSignals, proof)))
+  const prover = scheme === 'groth16' ? snarkjs.groth16 : snarkjs.plonk;
+  const { proof, publicSignals } = await prover.fullProve(input, wasm, zkey);
+  if (!(await prover.verify(vkey, publicSignals, proof as never)))
     throw new Error('sample proof did not verify');
   const order = publicSignals.map((v) => {
     const names = PUBLIC_SIGNAL_NAMES.filter((k) => expected[k] === v);
@@ -171,9 +255,10 @@ export async function buildVariant(n: number): Promise<VariantInfo> {
   // 7. info.json
   const v: VariantInfo = {
     id,
-    scheme: 'groth16',
+    scheme,
     windowTicks: n,
     constraints: info.nConstraints,
+    ...(plonkConstraints ? { plonkConstraints } : {}),
     publicInputs: info.nPubInputs,
     publicOutputs: info.nOutputs,
     privateInputs: info.nPrvInputs,
@@ -185,12 +270,18 @@ export async function buildVariant(n: number): Promise<VariantInfo> {
     zkeySha256: sha256File(zkey),
     zkeyBytes: statSync(zkey).size,
     wasmSha256: sha256File(wasm),
+    wasmBytes: statSync(wasm).size,
     vkeySha256: sha256File(vkeyPath),
+    vkeyBytes: statSync(vkeyPath).size,
+    setupMs,
     constantsHash: await constantsHash(),
     circomVersion,
     snarkjsVersion: pkgVersion('snarkjs'),
     circomFlags,
-    setup: `groth16 phase 2: single local contribution (SECURITY A8); public inputs [${MAIN_PUBLIC_INPUTS.join(', ')}], output commitOut`,
+    setup:
+      scheme === 'groth16'
+        ? `groth16 phase 2: single local contribution (SECURITY A8); public inputs [${MAIN_PUBLIC_INPUTS.join(', ')}], output commitOut`
+        : `plonk universal setup (no circuit-specific contribution); public inputs [${MAIN_PUBLIC_INPUTS.join(', ')}], output commitOut`,
     builtAt: new Date().toISOString(),
   };
   writeFileSync(join(dir, 'info.json'), JSON.stringify(v, null, 2) + '\n');
@@ -200,9 +291,21 @@ export async function buildVariant(n: number): Promise<VariantInfo> {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const i = process.argv.indexOf('--n');
-  const ns = i >= 0 ? [Number(process.argv[i + 1])] : [60, 4];
+  const si = process.argv.indexOf('--scheme');
+  const scheme: Scheme = si >= 0 && process.argv[si + 1] === 'plonk' ? 'plonk' : 'groth16';
+  const config = JSON.parse(readFileSync(join(CIRCUITS_DIR, 'build.config.json'), 'utf8')) as {
+    variants: { scheme: Scheme; windowTicks: number }[];
+  };
+  const list: { n: number; scheme: Scheme }[] = process.argv.includes('--all')
+    ? config.variants.map((v) => ({ n: v.windowTicks, scheme: v.scheme }))
+    : i >= 0
+      ? [{ n: Number(process.argv[i + 1]), scheme }]
+      : [
+          { n: 60, scheme: 'groth16' },
+          { n: 4, scheme: 'groth16' },
+        ];
   (async () => {
-    for (const n of ns) await buildVariant(n);
+    for (const v of list) await buildVariant(v.n, v.scheme);
     process.exit(0); // snarkjs keeps worker threads alive
   })().catch((e: unknown) => {
     console.error(e instanceof Error ? e.message : e);

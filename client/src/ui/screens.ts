@@ -14,6 +14,8 @@ export function landingScreen(opts: {
   /** Private room (F3): create with the creator's enforcement, or join by code. */
   onCreateRoom: (name: string, enforcement: 'observe' | 'strict') => void;
   onJoinRoom: (name: string, code: string) => void;
+  /** Benchmarks page (UI_UX §3.5). */
+  onBench: () => void;
 }): HTMLElement {
   const input = h('input', {
     type: 'text',
@@ -141,6 +143,12 @@ export function landingScreen(opts: {
           'a',
           { href: '#', onclick: (e: Event) => (e.preventDefault(), dialog.showModal()) },
           'How it works',
+        ),
+        ' · ',
+        h(
+          'a',
+          { href: '/bench', onclick: (e: Event) => (e.preventDefault(), opts.onBench()) },
+          'Benchmarks',
         ),
       ),
       dialog,

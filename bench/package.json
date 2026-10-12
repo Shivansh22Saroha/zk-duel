@@ -3,7 +3,10 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "scripts": {},
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "run": "tsx run.ts"
+  },
   "dependencies": {
     "snarkjs": "0.7.6"
   }

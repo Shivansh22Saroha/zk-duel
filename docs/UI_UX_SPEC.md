@@ -94,10 +94,12 @@ Load via Google Fonts; fall back to `system-ui` and `ui-monospace`.
 - Buttons: *Back to lobby*, *Download match log (JSON)*. (Rematch dropped — not in PRD.)
 
 ### 3.5 Benchmarks (`/bench`)
-- Run selector (dropdown of runs by date/device).
-- Chart 1: proof time (ms) vs window size, one line per scheme, error bars = p5–p95, a dashed horizontal reference line for each window's play duration (N/60 s). Points under their line are "real-time feasible".
-- Chart 2: proof size (bytes) and verify time per scheme (grouped bars).
-- Table: scheme, N, constraints, mean/p50/p95 prove, mean verify, proof bytes, samples.
+- Run selectors: one Chrome run and one Node run (latest of each by default); both appear in every chart (colour = scheme, line style/marker = environment).
+- Chart 1: proof time (ms, log) vs window size, median line with a p5–p95 band per scheme × environment, a dashed reference line for each window's play duration (N/60 s). Points under it are "real-time feasible".
+- Chart 2: proof size (bytes) by scheme; Chart 3: verify time by scheme (grouped bars — two charts, one axis each).
+- Chart 4: r_max ≈ window duration / mean prove time vs N, with the r = 1 line.
+- Table: environment, scheme, N, constraints, mean/p50/p95 prove, witness, verify, proof bytes, peak memory, prove/play, r_max, valid/samples.
+- *Export PNGs*: every chart re-rendered light on white at 1600×900 for slides.
 - *Run benchmark in this browser* button with live progress, and *Export CSV*.
 
 ### 3.6 About / How it works

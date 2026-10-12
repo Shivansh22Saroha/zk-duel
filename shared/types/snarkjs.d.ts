@@ -28,6 +28,22 @@ declare module 'snarkjs' {
     ): Promise<{ proof: Groth16Proof; publicSignals: string[] }>;
     verify(vkey: unknown, publicSignals: string[], proof: Groth16Proof): Promise<boolean>;
   };
+  /** PLONK proof (benchmark comparison only): commitments + evaluations, kept opaque here. */
+  export type PlonkProof = Record<string, unknown> & { protocol: string; curve: string };
+  export const plonk: {
+    setup(r1cs: string, ptau: string, zkey: string, logger?: unknown): Promise<unknown>;
+    fullProve(
+      input: Record<string, unknown>,
+      wasm: string | Uint8Array,
+      zkey: string | Uint8Array,
+    ): Promise<{ proof: PlonkProof; publicSignals: string[] }>;
+    prove(
+      zkey: string | Uint8Array,
+      witness: string | Uint8Array | { type: 'mem'; data?: Uint8Array },
+      logger?: unknown,
+    ): Promise<{ proof: PlonkProof; publicSignals: string[] }>;
+    verify(vkey: unknown, publicSignals: string[], proof: PlonkProof): Promise<boolean>;
+  };
   export const wtns: {
     calculate(
       input: Record<string, unknown>,

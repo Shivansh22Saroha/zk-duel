@@ -169,6 +169,25 @@ export const CONSTANTS = {
   PROOF_FAILED_REASON_MAX,
 } as const;
 
+// ---------------------------------------------------------------- benchmarks (Phase 5)
+// Benchmark parameters, not game rules: deliberately NOT in CONSTANTS, so they are not hashed
+// into constantsHash and changing them never invalidates a circuit build.
+/** Seed of the deterministic benchmark input log (NFR-7: numbers reproducible from seed + log). */
+export const BENCH_SEED = 42;
+/** Stored samples per variant (FEATURES F15) … */
+export const BENCH_SAMPLES = 20;
+/** … after this many warm-up proofs that are run but not stored. */
+export const BENCH_WARMUPS = 2;
+/** Ticks in the benchmark log: one window per sample + warm-up at the largest N. */
+export const BENCH_LOG_TICKS = (BENCH_SAMPLES + BENCH_WARMUPS) * Math.max(...BENCH_WINDOW_TICKS);
+/** Benchmark bot: chance per tick to pick a new move direction / aim target, to press reload. */
+export const BENCH_TURN_CHANCE = 0.05;
+export const BENCH_RELOAD_CHANCE = 0.01;
+/** Max results per POST /api/bench/runs (API_SPEC). */
+export const BENCH_MAX_RESULTS = 2000;
+/** Body limit of POST /api/bench/runs (2000 rows of ~250 B fit with room to spare). */
+export const BENCH_UPLOAD_MAX_BYTES = 2 * 1024 * 1024;
+
 export type Constants = typeof CONSTANTS;
 export type Scheme = (typeof SCHEMES)[number];
 export type WindowTicks = (typeof WINDOW_TICKS_VARIANTS)[number];

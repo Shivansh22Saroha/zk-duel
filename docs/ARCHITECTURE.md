@@ -251,7 +251,7 @@ The client loads `wasm` + `zkey` from `/zk/<scheme>_<N>/` (static, cached). The 
 
 ## 8. Benchmark pipeline
 
-`bench/run.ts` replays recorded input logs (`bench/logs/*.jsonl`) through `shared/sim.ts`, builds circuit inputs for every variant (scheme × N), proves ≥ 20 times each (Node or Playwright-driven browser), verifies, and writes rows to `benchmark_runs` / `benchmark_results`. `bench/export.ts` writes `bench/out/results.csv`.
+The input log is generated, not recorded: `shared/benchLog.ts` steps a seeded bot (BENCH_SEED) through `shared/sim.ts` for BENCH_LOG_TICKS ticks (a copy is written to `bench/logs/`), and windows of N are cut by the same `sliceLogWindows` as real matches; Node and browser report its SHA-256. `bench/run.ts` (Node) and `/bench` + `client/scripts/bench-browser.ts` (Chrome, Web Worker, Playwright) prove BENCH_WARMUPS + BENCH_SAMPLES windows per variant (scheme × N), verify, and upload to `benchmark_runs` / `benchmark_results`. `bench/export.ts` writes `bench/out/results.csv` and `bench/out/match-metrics.csv` (per-match research metrics).
 
 ## 9. Key decisions
 

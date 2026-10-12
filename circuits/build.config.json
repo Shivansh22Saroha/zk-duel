@@ -94,12 +94,20 @@
       "19": {
         "file": "powersOfTau28_hez_final_19.ptau",
         "url": "https://circom.info/powersOfTau28_hez_final_19.ptau",
-        "blake2b512": "bca9d8b04242f175189872c42ceaa21e2951e0f0f272a0cc54fc37193ff6648600eaf1c555c70cdedfaf9fb74927de7aa1d33dc1e2a7f1a50619484989da0887"
+        "blake2b512": "bca9d8b04242f175189872c42ceaa21e2951e0f0f272a0cc54fc37193ff6648600eaf1c555c70cdedfaf9fb74927de7aa1d33dc1e2a7f1a50619484989da0887",
+        "sha256": "3f428d1a407e4704ef906960e000b03089e5e6ec29bf65b07bb5e3de005f4700"
       },
       "20": {
         "file": "powersOfTau28_hez_final_20.ptau",
         "url": "https://circom.info/powersOfTau28_hez_final_20.ptau",
-        "blake2b512": "89a66eb5590a1c94e3f1ee0e72acf49b1669e050bb5f93c73b066b564dca4e0c7556a52b323178269d64af325d8fdddb33da3a27c34409b821de82aa2bf1a27b"
+        "blake2b512": "89a66eb5590a1c94e3f1ee0e72acf49b1669e050bb5f93c73b066b564dca4e0c7556a52b323178269d64af325d8fdddb33da3a27c34409b821de82aa2bf1a27b",
+        "sha256": "159d3f938d941e06767d99f30b9fe59a245400a4aae138cf8e411732d7a2f6cd"
+      },
+      "21": {
+        "file": "powersOfTau28_hez_final_21.ptau",
+        "url": "https://circom.info/powersOfTau28_hez_final_21.ptau",
+        "blake2b512": "9aef0573cef4ded9c4a75f148709056bf989f80dad96876aadeb6f1c6d062391f07a394a9e756d16f7eb233198d5b69407cca44594c763ab4a5b67ae73254678",
+        "sha256": "cdc7c94a6635bc91466d8c7d96faefe1d17ecc98a3596a748ca1e6c895f8c2b4"
       }
     }
   }

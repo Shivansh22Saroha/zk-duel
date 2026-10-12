@@ -1,4 +1,5 @@
 /** REST client + guest session storage (FEATURES F1: token in sessionStorage). */
+import type { VariantAggregate } from '@zkduel/shared/benchStats';
 import { ENV } from './env';
 import type { VariantMeta } from './zk/artefacts';
 import type { ServerWindowRow } from './zk/auditResumer';
@@ -102,7 +103,35 @@ export const api = {
       {},
       token,
     ),
+  benchRuns: () => call<{ runs: BenchRunMeta[] }>('/api/bench/runs').then((r) => r.runs),
+  benchRun: (id: string) =>
+    call<{ run: BenchRunMeta; variants: VariantAggregate[] }>(
+      `/api/bench/runs/${encodeURIComponent(id)}`,
+    ),
+  benchCsvUrl: (id: string) => `${ENV.API_URL}/api/bench/runs/${encodeURIComponent(id)}/csv`,
+  /** Upload needs the operator's BENCH_TOKEN (typed in, never bundled; sent as a header). */
+  benchUpload: (benchToken: string, body: unknown) =>
+    call<{ runId: string }>('/api/bench/runs', {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: { 'x-bench-token': benchToken },
+    }),
 };
+
+export interface BenchRunMeta {
+  id: string;
+  createdAt: number;
+  environment: 'node' | 'browser';
+  deviceLabel: string;
+  userAgent: string | null;
+  cpuThreads: number | null;
+  inputLog: string;
+  inputLogSha256: string | null;
+  seed: number;
+  gitCommit: string | null;
+  notes: string | null;
+  samples?: number;
+}
 
 export const session = {
   get token(): string | null {

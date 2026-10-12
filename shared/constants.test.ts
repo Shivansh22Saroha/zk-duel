@@ -2,10 +2,25 @@ import { describe, expect, it } from 'vitest';
 import * as C from './constants';
 import { CONSTANTS } from './constants';
 
+/**
+ * Benchmark parameters (Phase 5): exported for the bench tools but deliberately not game rules,
+ * so not hashed into constantsHash (changing them must not invalidate circuit builds).
+ */
+const NOT_HASHED = new Set([
+  'BENCH_SEED',
+  'BENCH_SAMPLES',
+  'BENCH_WARMUPS',
+  'BENCH_LOG_TICKS',
+  'BENCH_TURN_CHANCE',
+  'BENCH_RELOAD_CHANCE',
+  'BENCH_MAX_RESULTS',
+  'BENCH_UPLOAD_MAX_BYTES',
+]);
+
 describe('shared/constants', () => {
-  it('CONSTANTS contains every exported constant (and nothing else)', () => {
+  it('CONSTANTS contains every exported constant (and nothing else) except the bench parameters', () => {
     const exported = Object.entries(C)
-      .filter(([k]) => k !== 'CONSTANTS')
+      .filter(([k]) => k !== 'CONSTANTS' && !NOT_HASHED.has(k))
       .map(([k]) => k)
       .sort();
     expect(Object.keys(CONSTANTS).sort()).toEqual(exported);

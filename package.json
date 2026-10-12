@@ -45,7 +45,11 @@
     "e2e:audit-reload": "tsx client/scripts/e2e-audit-reload.ts",
     "exp:detect": "tsx server/scripts/exp-detect.ts",
     "e2e:cheats": "tsx client/scripts/e2e-cheats.ts",
-    "exp:browser": "tsx client/scripts/exp-browser.ts"
+    "exp:browser": "tsx client/scripts/exp-browser.ts",
+    "bench:node": "tsx bench/run.ts",
+    "bench:browser": "tsx client/scripts/bench-browser.ts",
+    "screenshots": "tsx client/scripts/screenshots.ts",
+    "bench:export": "tsx bench/export.ts"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

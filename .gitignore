@@ -17,7 +17,7 @@ circuits/build/**/*_0000.zkey
 
 # runtime data
 server/data/
-bench/out/
+# bench/out/ (CSV, charts, screenshots, RESULTS.md, raw run JSON) is committed: report evidence
 
 # test artefacts
 playwright-report/

@@ -9,6 +9,10 @@
  *   npm run perf:match -- --acc 400
  *
  * Writes server/data/test-reports/phase3-browser-match.{txt,json}.
+ *
+ * Fails within ~1 s (exit 1, with the pages' socket-close codes) if a page loses its match —
+ * closed / crashed, back in the lobby, or re-queued into another match — instead of waiting out
+ * the phase and audit timeouts. `--drop-after <s>` sends page 1 back to the lobby (self-test).
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -36,6 +40,8 @@ const rendererKind = arg('renderer', '3d');
 const fpMove = process.argv.includes('--fp-move');
 const camera = fpMove ? 'first' : arg('camera', 'third');
 const tag = arg('tag', 'phase3-browser-match');
+/** Self-test of the match guard: page 1 goes back to the lobby after this many seconds of play. */
+const dropAfter = Number(arg('drop-after', '0'));
 
 type Zkd = {
   game(): { phase: string; match: { matchId: string } | null; playerIndex: number } | null;
@@ -52,6 +58,57 @@ async function waitPhase(page: Page, phase: string, timeoutMs: number): Promise<
     phase,
     { timeout: timeoutMs, polling: 200 },
   );
+}
+
+/** Close codes / socket events seen in the pages' consoles (client logs `[net] socket closed`). */
+const netEvents: string[] = [];
+
+/**
+ * Fail fast instead of waiting out the long phase/audit timeouts when a page loses its match:
+ * page closed or crashed, socket closed and back in the lobby, or re-queued into another match.
+ * Polls every second; the returned promise only ever rejects.
+ */
+function matchGuard(pages: Page[], ids: string[]): { lost: Promise<never>; stop: () => void } {
+  let timer: NodeJS.Timeout | undefined;
+  let fail: (e: Error) => void = () => undefined;
+  const lost = new Promise<never>((_, reject) => (fail = reject));
+  lost.catch(() => undefined);
+  const why = (i: number, what: string) =>
+    new Error(
+      `page ${i} lost match ${ids[i]}: ${what}${netEvents.length ? ` — socket events: ${netEvents.join('; ')}` : ''}`,
+    );
+  pages.forEach((p, i) => {
+    p.on('close', () => fail(why(i, 'page closed')));
+    p.on('crash', () => fail(why(i, 'page crashed')));
+  });
+  const tick = async (): Promise<void> => {
+    for (const [i, p] of pages.entries()) {
+      if (p.isClosed()) continue;
+      const s = await p
+        .evaluate(() => {
+          const g = (window as unknown as { __zkd?: Zkd }).__zkd?.game();
+          return {
+            id: g?.match?.matchId ?? null,
+            phase: g?.phase ?? null,
+            path: location.pathname,
+          };
+        })
+        .catch(() => null); // mid-navigation: try again next second
+      if (!s) continue;
+      if (s.id !== ids[i])
+        return fail(
+          why(
+            i,
+            `now in ${s.id ? `another match ${s.id}` : 'no match'} (phase ${s.phase}, ${s.path})`,
+          ),
+        );
+      if (!s.path.startsWith(`/match/${ids[i]}`))
+        return fail(why(i, `left the match page (now ${s.path}, phase ${s.phase})`));
+    }
+    timer = setTimeout(() => void tick(), 1000);
+  };
+  timer = setTimeout(() => void tick(), 1000);
+  return { lost, stop: () => clearTimeout(timer) };
 }
 
 async function main(): Promise<void> {
@@ -74,6 +131,8 @@ async function main(): Promise<void> {
     page.on('console', (m) => {
       if (m.type() === 'error' || m.type() === 'warning')
         console.error(`[console ${seed}] ${m.text()}`);
+      if (m.text().includes('[net] socket closed'))
+        netEvents.push(`${new Date().toISOString().slice(11, 19)} page ${seed}: ${m.text()}`);
     });
     await page.goto(
       `${BASE}?bot=${seed}&acc=${acc}&miss=${miss}${rendererKind === '2d' ? '&renderer=2d' : ''}${fpMove ? '&fpmove=1' : ''}${i === 1 && stopAfter > 0 ? `&stopAfter=${stopAfter + 4}` : ''}`,
@@ -81,6 +140,18 @@ async function main(): Promise<void> {
     pages.push(page);
   }
   await Promise.all(pages.map((p) => waitPhase(p, 'live', 120_000)));
+  const ids = await Promise.all(
+    pages.map((p) =>
+      zkd(p)(() => (window as unknown as { __zkd: Zkd }).__zkd.game()?.match?.matchId ?? ''),
+    ),
+  );
+  const guard = matchGuard(pages, ids);
+  const guarded = <T>(p: Promise<T>): Promise<T> => Promise.race([p, guard.lost]);
+  if (dropAfter > 0)
+    setTimeout(
+      () => void pages[1]?.evaluate(() => history.back()).catch(() => undefined),
+      dropAfter * 1000,
+    );
   if (rendererKind !== '2d' && camera === 'first') {
     for (const p of pages) await p.keyboard.press('v'); // 3D: switch both windows to first-person
   }
@@ -101,7 +172,7 @@ async function main(): Promise<void> {
           .catch(() => undefined),
     );
   }, 20_000);
-  await Promise.all(pages.map((p) => waitPhase(p, 'ended', 15 * 60_000)));
+  await guarded(Promise.all(pages.map((p) => waitPhase(p, 'ended', 15 * 60_000))));
   clearInterval(sampler);
   const matchMs = Date.now() - t0;
   const last = await Promise.all(
@@ -112,15 +183,18 @@ async function main(): Promise<void> {
     () => (window as unknown as { __zkd: Zkd }).__zkd.game()?.match?.matchId,
   );
   const t1 = Date.now();
-  await Promise.all(
-    pages.map((p) =>
-      p.waitForFunction(
-        () => (window as unknown as { __zkd: Zkd }).__zkd.proof()?.auditDone === true,
-        undefined,
-        { timeout: 40 * 60_000, polling: 1000 },
+  await guarded(
+    Promise.all(
+      pages.map((p) =>
+        p.waitForFunction(
+          () => (window as unknown as { __zkd: Zkd }).__zkd.proof()?.auditDone === true,
+          undefined,
+          { timeout: 40 * 60_000, polling: 1000 },
+        ),
       ),
     ),
   );
+  guard.stop();
   const auditMs = Date.now() - t1;
   const proofState = await Promise.all(
     pages.map((p) => zkd(p)(() => (window as unknown as { __zkd: Zkd }).__zkd.proof())),

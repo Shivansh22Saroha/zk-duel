@@ -9,6 +9,7 @@
  */
 import { z } from 'zod';
 import {
+  BENCH_MAX_RESULTS,
   DISPLAY_NAME_PATTERN,
   MAX_HP,
   PROOF_FAILED_REASON_MAX,
@@ -410,6 +411,8 @@ export const benchResultRow = z.object({
   verifyMs: finiteNonNeg,
   proofBytes: z.number().int().min(1),
   valid: z.boolean(),
+  /** Peak memory during the sample (Node: process RSS; browser: Chrome private bytes), MiB. */
+  peakMemMb: finiteNonNeg.optional(),
 });
 export const benchUploadBody = z.object({
   environment: z.enum(['node', 'browser']),
@@ -417,10 +420,15 @@ export const benchUploadBody = z.object({
   userAgent: z.string().max(512).optional(),
   cpuThreads: z.number().int().min(1).max(1024).optional(),
   inputLog: z.string().min(1).max(200),
+  /** SHA-256 of the replayed input log: proves Node and browser runs used identical inputs. */
+  inputLogSha256: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/)
+    .optional(),
   seed: z.number().int(),
   gitCommit: z.string().max(64).optional(),
   notes: z.string().max(1000).optional(),
-  results: z.array(benchResultRow).min(1).max(2000),
+  results: z.array(benchResultRow).min(1).max(BENCH_MAX_RESULTS),
 });
 
 export const restErrorCode = z.enum([

@@ -11,6 +11,16 @@ Every entry that changes the circuit must state: new constraint count per varian
 ### Planned (see TODO.md)
 - Phase 5: benchmarks (all 6 variants, Node + browser runner, dashboard, CSV).
 
+### Phase 6 — polish + demo checklist run — 2026-10-12
+- Results screen: live detection latency shows `– (none caught live)` instead of the stale `– (Phase 4)`. README: benchmark section rewritten (scripts that exist), power-settings prerequisite, `circuits:build -- --all`.
+- **Demo checklist (TESTING.md §9), automated, one laptop (perf build, AC, Performance scheme, power watcher: no events):**
+  1. *Full match, all ✓* — substitute: `perf:match` 3-min honest bot match (two Chrome windows on one laptop; two laptops not available). **FAILED, reproduced twice:** `audited_failed` OVERTURNED, 1 `mismatch_digest` window per player (same window for both), 179/180 valid; frame p95 7.2 ms. Open bug in TODO.md → Bugs; **v1.0.0 not tagged**.
+  2. *Speedhack, rapid-fire, infinite ammo, snap-aim → non-valid* — `exp:browser`: all four `audited_failed` (three caught live, snap-aim by the audit). **PASS.** `e2e:cheats` E2E-2 strict + speedhack → forfeit after 1.6 s. **PASS.**
+  3. *Smooth-aim stays ✓* — E2E-3: 17/17 spot-checks, `audited_clean`; `exp:browser` smooth-aim `audited_clean`. **PASS.**
+  4. *Dashboard with real-time reference lines* — `/bench` chart export (play-time line, all 12 variants). **PASS.**
+  5. *Match log download contains no hidden state* — **doc mismatch:** the only downloadable log is the dev-only local tick log (`VITE_LOG_TICKS`), which by design contains the player's own hidden state and never leaves the browser. Network side checked by the frame inspector (`e2e:cheats`, 5,054 frames, no hidden keys): **PASS.** Proposed TESTING.md fix: reword item 5 to "frame inspector green; the dev tick log is local only".
+- Run once (not twice as TODO lists) per owner instruction.
+
 ### Phase 5 — benchmark runs — 2026-10-12
 Results and conditions: `bench/RESULTS.md`. All 6 variants measured in one session (AC, Performance scheme, power watcher: no events). Groth16 2 warm-ups + 20 samples (Node + Chrome); PLONK with fewer samples (owner decision); Chrome plonk_120 failed to load its 3.96 GiB zkey (`Failed to fetch`, recorded as the result).
 #### Changed

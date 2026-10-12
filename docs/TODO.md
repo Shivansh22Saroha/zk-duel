@@ -116,4 +116,4 @@ Design changed before coding (CHANGELOG "Phase 3 design change"): commit every w
 - [ ] Confirm current official ptau download URL and checksum at setup
 
 ## Bugs
-_None open._
+- [ ] **Honest 3-min bot match ends `audited_failed` (OVERTURNED)** — found in the Phase 6 demo checklist run, 2026-10-12, reproduced twice (`npm run perf:match -- --acc 1800 --miss 300 --stop-after 180`, perf build, AC/Performance): matches `99315686` and `c7b5a682`, exactly **1 `mismatch_digest` window per player, the same window for both** (round 1, window 22 resp. 12); 179/180 valid each; when that window was spot-checked the challenge failed live. The rule checker finds both tick logs all legal; each player shows exactly 1 "off-axis" step. Not seen in any earlier match in the DB (incl. today's 60-s screenshot match and the Phase 4.5 / first-person 90-/60-window runs). Cause not yet investigated — suspects: the first-person WASD change (`c300892`, `stepExact`) or the late-snapshot / gap-fill digest path. Blocks v1.0.0.

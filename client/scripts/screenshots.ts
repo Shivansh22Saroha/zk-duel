@@ -39,7 +39,8 @@ async function open(browser: Browser, url: string): Promise<Page> {
 
 async function shot(p: Page, name: string): Promise<void> {
   await p.bringToFront();
-  await p.screenshot({ path: join(OUT, name) });
+  // the perf build shows the fps/tick debug overlay, which covers the top-left banner text
+  await p.screenshot({ path: join(OUT, name), style: '#debug { display: none !important; }' });
   console.log(`screenshot ${name}`);
 }
 
@@ -61,11 +62,25 @@ async function main(): Promise<void> {
     const b = await open(browser, `${BASE}?bot=32&acc=1800&miss=300&stopAfter=${MATCH_S + 4}`);
     await Promise.all([a, b].map((p) => until(p, "zk?.game()?.phase === 'live'", 120_000)));
     await until(a, `zk.game().tick > ${SHOT_AFTER_S * 60}`, (SHOT_AFTER_S + 30) * 1000);
-    await a.waitForFunction(
-      () => document.querySelectorAll('.strip .cell.valid').length >= 3,
-      undefined,
-      { timeout: 60_000 },
-    );
+    // ≥ 3 spot-checks passed overall and ≥ 1 ✓ in view: the strip shows only the last 10
+    // windows and only ~1/3 of them are challenged, so "3 ✓ at once" was flaky
+    await a
+      .waitForFunction(
+        () =>
+          document.querySelector('.strip .cell.valid') !== null &&
+          [...document.querySelectorAll('.spot')].some(
+            (e) => Number(/(\d+)\/\d+ passed/.exec(e.textContent ?? '')?.[1] ?? 0) >= 3,
+          ),
+        undefined,
+        { timeout: 90_000 },
+      )
+      .catch(async (e: unknown) => {
+        const seen = await a.evaluate(() =>
+          [...document.querySelectorAll('.strip-wrap')].map((w) => w.textContent),
+        );
+        console.error('proof strip at timeout:', seen);
+        throw e;
+      });
     await shot(a, '3d-topdown-proof-strip.png');
     await a.keyboard.press('v');
     await a.waitForTimeout(1500);
@@ -73,9 +88,14 @@ async function main(): Promise<void> {
     await a.keyboard.press('v'); // back to top-down (the mode is remembered per browser context)
     await Promise.all([a, b].map((p) => until(p, "zk.game()?.phase === 'ended'", 5 * 60_000)));
     await until(a, 'zk.proof()?.auditDone === true', 30 * 60_000);
-    await a.waitForFunction(() => document.body.innerText.includes('AUDITED CLEAN'), undefined, {
-      timeout: 60_000,
-    });
+    // the badge can appear before the per-player stats load ("Windows (committed) 0 (0)")
+    await a.waitForFunction(
+      () =>
+        document.body.innerText.includes('AUDITED CLEAN') &&
+        /Windows \(committed\)\s+[1-9]\d* \(/.test(document.body.innerText),
+      undefined,
+      { timeout: 60_000 },
+    );
     await shot(a, 'results-audited-clean.png');
     await a.context().close();
     await b.context().close();

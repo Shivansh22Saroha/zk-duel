@@ -150,4 +150,4 @@ Non-blocking / manual: Playwright E2E (needs built circuits), full N=60/120 buil
 - [ ] Speedhack, rapid-fire, infinite ammo, snap-aim each produce a non-valid result
 - [ ] Smooth-aim stays ✓ and the explanation is ready
 - [ ] Benchmark dashboard shows the latest run with the real-time reference lines
-- [ ] Match log download opens and contains no hidden state
+- [ ] Frame inspector green (no hidden state in any WS frame); the downloadable dev tick log (`VITE_LOG_TICKS`) contains the player's own hidden state by design and never leaves the browser

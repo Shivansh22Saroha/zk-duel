@@ -1,0 +1,67 @@
+{
+ "environment": "browser",
+ "deviceLabel": "Intel(R) Core(TM) 5 210H, 16 GB, 12 threads",
+ "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+ "cpuThreads": 12,
+ "workerThreads": 12,
+ "inputLog": "bench-seed42-2640t.jsonl",
+ "inputLogSha256": "3e254c95638b3e43c614de854759377b9c6397b550e81fdd276224f95b5a4d67",
+ "seed": 42,
+ "hiddenDuringRun": false,
+ "runs": [
+  {
+   "id": "plonk_30",
+   "ok": true,
+   "warmupMs": [
+    148987.6000000015
+   ],
+   "samples": [
+    {
+     "scheme": "plonk",
+     "windowTicks": 30,
+     "constraints": 16968,
+     "sampleNo": 1,
+     "witnessMs": 57,
+     "proveMs": 147829,
+     "verifyMs": 11.599999999627471,
+     "proofBytes": 2097,
+     "valid": true,
+     "startedAt": 1791810906329,
+     "endedAt": 1791811054227,
+     "peakMemMb": 6958
+    },
+    {
+     "scheme": "plonk",
+     "windowTicks": 30,
+     "constraints": 16968,
+     "sampleNo": 2,
+     "witnessMs": 60.09999999962747,
+     "proveMs": 147507.6000000015,
+     "verifyMs": 11.599999999627471,
+     "proofBytes": 2098,
+     "valid": true,
+     "startedAt": 1791811054232,
+     "endedAt": 1791811201811,
+     "peakMemMb": 6969
+    },
+    {
+     "scheme": "plonk",
+     "windowTicks": 30,
+     "constraints": 16968,
+     "sampleNo": 3,
+     "witnessMs": 54.79999999888241,
+     "proveMs": 147345,
+     "verifyMs": 11.300000000745058,
+     "proofBytes": 2098,
+     "valid": true,
+     "startedAt": 1791811201816,
+     "endedAt": 1791811349227,
+     "peakMemMb": 6886
+    }
+   ],
+   "zkeyBytes": 1061701204,
+   "loadMs": 3722.300000000745,
+   "baseMemMb": 313
+  }
+ ]
+}

@@ -1,0 +1,37 @@
+{
+ "environment": "browser",
+ "deviceLabel": "Intel(R) Core(TM) 5 210H, 16 GB, 12 threads",
+ "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+ "cpuThreads": 12,
+ "workerThreads": 12,
+ "inputLog": "bench-seed42-2640t.jsonl",
+ "inputLogSha256": "3e254c95638b3e43c614de854759377b9c6397b550e81fdd276224f95b5a4d67",
+ "seed": 42,
+ "hiddenDuringRun": false,
+ "runs": [
+  {
+   "id": "plonk_60",
+   "ok": true,
+   "warmupMs": [],
+   "samples": [
+    {
+     "scheme": "plonk",
+     "windowTicks": 60,
+     "constraints": 32748,
+     "sampleNo": 1,
+     "witnessMs": 72.5,
+     "proveMs": 397887.5999999996,
+     "verifyMs": 28.09999999962747,
+     "proofBytes": 2098,
+     "valid": true,
+     "startedAt": 1791811360474,
+     "endedAt": 1791811758462,
+     "peakMemMb": 15492
+    }
+   ],
+   "zkeyBytes": 2122542876,
+   "loadMs": 7297.300000000745,
+   "baseMemMb": 340
+  }
+ ]
+}

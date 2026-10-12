@@ -1,0 +1,22 @@
+{
+ "environment": "browser",
+ "deviceLabel": "Intel(R) Core(TM) 5 210H, 16 GB, 12 threads",
+ "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+ "cpuThreads": 12,
+ "workerThreads": null,
+ "inputLog": "bench-seed42-2640t.jsonl",
+ "inputLogSha256": "3e254c95638b3e43c614de854759377b9c6397b550e81fdd276224f95b5a4d67",
+ "seed": 42,
+ "hiddenDuringRun": false,
+ "runs": [
+  {
+   "id": "plonk_120",
+   "ok": false,
+   "warmupMs": [],
+   "samples": [],
+   "zkeyBytes": 4248308620,
+   "error": "Failed to fetch",
+   "baseMemMb": 364
+  }
+ ]
+}

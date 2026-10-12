@@ -7,7 +7,7 @@ All numbers below are from **one session on 2026-10-12** (after a reboot), so th
 - **AC power, Windows "Performance" scheme + "Best performance" overlay** for every sample. A watcher logged the power state every 5 s during the runs (and would restore the scheme if ASUS Armoury Crate switched it); **no mode change or charger drop happened**, so no sample was re-run.
 - Idle CPU load before the runs: 2–13 %. Pre-run check (groth16_60, Node, 2 warm-ups + 3 samples): prove p50 **1.17 s**, within 10 % of the clean 1.24 s reference → measured runs started. That check and an earlier slow pre-reboot check (1.92 s) are kept in `bench/out/excluded/` and are **not** used here.
 - Input: deterministic bench log `bench-seed42-2640t.jsonl` (seed 42, sha256 `3e254c95…4d67`), sliced into windows of N ticks; the same windows for every variant and environment.
-- Groth16: 2 warm-ups (not stored) + **20 samples** per variant and environment. Valid = proof verifies **and** the public signals equal the JS reference.
+- Groth16: 2 warm-ups (not stored) + **20 samples** per variant and environment. PLONK: fewer samples (owner decision, see below). Valid = proof verifies **and** the public signals equal the JS reference.
 
 ## Groth16
 
@@ -38,9 +38,31 @@ Today's numbers are 3–7 % (Node) and 4–12 % (Chrome) **faster** than the ear
 - Chrome proving is 9–13 % slower than Node (p50).
 - **Memory:** Node = peak process RSS. Chrome = peak private bytes summed over **all processes of the test browser**, so it includes the browser's own baseline, which varied between tabs (2.36 GiB before groth16_30/60, 0.27 GiB before groth16_120). The Chrome column is therefore an upper bound, not the prover's memory alone.
 
-## Charts
-- `bench/out/charts/prove-time-vs-n.png` — p50 with p5–p95 band, log scale, with the play-time line (below it = keeps up with play).
-- `verify-time.png`, `proof-size.png`, `r-max-vs-n.png`, `detection-matrix.png` (Phase 4 detection experiment).
+## PLONK — impractical for live play on this laptop
 
-## PLONK
-_Pending (next step)._
+Same circuits, same input windows, snarkjs PLONK (universal setup, ptau up to power 21). Owner decision: fewer samples, because one PLONK proof takes 2.5–12 min here.
+
+| env | variant | R1CS / PLONK constraints | zkey | warm-ups + samples (valid) | prove mean s | p5 | p50 | p95 | verify p50 ms | proof B | peak MiB | prove/play | r_max |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Node | plonk_30 | 16,968 / 270,648 | 0.99 GiB | 1 + 5 (5) | 162.7 | 162.3 | 162.6 | 163.0 | 8.3 | 2,098 | 5,178 | 325 | 0.003 |
+| Node | plonk_60 | 32,748 / 530,058 | 1.98 GiB | 1 + 5 (5) | 327.3 | 325.3 | 327.0 | 329.7 | 8.8 | 2,101 | 9,374 | 327 | 0.003 |
+| Node | plonk_120 | 64,308 / 1,097,478 | 3.96 GiB | 1 + 3 (3) | 703.2 | 691.9 | 705.6 | 712.2 | 14.3 | 2,098 | 11,147 | 352 | 0.003 |
+| Chrome | plonk_30 | 16,968 / 270,648 | 0.99 GiB | 1 + 3 (3) | 147.6 | 147.3 | 147.5 | 147.8 | 11.6 | 2,098 | 6,969 | 295 | 0.003 |
+| Chrome | plonk_60 | 32,748 / 530,058 | 1.98 GiB | 0 + 1 (1) | 397.9 | – | 397.9 | – | 28.1 | 2,098 | 15,492 | 398 | 0.003 |
+| Chrome | plonk_120 | 64,308 / 1,097,478 | 3.96 GiB | 0 + 0 | **failed** | | | | | | | | |
+
+- **Chrome plonk_120 result = error:** the zkey download failed after 9 s with `Failed to fetch` (exact error, no proof attempted; no retry, per plan). The zkey is 3.96 GiB. I have not confirmed which browser limit was hit (size of one response body / ArrayBuffer vs memory). Not uploaded (an upload needs ≥ 1 sample); recorded in `bench/out/raw/browser-…` for that run.
+- **Memory is the limit, not just time:** Chrome plonk_60 peaked at **15.5 GiB** of the laptop's 16 GB (one proof only, as planned). Node plonk_120 peaked at 11.1 GiB; during that run Claude Code's own memory guard reaped the background shell (the Node process itself survived and finished 3/3 valid, see below).
+- PLONK proves **170–320× slower than Groth16** at the same N (p50; Node 216× at N = 30 up to 319× at N = 120, Chrome 173–319×). prove/play ≈ 300–400: a 1-second window takes 5–7 minutes to prove, so r_max ≈ 0.003 — **not usable for live spot-checks or a post-match audit** on this hardware. The cause is the PLONK constraint count (≈ 16–17 × the R1CS count: every gate, including additions, becomes a PLONK row) and the larger FFTs.
+- PLONK proofs are ≈ 2.1 kB vs 0.72 kB for Groth16; verify time is similar (8–28 ms). PLONK's advantage — a universal, circuit-independent setup with no per-circuit phase-2 ceremony — does not offset the proving cost here.
+- Chrome plonk_30 was 9 % **faster** than Node (147.6 vs 162.7 s); for Groth16 Chrome was slower. Observed, not explained (n = 3 vs 5).
+- Chrome memory for PLONK: the test browser's baseline was 0.31–0.36 GiB before each PLONK variant (one fresh browser per variant), so these peaks are mostly the prover.
+
+### Caveats for the PLONK runs
+- **Idle driver process overlapping plonk_30/60 Node (and the start of plonk_120):** the Chrome Groth16 driver's process stayed alive from its last output (16:24) until 17:54 because a 90-min timeout timer was never cleared. The browser had already closed and the charts were exported, so the process was idle on a timer; the expected effect is negligible, and the plonk_30/60 samples are tight (p5–p95 within 0.4 % / 1.4 %). Fixed in `client/scripts/bench-browser.ts` (`81bc898`).
+- **plonk_120 Node:** I first reported this run as stopped at sample 2 (the reaped shell's log ended there) and recorded the logged warm-up + sample 1 as a partial result. The Node process had in fact finished all 3 samples and uploaded them, so the complete run is used; the partial record is in `bench/out/excluded/`. Its database copy (run `7b5f5110…`, 1 sample duplicating sample 1 of the complete run) is **still in the database** — `bench/out/results.csv` therefore lists that sample twice until it is removed. The dashboard's default "best run per variant" picks the complete run.
+
+## Charts
+`bench/out/charts/` (exported from the `/bench` dashboard, default selection "Best run per variant (all runs)": per scheme × N, the run with the most samples):
+- `prove-time-vs-n.png` — p50 with p5–p95 band, log scale, Groth16 and PLONK for Node and Chrome, with the play-time line (below it = keeps up with play). The subtitle states n per point (1–20).
+- `verify-time.png`, `proof-size.png`, `r-max-vs-n.png`, `detection-matrix.png` (Phase 4 detection experiment). Chrome plonk_120 has no point (failed).

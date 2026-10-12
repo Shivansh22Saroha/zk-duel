@@ -11,6 +11,16 @@ Every entry that changes the circuit must state: new constraint count per varian
 ### Planned (see TODO.md)
 - Phase 5: benchmarks (all 6 variants, Node + browser runner, dashboard, CSV).
 
+### Phase 5 — benchmark runs — 2026-10-12
+Results and conditions: `bench/RESULTS.md`. All 6 variants measured in one session (AC, Performance scheme, power watcher: no events). Groth16 2 warm-ups + 20 samples (Node + Chrome); PLONK with fewer samples (owner decision); Chrome plonk_120 failed to load its 3.96 GiB zkey (`Failed to fetch`, recorded as the result).
+#### Changed
+- `/bench` dashboard: new default run selection "Best run per variant (all runs)" (per scheme × N the run with the most samples, newest on a tie), because Groth16 and each PLONK variant were separate runs. Prove-time chart subtitle states the real n per point instead of "20".
+- `bench/tables.ts`: RESULTS.md tables from the raw run files.
+#### Fixed
+- `bench:browser` stayed alive for 90 min after a run (uncleared per-variant timeout timer); it now clears the timer and exits.
+#### Open
+- A duplicate partial plonk_120 Node run (`7b5f5110…`, 1 sample) is in the database; removal awaits the owner.
+
 ### First-person WASD (input only, owner request) — 2026-10-12
 No change to sim rules, protocol, circuit or constants: the per-axis bound |Δx|, |Δy| ≤ MAX_SPEED that `checkTick` and `SpeedCheck` enforce is unchanged; only what the input layer asks for changes.
 #### Changed

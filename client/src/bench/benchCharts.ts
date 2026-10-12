@@ -147,6 +147,14 @@ function envStyle(env: Env, t: Theme) {
 }
 
 /** Chart 1: prove time vs N — median line, p5–p95 band, dashed play-time line. */
+/** "20", or "1–20" when variants have different sample counts (Phase 5: fewer PLONK samples). */
+function sampleRange(envs: EnvAggregates[]): string {
+  const ns = envs.flatMap((e) => e.variants.map((v) => v.n));
+  const lo = Math.min(...ns);
+  const hi = Math.max(...ns);
+  return lo === hi ? `${hi}` : `${lo}–${hi}`;
+}
+
 export function proveVsN(envs: EnvAggregates[], t: Theme): ChartConfiguration<'line'> {
   const datasets: ChartDataset<'line', (number | null)[]>[] = [];
   for (const e of envs) {
@@ -199,7 +207,7 @@ export function proveVsN(envs: EnvAggregates[], t: Theme): ChartConfiguration<'l
     options: base(
       t,
       'Prove time vs window size',
-      'Median of 20 samples, band = p5–p95. Below the dashed line = proving keeps up with play.',
+      `Median of n = ${sampleRange(envs)} samples per point, band = p5–p95. Below the dashed line = proving keeps up with play.`,
       'Prove time (ms, log scale)',
       true,
     ),

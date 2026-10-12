@@ -103,6 +103,9 @@ function tableOf(envs: EnvAggregates[]): HTMLElement {
   );
 }
 
+/** Run-selector value: combine all runs of the environment (see loadRun). */
+const BEST = '*';
+
 export function benchPage(onBack: () => void): { el: HTMLElement; dispose: () => void } {
   const charts: { destroy(): void }[] = [];
   let envs: EnvAggregates[] = [];
@@ -137,24 +140,43 @@ export function benchPage(onBack: () => void): { el: HTMLElement; dispose: () =>
     table.replaceChildren(tableOf(envs));
   }
 
+  const runIds: Record<'browser' | 'node', string[]> = { browser: [], node: [] };
+
   async function loadRun(env: 'browser' | 'node', id: string): Promise<void> {
     const others = envs.filter((e) => e.env !== env);
     if (!id) {
       envs = others;
       return;
     }
-    const r = await api.benchRun(id);
-    const label = `${new Date(r.run.createdAt).toLocaleString()} · ${r.run.deviceLabel}`;
-    envs = [...others, { env, label, variants: r.variants }].sort((a, b) =>
-      a.env.localeCompare(b.env),
-    );
     const link = env === 'browser' ? csvBrowser : csvNode;
-    link.setAttribute('href', api.benchCsvUrl(id));
+    let label: string;
+    let variants: EnvAggregates['variants'];
+    if (id === BEST) {
+      // one variant per (scheme, N) across all runs: most samples wins, newest on a tie (ids are
+      // newest first) — Phase 5 ran Groth16 and each PLONK variant as separate runs
+      const best = new Map<string, EnvAggregates['variants'][number]>();
+      const all = await Promise.all(runIds[env].map((i) => api.benchRun(i)));
+      for (const r of all)
+        for (const v of r.variants) {
+          const k = `${v.scheme}_${v.windowTicks}`;
+          if ((best.get(k)?.n ?? 0) < v.n) best.set(k, v);
+        }
+      variants = [...best.values()];
+      label = `best run per variant (${all.length} runs) · ${all[0]?.run.deviceLabel ?? ''}`;
+      link.removeAttribute('href');
+    } else {
+      const r = await api.benchRun(id);
+      label = `${new Date(r.run.createdAt).toLocaleString()} · ${r.run.deviceLabel}`;
+      variants = r.variants;
+      link.setAttribute('href', api.benchCsvUrl(id));
+    }
+    envs = [...others, { env, label, variants }].sort((a, b) => a.env.localeCompare(b.env));
   }
 
   function fill(sel: HTMLSelectElement, runs: BenchRunMeta[]): void {
     sel.replaceChildren(
       h('option', { value: '' }, '— none —'),
+      h('option', { value: BEST }, 'Best run per variant (all runs)'),
       ...runs.map((r) =>
         h(
           'option',
@@ -163,12 +185,14 @@ export function benchPage(onBack: () => void): { el: HTMLElement; dispose: () =>
         ),
       ),
     );
-    if (runs[0]) sel.value = runs[0].id;
+    if (runs[0]) sel.value = BEST;
   }
 
   async function init(): Promise<void> {
     try {
       const runs = await api.benchRuns();
+      for (const env of ['browser', 'node'] as const)
+        runIds[env] = runs.filter((r) => r.environment === env).map((r) => r.id);
       fill(
         selBrowser,
         runs.filter((r) => r.environment === 'browser'),

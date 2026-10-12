@@ -91,9 +91,9 @@ Design changed before coding (CHANGELOG "Phase 3 design change"): commit every w
 - [ ] Results section for the seminar report: tables, charts, detection-latency stats
 - [ ] Limitations section (smooth-aim / input provenance, single-party phase-2 setup, no walls in circuit)
 - [ ] Update final PPT with live-demo screenshots and benchmark charts
-- [ ] Demo checklist (TESTING.md §9) run twice
+- [x] Demo checklist (TESTING.md §9) run twice (2026-10-12: first run found the rate-limit bug; re-run after the fix all pass — CHANGELOG Phase 6)
 - [x] 3D renderer (Three.js), 2D rules unchanged — done early as Phase 4.5
-- [ ] CHANGELOG entry for v1.0.0
+- [x] CHANGELOG entry for v1.0.0
 
 ---
 
@@ -116,4 +116,4 @@ Design changed before coding (CHANGELOG "Phase 3 design change"): commit every w
 - [ ] Confirm current official ptau download URL and checksum at setup
 
 ## Bugs
-- [ ] **Honest 3-min bot match ends `audited_failed` (OVERTURNED)** — found in the Phase 6 demo checklist run, 2026-10-12, reproduced twice (`npm run perf:match -- --acc 1800 --miss 300 --stop-after 180`, perf build, AC/Performance): matches `99315686` and `c7b5a682`, exactly **1 `mismatch_digest` window per player, the same window for both** (round 1, window 22 resp. 12); 179/180 valid each; when that window was spot-checked the challenge failed live. The rule checker finds both tick logs all legal; each player shows exactly 1 "off-axis" step. Not seen in any earlier match in the DB (incl. today's 60-s screenshot match and the Phase 4.5 / first-person 90-/60-window runs). Cause not yet investigated — suspects: the first-person WASD change (`c300892`, `stepExact`) or the late-snapshot / gap-fill digest path. Blocks v1.0.0.
+- [x] **Honest 3-min bot match ends `audited_failed` (OVERTURNED)** — found in the Phase 6 demo checklist run, 2026-10-12, reproduced twice (`npm run perf:match -- --acc 1800 --miss 300 --stop-after 180`, perf build, AC/Performance): matches `99315686` and `c7b5a682`, exactly **1 `mismatch_digest` window per player, the same window for both** (round 1, window 22 resp. 12); 179/180 valid each; when that window was spot-checked the challenge failed live. The rule checker finds both tick logs all legal; each player shows exactly 1 "off-axis" step. Not seen in any earlier match in the DB (incl. today's 60-s screenshot match and the Phase 4.5 / first-person 90-/60-window runs). **Fixed in `3182abd`:** cause = the WS snapshot rate limiter (70 per fixed 1-s window) dropped both clients' catch-up bursts after a shared ~170 ms Chrome stall (RATE_LIMITED strikes at exactly those ticks); token bucket with a burst of RATE_LIMIT_SNAPSHOT_BURST. Verified: 3/3 honest 3-min matches `audited_clean`, 180/180 valid per player, 0 strikes.

@@ -7,11 +7,50 @@ Every entry that changes the circuit must state: new constraint count per varian
 ---
 
 ## [Unreleased]
+_Nothing yet._
 
-### Planned (see TODO.md)
-- Phase 5: benchmarks (all 6 variants, Node + browser runner, dashboard, CSV).
+## [1.0.0] — 2026-10-12
+First complete release for the CSC301 seminar: 1v1 browser shooter whose rule compliance is proven per window with zk-SNARKs (commit every window, prove on challenge, full post-match audit), cheat demo, benchmarks. Circuit unchanged in Phases 4.5–6 (constraint counts: groth16_30 16,968 · groth16_60 32,748 · groth16_120 64,308; PLONK 270,648 / 530,058 / 1,097,478 rows); `publicSignalOrder` `[commitOut, bind, digest, commitIn]` unchanged. Tag `v1.0.0`.
 
-### Phase 6 — polish + demo checklist run — 2026-10-12
+**Commits per phase**
+
+| Phase | Commits |
+|---|---|
+| Specs | `3cec127` baseline spec set · `ea44bf4` pre-Phase 0 spec fixes |
+| 0 — repo setup | `129cd48` |
+| 1 — playable game, no ZK | `87d11eb` · `6d97655` follow-ups |
+| 2 — window circuit, offline tests | `a3c21c1` |
+| 3 — live proving / verification | `c567c5f` · `21a961b` (exit check passed) |
+| 4 — cheats, private rooms, detection experiment | `5887a97` |
+| 4.5 — 3D renderer + first-person input | `fa2c3bf` · `dd0de6d` · `c300892` |
+| 5 — benchmarks | `45b8896` tooling · `db0b8b5` · `5948972` Groth16 runs · `4748bb0` RESULTS + charts · `a640f9e` PLONK Node · `81bc898` driver exit fix · `66aa6ac` PLONK Chrome + charts · `606fc75` screenshots |
+| 6 — polish, demo checklist, release | `d56c812` README/label · `d420ee8` first checklist run · `8b80b96` checklist CSV, TESTING §9 · `3182abd` **rate-limiter fix** · release commit tagged `v1.0.0` |
+
+**Known limitations** (details: `bench/RESULTS.md`, PRD): smooth-aim / input provenance is out of scope for the proofs (an aimbot obeying the turn limit passes); single-party Groth16 phase-2 setup; walls are not checked in the circuit; benchmarks from one laptop only (stronger machine deferred); PLONK impractical on this hardware; the demo checklist was run on one laptop with two Chrome windows (two-laptop LAN run not done).
+
+### Phase 6 — fix: honest snapshots dropped by the WS rate limiter — 2026-10-12
+#### Fixed
+- **False `mismatch_digest` against honest players.** Cause: the per-connection snapshot limit was 70 per *fixed 1-second window* at 60 ticks/s. A ~170 ms stall of the Chrome process running both players made both clients send a catch-up burst; the gateway answered `RATE_LIMITED`, the dropped real snapshots were held in the server digest, and the honestly proven window failed (`mismatch_digest`, same window for both players; the `ws strike` log shows the strikes at exactly those ticks in matches `99315686` and `c7b5a682`). The gap-fill / late-snapshot digest path was correct (late snapshots replace holds until the late bound) — the snapshots never reached it.
+- `server/src/ws/rateLimit.ts`: token buckets. Snapshots refill at `RATE_LIMIT_SNAPSHOTS_PER_S` (70/s, unchanged) with burst capacity **`RATE_LIMIT_SNAPSHOT_BURST` = PROOF_GRACE_WINDOWS × 120 + STALL_TICKS = 246** (new constant, flagged per rule 1: every tick the server can still accept); proofs / commits / other keep their per-second budgets. A flood is still limited and still closes the socket (4429).
+#### Added
+- Server log `digest gap-fill` (match, player, round, window, fromTick, count) whenever the digest holds a skipped / never-arrived tick (public tick numbers only). In practice one line per held tick (each later snapshot triggers its own fill). Seen in the verification runs: ticks 60–65 of window 1, the client filling locally after falling > STALL_TICKS behind — windows valid.
+#### Tests
+- `rateLimit.test.ts`: honest traces (60/s with a 120–400 ms stall at 55 positions, then the catch-up burst) are never limited; the old fixed-window limiter rejects them (reproduces the bug); flood and per-category budgets. `matchRoom.test.ts`: snapshots delayed past STALL_TICKS for one window, then delivered late (both players / one player held by the tick loop) give exactly the digest over the real snapshots. Security flood test sized beyond the burst. Unit 320/320, integration 28/28.
+- **Verification:** 3 honest 3-min bot matches (`perf:match -- --acc 1800 --miss 300 --stop-after 180`, perf build, AC/Performance, power watcher: no events): **all `audited_clean`, 180/180 windows valid per player, spot-checks 80/80, 81/81, 80/80, 0 rate-limit strikes**, frame p95 ≤ 7.2 ms, audit 189–195 s.
+- Unaffected: Phase 4 detection data — its 135 matches have only `valid` (5,083) and `unprovable` (973) windows, no `mismatch_digest`; smooth-aim controls 722/722 valid. Phase 5 benchmarks prove offline (no server code; constants they use unchanged).
+#### Notes
+- `constantsHash` changed (new constant): client and server compute it at runtime, so they agree after a rebuild; the value recorded in each circuit's `info.json` is informational only (not enforced) and now differs. Circuits and zkeys unchanged.
+
+### Phase 6 — demo checklist re-run after the fix — 2026-10-12
+All automated, one laptop (perf build, AC, Performance scheme, power watcher: no events):
+1. *Full match, all ✓* — 3/3 honest 3-min matches `audited_clean` (above). **PASS** (one-laptop substitute for the two-laptop LAN match).
+2. *Speedhack, rapid-fire, infinite ammo, snap-aim → non-valid* — `exp:browser`: all four `audited_failed`, all four caught live this time; `e2e:cheats` E2E-2 strict + speedhack → forfeit after 1.6 s. **PASS.**
+3. *Smooth-aim stays ✓* — E2E-3 16/16 spot-checks, `audited_clean`; `exp:browser` smooth-aim `audited_clean`. **PASS.**
+4. *Dashboard with reference lines* — `/bench` serves (200), 6 runs; charts exported in Phase 5. **PASS.**
+5. *Frame inspector green* (reworded item) — 5,062 frames, no hidden keys. **PASS.**
+- `e2e:cheats` 11/11 PASS. The 10 browser detection rows of both checklist runs are in `bench/out/detection-checklist.csv` (ids 136–145), not in the Phase 4 `detection.csv`.
+
+### Phase 6 — polish + first demo checklist run — 2026-10-12
 - Results screen: live detection latency shows `– (none caught live)` instead of the stale `– (Phase 4)`. README: benchmark section rewritten (scripts that exist), power-settings prerequisite, `circuits:build -- --all`.
 - **Demo checklist (TESTING.md §9), automated, one laptop (perf build, AC, Performance scheme, power watcher: no events):**
   1. *Full match, all ✓* — substitute: `perf:match` 3-min honest bot match (two Chrome windows on one laptop; two laptops not available). **FAILED, reproduced twice:** `audited_failed` OVERTURNED, 1 `mismatch_digest` window per player (same window for both), 179/180 valid; frame p95 7.2 ms. Open bug in TODO.md → Bugs; **v1.0.0 not tagged**.

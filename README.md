@@ -77,8 +77,9 @@ npm install
 ::    groth16_60 (played) + groth16_4 (integration tests); groth16_30 is used by the browser bench
 npm run circuits:build
 npm run circuits:build -- --n 30
-:: Optional: build all benchmark variants (30/60/120, groth16 + plonk)
-npm run circuits:build:all
+:: Optional: all 6 benchmark variants (groth16 + plonk x 30/60/120). PLONK needs the ptau-21 file,
+:: ~8 GB of zkeys and hours of setup; plonk_120 alone has a 3.96 GiB zkey
+npm run circuits:build -- --all
 
 :: 2. Copy environment templates
 copy server\.env.example server\.env
@@ -103,7 +104,7 @@ Generate bot matches with full (public + private) tick logs for offline circuit 
 
 ## Live cheat demo (two browser windows, one machine)
 
-Prerequisites: `server\.env` has `DEV_CHEATS=true`, `client\.env` has `VITE_DEV_CHEATS=true` (both are in the `.env.example` files). Laptop on AC power.
+Prerequisites: `server\.env` has `DEV_CHEATS=true`, `client\.env` has `VITE_DEV_CHEATS=true` (both are in the `.env.example` files). Laptop on AC power in the Performance power mode (not "Silent"), otherwise spot-checks are answered slowly.
 
 ```bat
 :: terminal 1 — production client build + server (no hot reload)
@@ -120,13 +121,34 @@ npm run perf:serve
 
 ## Run benchmarks
 
-```bat
-npm run bench
-npm run bench -- --browser
-```
-The first runs headless Node proving for all variants; the second opens a page that proves in-browser (realistic).
+**Prerequisite — power settings.** Proving time depends heavily on the power state; numbers taken otherwise are not comparable. Before any run:
+- laptop **on AC power** (on battery the CPU is throttled: Node groth16_60 went from 1.2 s to 4.4 s);
+- Windows power mode **Best performance** / the **Performance** scheme — **not "Silent"** (vendor tools such as ASUS Armoury Crate may switch it; check with `powercfg /getactivescheme`);
+- close other heavy apps, wait until idle CPU is low, don't edit files during a run.
 
-Results are written to the `benchmark_results` table and exported to `bench/out/results.csv`.
+`BENCH_TOKEN` must be set in `server\.env` (upload of results).
+
+```bat
+:: terminal 1 — production client build + server (no hot reload)
+npm run perf:serve
+
+:: terminal 2
+:: Node: 2 warm-ups + 20 samples per Groth16 variant, uploaded to the DB
+npm run bench:node -- --variants groth16_30,groth16_60,groth16_120 --upload
+:: PLONK in Node (2.5-12 min per proof, 5-11 GB RAM): fewer samples
+npm run bench:node -- --variants plonk_30,plonk_60 --plonk-warmups 1 --plonk-samples 5 --upload
+:: Chrome (real visible window, one tab per variant), uploads and exports the chart PNGs
+npm run bench:browser -- --variants groth16_30,groth16_60,groth16_120
+:: CSV from the DB: bench\out\results.csv + per-match research metrics bench\out\match-metrics.csv
+npm run bench:export
+:: Markdown tables for bench\RESULTS.md from bench\out\raw\*.json
+npx tsx bench/tables.ts
+:: charts only (from the uploaded runs), report screenshots
+npm run bench:browser -- --export-only
+npm run screenshots
+```
+
+Dashboard: `http://localhost:5173/bench` (default selection "best run per variant (all runs)", CSV links, PNG export). Results of the seminar runs and their conditions: [`bench/RESULTS.md`](bench/RESULTS.md).
 
 ## Common scripts
 
@@ -134,7 +156,7 @@ Results are written to the `benchmark_results` table and exported to `bench/out/
 |---|---|
 | `npm run dev` | Server + client with hot reload |
 | `npm run dev:lan` | Same, with the client exposed on the LAN |
-| `npm run build` | Production build of client, server, circuits |
+| `npm run build -w client` | Production client build (`npm run perf:serve` builds the perf variant and serves it with the server) |
 | `npm test` | Unit + circuit tests |
 | `npm run test:int` | Server integration tests (real sockets; 10 bot matches + Phase 3 proving matches with the N=4 circuit — ≈ 15–20 min) |
 | `npm run bots -- --matches N` | Bot matches against a running server; writes tick logs |
@@ -153,7 +175,7 @@ Results are written to the `benchmark_results` table and exported to `bench/out/
 | `npm run circuits:mutate-log -- --log <in> --out <out> --cheat speed\|rapid\|ammo` | Make a cheating copy of a tick log |
 | `npm run circuits:lint` | circomspect on the generated main circuits |
 | `npm run test:e2e` | Playwright two-player match |
-| `npm run bench` | Benchmark suite |
+| `npm run bench:node` / `bench:browser` / `bench:export` | Benchmarks (see "Run benchmarks") |
 | `npm run db:migrate` | Apply SQL migrations |
 
 ---

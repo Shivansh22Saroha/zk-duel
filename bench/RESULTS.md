@@ -60,7 +60,12 @@ Same circuits, same input windows, snarkjs PLONK (universal setup, ptau up to po
 
 ### Caveats for the PLONK runs
 - **Idle driver process overlapping plonk_30/60 Node (and the start of plonk_120):** the Chrome Groth16 driver's process stayed alive from its last output (16:24) until 17:54 because a 90-min timeout timer was never cleared. The browser had already closed and the charts were exported, so the process was idle on a timer; the expected effect is negligible, and the plonk_30/60 samples are tight (p5–p95 within 0.4 % / 1.4 %). Fixed in `client/scripts/bench-browser.ts` (`81bc898`).
-- **plonk_120 Node:** I first reported this run as stopped at sample 2 (the reaped shell's log ended there) and recorded the logged warm-up + sample 1 as a partial result. The Node process had in fact finished all 3 samples and uploaded them, so the complete run is used; the partial record is in `bench/out/excluded/`. Its database copy (run `7b5f5110…`, 1 sample duplicating sample 1 of the complete run) is **still in the database** — `bench/out/results.csv` therefore lists that sample twice until it is removed. The dashboard's default "best run per variant" picks the complete run.
+- **plonk_120 Node:** I first reported this run as stopped at sample 2 (the reaped shell's log ended there) and recorded the logged warm-up + sample 1 as a partial result. The Node process had in fact finished all 3 samples and uploaded them, so the complete run is used; the partial record is in `bench/out/excluded/`. Its database copy (run `7b5f5110…`, 1 sample duplicating sample 1 of the complete run) was deleted with the owner's approval; `bench/out/results.csv` was regenerated (137 samples).
+
+## Limitations
+- **One machine only.** All numbers are from the baseline laptop (Intel Core 5 210H, 16 GB). The planned run on a stronger machine was **not done — deferred to future work**; how PLONK scales with more RAM/cores and how Groth16 prove/play changes on faster hardware is untested.
+- PLONK sample counts are small (Chrome plonk_60: one proof) and Chrome plonk_120 has no measurement (zkey load failed).
+- Chrome memory is the whole test browser's private bytes (upper bound).
 
 ## Charts
 `bench/out/charts/` (exported from the `/bench` dashboard, default selection "Best run per variant (all runs)": per scheme × N, the run with the most samples):

@@ -78,13 +78,14 @@ Design changed before coding (CHANGELOG "Phase 3 design change"): commit every w
 - [x] UI_UX_SPEC, TECH_STACK, CHANGELOG updated
 
 ## Phase 5 — Benchmarks (Week 7) — P0
-- [ ] Build all 6 variants (groth16/plonk × 30/60/120)
-- [ ] `bench/run.ts` (Node) + `/bench` browser runner (extends the Phase 3 dev page `client/bench.html`)
-- [ ] Benchmark export includes the per-match research metrics (challenge count, rate r, detection latency, audit duration)
-- [ ] `benchmark_runs` / `benchmark_results` tables + upload endpoint
-- [ ] Dashboard charts with real-time reference lines + CSV export
-- [ ] Run on baseline laptop (≥ 20 samples per variant) and one stronger machine
-- [ ] **Exit check:** CSV + charts ready for the report
+- [x] Build all 6 variants (groth16/plonk × 30/60/120)
+- [x] `bench/run.ts` (Node) + `/bench` browser runner (extends the Phase 3 dev page `client/bench.html`)
+- [x] Benchmark export includes the per-match research metrics (challenge count, rate r, detection latency, audit duration)
+- [x] `benchmark_runs` / `benchmark_results` tables + upload endpoint
+- [x] Dashboard charts with real-time reference lines + CSV export
+- [x] Run on baseline laptop (Groth16 ≥ 20 samples per variant; PLONK fewer, owner decision — `bench/RESULTS.md`)
+- [ ] Run on one stronger machine — **deferred to future work (not done)**; noted in RESULTS.md limitations
+- [x] **Exit check:** CSV + charts ready for the report
 
 ## Phase 6 — Write-up & polish (Week 8) — P0
 - [ ] Results section for the seminar report: tables, charts, detection-latency stats

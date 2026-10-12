@@ -18,8 +18,8 @@ Results and conditions: `bench/RESULTS.md`. All 6 variants measured in one sessi
 - `bench/tables.ts`: RESULTS.md tables from the raw run files.
 #### Fixed
 - `bench:browser` stayed alive for 90 min after a run (uncleared per-variant timeout timer); it now clears the timer and exits.
-#### Open
-- A duplicate partial plonk_120 Node run (`7b5f5110…`, 1 sample) is in the database; removal awaits the owner.
+#### Data cleanup
+- The duplicate partial plonk_120 Node run (`7b5f5110…`, 1 sample) was deleted from the database with owner approval; results.csv regenerated (137 samples).
 
 ### First-person WASD (input only, owner request) — 2026-10-12
 No change to sim rules, protocol, circuit or constants: the per-axis bound |Δx|, |Δy| ≤ MAX_SPEED that `checkTick` and `SpeedCheck` enforce is unchanged; only what the input layer asks for changes.

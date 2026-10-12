@@ -427,7 +427,7 @@ export function resultsScreen(opts: {
                   {},
                   mono(
                     p.detectionLatencyWindows === null
-                      ? '– (Phase 4)'
+                      ? '– (none caught live)'
                       : `${p.detectionLatencyWindows} windows`,
                   ),
                 ),

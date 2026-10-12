@@ -357,3 +357,17 @@ aaea3c16-4440-479e-bd99-ba32cfbbcfbb,queue,observe,groth16,60,finished,disconnec
 1adbb9ee-bc95-4b17-a3d8-b2bc402d631b,queue,observe,groth16,60,finished,forfeit,1791793633758,5433,1,90,90,33,33,0.36666666666666664,,,122383,audited_clean,audited_clean,verified,0
 7d3c3a8c-24a9-4008-8af1-7427e56c061d,queue,observe,groth16,60,finished,forfeit,1791793853965,5425,0,90,90,27,27,0.3,,,134658,audited_clean,audited_clean,verified,0
 7d3c3a8c-24a9-4008-8af1-7427e56c061d,queue,observe,groth16,60,finished,forfeit,1791793853965,5425,1,90,90,27,27,0.3,,,135229,audited_clean,audited_clean,verified,0
+d96ae8e4-12d6-4bbd-9dd1-bfe4b7bf4639,queue,observe,groth16,60,finished,forfeit,1791811975015,3637,0,0,0,0,0,,,,,,auditing,,0
+d96ae8e4-12d6-4bbd-9dd1-bfe4b7bf4639,queue,observe,groth16,60,finished,forfeit,1791811975015,3637,1,0,0,0,0,,,,,,auditing,,0
+0f6d567f-42e0-4e87-aa52-9d33ad46d58f,queue,observe,groth16,60,finished,forfeit,1791812094436,3640,0,60,60,26,26,0.43333333333333335,,,69341,audited_clean,audited_clean,verified,0
+0f6d567f-42e0-4e87-aa52-9d33ad46d58f,queue,observe,groth16,60,finished,forfeit,1791812094436,3640,1,60,60,26,26,0.43333333333333335,,,69144,audited_clean,audited_clean,verified,0
+2364448b-63b7-4545-937c-4c78cf63f3a5,private,strict,groth16,60,finished,forfeit_proof,1791812228979,356,0,0,0,0,0,,,,,,auditing,,0
+2364448b-63b7-4545-937c-4c78cf63f3a5,private,strict,groth16,60,finished,forfeit_proof,1791812228979,356,1,0,0,0,0,,,,,,auditing,,0
+e649fee4-fe96-42aa-a1af-1934c6945127,queue,observe,groth16,60,finished,forfeit,1791812268140,3639,0,60,60,26,26,0.43333333333333335,,,67960,audited_clean,audited_clean,verified,0
+e649fee4-fe96-42aa-a1af-1934c6945127,queue,observe,groth16,60,finished,forfeit,1791812268140,3639,1,60,60,26,26,0.43333333333333335,,,68518,audited_clean,audited_clean,verified,0
+0a1160d1-b793-42e1-9c96-1eb33fdd219d,private,strict,groth16,60,finished,forfeit_proof,1791812401817,221,0,0,0,0,0,,,,,,auditing,,0
+0a1160d1-b793-42e1-9c96-1eb33fdd219d,private,strict,groth16,60,finished,forfeit_proof,1791812401817,221,1,0,0,0,0,,,,,,auditing,,0
+43e45def-0bbd-443a-a8d9-0accc0eda90b,queue,observe,groth16,60,finished,forfeit,1791812440848,3637,0,60,60,26,26,0.43333333333333335,,,67648,audited_clean,audited_clean,verified,0
+43e45def-0bbd-443a-a8d9-0accc0eda90b,queue,observe,groth16,60,finished,forfeit,1791812440848,3637,1,60,60,26,26,0.43333333333333335,,,68175,audited_clean,audited_clean,verified,0
+21f991a7-52e5-4ab7-aecd-3392257665e1,private,strict,groth16,60,finished,forfeit_proof,1791812574420,360,0,0,0,0,0,,,,,,auditing,,0
+21f991a7-52e5-4ab7-aecd-3392257665e1,private,strict,groth16,60,finished,forfeit_proof,1791812574420,360,1,0,0,0,0,,,,,,auditing,,0

@@ -10,6 +10,7 @@ import { matchField } from '@zkduel/shared/matchField';
 import { initialCommit } from '@zkduel/shared/poseidon';
 import type { Repo } from '../db/repo';
 import { NULL_LOG, openSnapshotLog } from '../log/snapshotLog';
+import type { GapFillLogger } from './matchRoom';
 import type { VariantInfo } from '../zk/variant';
 import type { Verifier } from '../zk/verifierPool';
 import { MatchRoom, type PlayerLink } from './matchRoom';
@@ -19,6 +20,8 @@ export interface ManagerOptions {
   windowTicks: number;
   defaultEnforcement: 'observe' | 'strict';
   logSnapshots: boolean;
+  /** Server log for digest gap-fills (public tick numbers only). */
+  logger?: GapFillLogger;
   snapshotLogDir: string;
   constantsHash: string;
   proofGraceWindows: number;
@@ -253,6 +256,7 @@ export class MatchManager {
       {
         repo: this.repo,
         log: this.opts.logSnapshots ? openSnapshotLog(this.opts.snapshotLogDir, id) : NULL_LOG,
+        ...(this.opts.logger ? { logger: this.opts.logger } : {}),
         verifier: this.opts.verifier,
         now: this.opts.now,
         onMatchEnded: (r) => this.freePlayers(r),

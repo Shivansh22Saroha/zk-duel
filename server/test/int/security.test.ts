@@ -1,7 +1,7 @@
 /** TESTING §4/§6 items that apply in Phase 1 (real sockets, in-memory DB). */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
-import { HELLO_TIMEOUT_MS, MAX_STRIKES } from '@zkduel/shared/constants';
+import { HELLO_TIMEOUT_MS, MAX_STRIKES, RATE_LIMIT_SNAPSHOT_BURST } from '@zkduel/shared/constants';
 import { constantsHash } from '@zkduel/shared/canonical';
 import { BotClient } from '../support/botClient';
 import { startTestServer, TEST_ORIGIN, type TestServer } from '../support/testServer';
@@ -116,9 +116,9 @@ describe('strikes & rate limits', () => {
     expect(b.received.filter((m) => m.t === 'error')).toHaveLength(MAX_STRIKES);
   });
 
-  it('200 snapshots in 1 s → rate-limited, strikes counted, closed 4429', async () => {
+  it('a snapshot flood (beyond RATE_LIMIT_SNAPSHOT_BURST) → rate-limited, strikes counted, closed 4429', async () => {
     const b = await bot();
-    for (let i = 0; i < 200; i++)
+    for (let i = 0; i < RATE_LIMIT_SNAPSHOT_BURST + 200; i++)
       b.send({ t: 'input_snapshot', tick: i, x: 150, y: 300, angle: 0, fired: 0 });
     expect(await b.waitClose(3000)).toBe(4429);
     expect(b.received.some((m) => m.t === 'error' && m.code === 'RATE_LIMITED')).toBe(true);

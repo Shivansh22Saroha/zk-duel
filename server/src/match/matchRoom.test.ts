@@ -12,6 +12,8 @@ import {
 } from '@zkduel/shared/constants';
 import { poseidonReady } from '@zkduel/shared/poseidon';
 import type { ServerMessage } from '@zkduel/shared/protocol';
+import { toTuple } from '@zkduel/shared/sim';
+import { digestOf } from '@zkduel/shared/zkInput';
 import { openDb } from '../db/index';
 import { Repo } from '../db/repo';
 import { NULL_LOG } from '../log/snapshotLog';
@@ -192,6 +194,50 @@ describe('MatchRoom', () => {
     expect(t.last(0, 'opponent_status')).toMatchObject({ status: 'stalled' });
     t.snap(1, 1);
     expect(t.last(0, 'opponent_status')).toMatchObject({ status: 'connected' });
+  });
+
+  // Phase 6 regression: snapshots delayed past the gap-fill threshold (STALL_TICKS) for one
+  // window and then delivered late must replace the hold: the window digest is the one over the
+  // real snapshots, i.e. what the honest client proves.
+  it.each([
+    ['both players delayed', [0, 1] as const],
+    ['one player delayed (held by the tick loop)', [1] as const],
+  ])('late snapshots replace a gap-fill in the window digest: %s', async (_name, delayed) => {
+    const finals: { p: number; r: number; k: number; d: string }[] = [];
+    const orig = t.room.tracker.digestFinal.bind(t.room.tracker);
+    t.room.tracker.digestFinal = (p, r, k, d) => {
+      finals.push({ p, r, k, d });
+      orig(p, r, k, d);
+    };
+    t.goLive();
+    const N = 60;
+    const xOf = (p: 0 | 1, k: number) => (p ? 850 - 4 * k : 150 + 4 * k);
+    const late: [number[], number[]] = [[], []];
+    const gap = new Set(Array.from({ length: STALL_TICKS + 4 }, (_, i) => N + 10 + i)); // ticks 70–79
+    for (let k = 0; k < 2 * N + 30; k++) {
+      t.advance(MS);
+      for (const p of [0, 1] as const) {
+        if (gap.has(k) && (delayed as readonly number[]).includes(p)) {
+          late[p].push(k);
+          continue;
+        }
+        // the delayed ticks arrive in one burst right after the gap (still in order)
+        for (const lk of late[p].splice(0)) expect(t.snap(p, lk, { x: xOf(p, lk) })).toBe('ok');
+        expect(t.snap(p, k, { x: xOf(p, k) })).toBe('ok');
+      }
+    }
+    if (delayed.length === 1) expect(t.room.processedTick).toBeGreaterThan(N + 10); // loop held p1
+    for (const p of [0, 1] as const) {
+      const prev = toTuple({ x: xOf(p, N - 1), y: 300, angle: p ? 1800 : 0, fired: 0 });
+      const real = Array.from({ length: N }, (_, i) => ({
+        x: xOf(p, N + i),
+        y: 300,
+        angle: p ? 1800 : 0,
+        fired: 0,
+      }));
+      const got = finals.find((f) => f.p === p && f.r === 1 && f.k === 1);
+      expect(got?.d, `player ${p}`).toBe(await digestOf(prev, real));
+    }
   });
 
   it('drops duplicate / out-of-order ticks and strikes ticks from the future', () => {

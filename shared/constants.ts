@@ -91,6 +91,15 @@ export const READY_TIMEOUT_MS = 30_000;
 export const MAX_STRIKES = 5;
 /** Per-connection WS rate limits (messages per second). */
 export const RATE_LIMIT_SNAPSHOTS_PER_S = 70;
+/**
+ * Snapshot burst allowance (token bucket capacity; the rate above refills it). An honest client
+ * catching up after a stall, or a network hiccup that bunches frames, sends a burst of valid ticks;
+ * the server still accepts ticks up to the late limit (PROOF_GRACE_WINDOWS windows behind) plus
+ * STALL_TICKS ahead, so the bucket holds that many. Dropping an honest snapshot breaks the
+ * player's window digest (Phase 6 bug: a 70-per-fixed-second cap failed honest windows).
+ */
+export const RATE_LIMIT_SNAPSHOT_BURST =
+  PROOF_GRACE_WINDOWS * Math.max(...BENCH_WINDOW_TICKS) + STALL_TICKS;
 export const RATE_LIMIT_PROOFS_PER_S = 4;
 /**
  * window_commit has its own budget: one per window, i.e. TICK_RATE / N per second — 15/s for the
@@ -154,6 +163,7 @@ export const CONSTANTS = {
   READY_TIMEOUT_MS,
   MAX_STRIKES,
   RATE_LIMIT_SNAPSHOTS_PER_S,
+  RATE_LIMIT_SNAPSHOT_BURST,
   RATE_LIMIT_PROOFS_PER_S,
   RATE_LIMIT_COMMITS_PER_S,
   RATE_LIMIT_OTHER_PER_S,

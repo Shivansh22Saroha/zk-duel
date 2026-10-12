@@ -78,9 +78,16 @@ export interface RoomOptions {
   storeProofs: boolean;
 }
 
+/** Minimal logger for digest gap-fills (pino-compatible). */
+export interface GapFillLogger {
+  info(obj: Record<string, unknown>, msg: string): void;
+}
+
 export interface RoomDeps {
   repo: Repo;
   log: SnapshotLog;
+  /** Logs every digest gap-fill run (match, player, round, window, ticks). */
+  logger?: GapFillLogger;
   verifier: Verifier;
   /** Monotonic ms clock. */
   now: () => number;
@@ -489,8 +496,22 @@ export class MatchRoom {
     this.roundStartWall = now;
     this.digests = ([0, 1] as const).map(
       (p) =>
-        new DigestBuilder(this.opts.windowTicks, spawnSnapshot(p), (k, digest) =>
-          this.tracker.digestFinal(p, r, k, digest),
+        new DigestBuilder(
+          this.opts.windowTicks,
+          spawnSnapshot(p),
+          (k, digest) => this.tracker.digestFinal(p, r, k, digest),
+          (fromTick, count) =>
+            this.deps.logger?.info(
+              {
+                matchId: this.id,
+                playerIndex: p,
+                roundNo: r,
+                windowIndex: Math.floor(fromTick / this.opts.windowTicks),
+                fromTick,
+                count,
+              },
+              'digest gap-fill',
+            ),
         ),
     ) as [DigestBuilder, DigestBuilder];
     this.deps.repo.startRound(this.id, r, this.roundStartAbs);

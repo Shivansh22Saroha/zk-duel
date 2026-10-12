@@ -37,11 +37,14 @@ export class DigestBuilder {
    * @param n window size in ticks
    * @param prev the round's `prevSnapshot` (spawn, fired = 0)
    * @param onFinal called once per window, in order, with its digest
+   * @param onHold called once per run of gap-filled ticks (skipped or never arrived), not for
+   *   round-end padding
    */
   constructor(
     private readonly n: number,
     prev: PublicSnap,
     private readonly onFinal: (windowIndex: number, digest: string) => void,
+    private readonly onHold?: (fromTick: number, count: number) => void,
   ) {
     this.last = prev;
     this.h = seedOf(prev);
@@ -112,17 +115,25 @@ export class DigestBuilder {
   }
 
   private advance(): void {
+    let holdFrom = -1;
+    const flush = (): void => {
+      if (holdFrom >= 0) this.onHold?.(holdFrom, this.next - holdFrom);
+      holdFrom = -1;
+    };
     while (!this.closed && this.next <= this.limit) {
       const s = this.pending.get(this.next);
       if (s) {
+        flush();
         this.pending.delete(this.next);
         this.add(s);
       } else if (this.maxRecv > this.next || this.next <= this.lateBound) {
+        if (holdFrom < 0) holdFrom = this.next;
         this.add(this.hold());
       } else {
         break; // may still arrive
       }
     }
+    flush();
     this.maybeClose();
   }
 

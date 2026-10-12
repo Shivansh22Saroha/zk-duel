@@ -9,15 +9,8 @@
 import type { IncomingMessage } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { WebSocketServer, type RawData, type WebSocket } from 'ws';
-import {
-  HELLO_TIMEOUT_MS,
-  MAX_STRIKES,
-  MAX_WS_PAYLOAD_BYTES,
-  RATE_LIMIT_COMMITS_PER_S,
-  RATE_LIMIT_OTHER_PER_S,
-  RATE_LIMIT_PROOFS_PER_S,
-  RATE_LIMIT_SNAPSHOTS_PER_S,
-} from '@zkduel/shared/constants';
+import { HELLO_TIMEOUT_MS, MAX_STRIKES, MAX_WS_PAYLOAD_BYTES } from '@zkduel/shared/constants';
+import { RateLimiter, type Category } from './rateLimit';
 import {
   clientMessage,
   helloMsg,
@@ -38,14 +31,6 @@ export const CLOSE = {
   SERVER: 4500,
 } as const;
 
-type Category = 'snapshot' | 'proof' | 'commit' | 'other';
-const LIMITS: Record<Category, number> = {
-  snapshot: RATE_LIMIT_SNAPSHOTS_PER_S,
-  proof: RATE_LIMIT_PROOFS_PER_S,
-  commit: RATE_LIMIT_COMMITS_PER_S,
-  other: RATE_LIMIT_OTHER_PER_S,
-};
-
 export interface GatewayOptions {
   allowedOrigins: string[];
   devCheats: boolean;
@@ -62,8 +47,7 @@ class Conn implements PlayerLink {
   strikes = 0;
   closed = false;
   helloTimer: NodeJS.Timeout | null = null;
-  private windowStart = 0;
-  private counts: Record<Category, number> = { snapshot: 0, proof: 0, commit: 0, other: 0 };
+  private readonly limiter = new RateLimiter(Date.now());
 
   constructor(readonly ws: WebSocket) {}
 
@@ -77,14 +61,9 @@ class Conn implements PlayerLink {
     this.ws.close(code, reason);
   }
 
-  /** Fixed 1-second windows per category. Returns false when over the limit. */
+  /** Token buckets per category (rateLimit.ts). Returns false when over the limit. */
   allow(cat: Category, now: number): boolean {
-    if (now - this.windowStart >= 1000) {
-      this.windowStart = now;
-      this.counts = { snapshot: 0, proof: 0, commit: 0, other: 0 };
-    }
-    this.counts[cat]++;
-    return this.counts[cat] <= LIMITS[cat];
+    return this.limiter.allow(cat, now);
   }
 }
 

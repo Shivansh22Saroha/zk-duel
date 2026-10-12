@@ -1,0 +1,67 @@
+{
+ "environment": "node",
+ "deviceLabel": "Intel(R) Core(TM) 5 210H, 16 GB, 12 threads",
+ "cpuThreads": 12,
+ "inputLog": "bench-seed42-2640t.jsonl",
+ "inputLogSha256": "3e254c95638b3e43c614de854759377b9c6397b550e81fdd276224f95b5a4d67",
+ "seed": 42,
+ "gitCommit": "db0b8b5",
+ "notes": "Node v22.23.3; Groth16: 2 warm-ups + 3 samples; PLONK: 2 warm-ups + 3 samples",
+ "nodeVersion": "v22.23.3",
+ "runs": [
+  {
+   "id": "groth16_60",
+   "ok": true,
+   "baseRssMb": 102.5,
+   "loadMs": 63.345000000001164,
+   "warmupMs": [
+    1672.0859999999993,
+    1238.1274999999987
+   ],
+   "samples": [
+    {
+     "scheme": "groth16",
+     "windowTicks": 60,
+     "constraints": 32748,
+     "sampleNo": 1,
+     "witnessMs": 81.92939999999726,
+     "proveMs": 1169.3837000000021,
+     "verifyMs": 8.177299999999377,
+     "proofBytes": 722,
+     "valid": true,
+     "peakMemMb": 813.7,
+     "startedAt": 1791802201294,
+     "endedAt": 1791802202561
+    },
+    {
+     "scheme": "groth16",
+     "windowTicks": 60,
+     "constraints": 32748,
+     "sampleNo": 2,
+     "witnessMs": 80.39419999999882,
+     "proveMs": 1131.6612000000023,
+     "verifyMs": 8.12869999999748,
+     "proofBytes": 722,
+     "valid": true,
+     "peakMemMb": 891.3,
+     "startedAt": 1791802202562,
+     "endedAt": 1791802203790
+    },
+    {
+     "scheme": "groth16",
+     "windowTicks": 60,
+     "constraints": 32748,
+     "sampleNo": 3,
+     "witnessMs": 81.33580000000075,
+     "proveMs": 1189.0542000000023,
+     "verifyMs": 8.675400000000081,
+     "proofBytes": 726,
+     "valid": true,
+     "peakMemMb": 842.6,
+     "startedAt": 1791802203790,
+     "endedAt": 1791802205076
+    }
+   ]
+  }
+ ]
+}

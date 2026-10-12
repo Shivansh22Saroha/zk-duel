@@ -71,6 +71,9 @@ interface Info {
   publicSignalOrder: PublicSignalName[];
 }
 
+/** Epoch ms around the sample: lets a run be matched against a power-state log afterwards. */
+export type TimedSample = BenchSample & { startedAt: number; endedAt: number };
+
 export interface VariantRun {
   id: string;
   ok: boolean;
@@ -79,7 +82,7 @@ export interface VariantRun {
   baseRssMb?: number;
   loadMs?: number;
   warmupMs?: number[];
-  samples: BenchSample[];
+  samples: TimedSample[];
 }
 
 function benchVariants(): string[] {
@@ -124,7 +127,8 @@ async function runVariant(
   const { samples: nSamples, warmups } = plan(info.scheme);
   const windows = benchWindows(log, info.windowTicks, BENCH_SEED).slice(0, warmups + nSamples);
 
-  const one = async (w: (typeof windows)[number], sampleNo: number): Promise<BenchSample> => {
+  const one = async (w: (typeof windows)[number], sampleNo: number): Promise<TimedSample> => {
+    const startedAt = Date.now();
     const { input, expected } = await buildWindowInput(w.ctx, w.records);
     const { value, peakMb } = await withPeakRss(async () => {
       const wtns: { type: 'mem'; data?: Uint8Array } = { type: 'mem' };
@@ -154,6 +158,8 @@ async function runVariant(
       sampleNo,
       ...value,
       peakMemMb: Math.round(peakMb * 10) / 10,
+      startedAt,
+      endedAt: Date.now(),
     };
   };
 
@@ -239,7 +245,7 @@ async function main(): Promise<void> {
       headers: { 'content-type': 'application/json', 'x-bench-token': token },
       body: JSON.stringify({
         ...meta,
-        results: samples.map(({ peakMemMb, ...s }) => ({
+        results: samples.map(({ peakMemMb, startedAt: _s, endedAt: _e, ...s }) => ({
           ...s,
           peakMemMb: peakMemMb ?? undefined,
         })),

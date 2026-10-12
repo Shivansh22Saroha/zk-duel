@@ -1,0 +1,36 @@
+{
+ "environment": "node",
+ "deviceLabel": "Intel(R) Core(TM) 5 210H, 16 GB, 12 threads",
+ "cpuThreads": 12,
+ "inputLog": "bench-seed42-2640t.jsonl",
+ "inputLogSha256": "3e254c95638b3e43c614de854759377b9c6397b550e81fdd276224f95b5a4d67",
+ "seed": 42,
+ "gitCommit": "4748bb0",
+ "notes": "Node v22.23.3; PLONK: 1 warm-up + 1 of 3 planned samples; plonk_120 partial: 1 warm-up + 1 sample; stopped at sample 2 because the 16 GB system ran out of memory (Claude Code reaped the background job). Values copied from the run log (ms rounded to 1 ms, verify to 0.1 ms); no per-sample timestamps.",
+ "nodeVersion": "v22.23.3",
+ "runs": [
+  {
+   "id": "plonk_120",
+   "ok": true,
+   "partial": true,
+   "error": "stopped at sample 2: system out of memory (16 GB)",
+   "warmupMs": [
+    710521
+   ],
+   "samples": [
+    {
+     "scheme": "plonk",
+     "windowTicks": 120,
+     "constraints": 64308,
+     "sampleNo": 1,
+     "witnessMs": 495,
+     "proveMs": 712150,
+     "verifyMs": 13.7,
+     "proofBytes": 2101,
+     "valid": true,
+     "peakMemMb": 11136.6
+    }
+   ]
+  }
+ ]
+}

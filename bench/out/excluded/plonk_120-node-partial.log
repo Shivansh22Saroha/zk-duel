@@ -1,0 +1,12 @@
+
+> zk-duel@0.1.0 bench:node
+> tsx bench/run.ts --variants plonk_120 --plonk-warmups 1 --plonk-samples 3 --upload
+
+Node v22.23.3, snarkjs, Intel(R) Core(TM) 5 210H, 16 GB, 12 threads; input bench-seed42-2640t.jsonl sha256 3e254c95638b3e43c614de854759377b9c6397b550e81fdd276224f95b5a4d67
+[plonk_120] warm-up 1: witness 120 ms, prove 710521 ms, verify 22.5 ms, 2097 B, valid, peak RSS 9633.3 MiB
+[plonk_120] 1/3: witness 495 ms, prove 712150 ms, verify 13.7 ms, 2101 B, valid, peak RSS 11136.6 MiB
+[plonk_120] 2/3: witness 419 ms, prove 705588 ms, verify 14.3 ms, 2097 B, valid, peak RSS 11147.1 MiB
+[plonk_120] 3/3: witness 330 ms, prove 691866 ms, verify 17.1 ms, 2097 B, valid, peak RSS 11019 MiB
+plonk_120: n=3 valid=3 prove mean 703201 p5 691866 p50 705588 p95 712150 ms; verify 15.0 ms; 2098 B; play 2000 ms → prove/play 351.60, r_max 0.00; peak 11147.1 MiB
+wrote C:\Users\Admin\Documents\Zkp_Game\bench\out\raw\node-2026-10-12T12-48-32-183Z.json
+upload: HTTP 201 {"runId":"b77fb911-9a5a-4ebd-8b3c-6a70a59fd007"}

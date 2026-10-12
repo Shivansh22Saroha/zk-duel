@@ -1,0 +1,175 @@
+{
+ "environment": "node",
+ "deviceLabel": "Intel(R) Core(TM) 5 210H, 16 GB, 12 threads",
+ "cpuThreads": 12,
+ "inputLog": "bench-seed42-2640t.jsonl",
+ "inputLogSha256": "3e254c95638b3e43c614de854759377b9c6397b550e81fdd276224f95b5a4d67",
+ "seed": 42,
+ "gitCommit": "4748bb0",
+ "notes": "Node v22.23.3; Groth16: 2 warm-ups + 20 samples; PLONK: 1 warm-ups + 5 samples",
+ "nodeVersion": "v22.23.3",
+ "runs": [
+  {
+   "id": "plonk_30",
+   "ok": true,
+   "baseRssMb": 105.8,
+   "loadMs": 850.151,
+   "warmupMs": [
+    165170.3554
+   ],
+   "samples": [
+    {
+     "scheme": "plonk",
+     "windowTicks": 30,
+     "constraints": 16968,
+     "sampleNo": 1,
+     "witnessMs": 149.94760000001406,
+     "proveMs": 162335.04859999998,
+     "verifyMs": 8.315899999986868,
+     "proofBytes": 2096,
+     "valid": true,
+     "peakMemMb": 4877.2,
+     "startedAt": 1791803701864,
+     "endedAt": 1791803864361
+    },
+    {
+     "scheme": "plonk",
+     "windowTicks": 30,
+     "constraints": 16968,
+     "sampleNo": 2,
+     "witnessMs": 122.1535000000149,
+     "proveMs": 162574.2192,
+     "verifyMs": 8.53159999998752,
+     "proofBytes": 2098,
+     "valid": true,
+     "peakMemMb": 5177.6,
+     "startedAt": 1791803864362,
+     "endedAt": 1791804027072
+    },
+    {
+     "scheme": "plonk",
+     "windowTicks": 30,
+     "constraints": 16968,
+     "sampleNo": 3,
+     "witnessMs": 144.86129999998957,
+     "proveMs": 162603.56939999998,
+     "verifyMs": 8.209100000094622,
+     "proofBytes": 2096,
+     "valid": true,
+     "peakMemMb": 5105.9,
+     "startedAt": 1791804027077,
+     "endedAt": 1791804189838
+    },
+    {
+     "scheme": "plonk",
+     "windowTicks": 30,
+     "constraints": 16968,
+     "sampleNo": 4,
+     "witnessMs": 117.15500000002794,
+     "proveMs": 163042.97149999999,
+     "verifyMs": 12.927600000053644,
+     "proofBytes": 2098,
+     "valid": true,
+     "peakMemMb": 4895.3,
+     "startedAt": 1791804189838,
+     "endedAt": 1791804353015
+    },
+    {
+     "scheme": "plonk",
+     "windowTicks": 30,
+     "constraints": 16968,
+     "sampleNo": 5,
+     "witnessMs": 116.47899999993388,
+     "proveMs": 163022.3591,
+     "verifyMs": 7.990899999975227,
+     "proofBytes": 2102,
+     "valid": true,
+     "peakMemMb": 5168.9,
+     "startedAt": 1791804353015,
+     "endedAt": 1791804516167
+    }
+   ]
+  },
+  {
+   "id": "plonk_60",
+   "ok": true,
+   "baseRssMb": 4992.8,
+   "loadMs": 1687.7064999999711,
+   "warmupMs": [
+    328603.3131
+   ],
+   "samples": [
+    {
+     "scheme": "plonk",
+     "windowTicks": 60,
+     "constraints": 32748,
+     "sampleNo": 1,
+     "witnessMs": 251.79860000009649,
+     "proveMs": 329720.983,
+     "verifyMs": 9.191200000001118,
+     "proofBytes": 2099,
+     "valid": true,
+     "peakMemMb": 8975.7,
+     "startedAt": 1791804846737,
+     "endedAt": 1791805176726
+    },
+    {
+     "scheme": "plonk",
+     "windowTicks": 60,
+     "constraints": 32748,
+     "sampleNo": 2,
+     "witnessMs": 193.3641999999527,
+     "proveMs": 328517.8746,
+     "verifyMs": 7.98769999993965,
+     "proofBytes": 2100,
+     "valid": true,
+     "peakMemMb": 8771.2,
+     "startedAt": 1791805176726,
+     "endedAt": 1791805505454
+    },
+    {
+     "scheme": "plonk",
+     "windowTicks": 60,
+     "constraints": 32748,
+     "sampleNo": 3,
+     "witnessMs": 219.01520000002347,
+     "proveMs": 326024.5244999998,
+     "verifyMs": 8.194500000216067,
+     "proofBytes": 2102,
+     "valid": true,
+     "peakMemMb": 8845.1,
+     "startedAt": 1791805505455,
+     "endedAt": 1791805831714
+    },
+    {
+     "scheme": "plonk",
+     "windowTicks": 60,
+     "constraints": 32748,
+     "sampleNo": 4,
+     "witnessMs": 218.1259000003338,
+     "proveMs": 326976.03929999983,
+     "verifyMs": 12.820900000166148,
+     "proofBytes": 2100,
+     "valid": true,
+     "peakMemMb": 8739.6,
+     "startedAt": 1791805831714,
+     "endedAt": 1791806158933
+    },
+    {
+     "scheme": "plonk",
+     "windowTicks": 60,
+     "constraints": 32748,
+     "sampleNo": 5,
+     "witnessMs": 197.75490000005811,
+     "proveMs": 325260.42169999983,
+     "verifyMs": 8.759899999946356,
+     "proofBytes": 2102,
+     "valid": true,
+     "peakMemMb": 9374.3,
+     "startedAt": 1791806158934,
+     "endedAt": 1791806484408
+    }
+   ]
+  }
+ ]
+}

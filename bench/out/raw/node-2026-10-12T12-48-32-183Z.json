@@ -1,0 +1,66 @@
+{
+ "environment": "node",
+ "deviceLabel": "Intel(R) Core(TM) 5 210H, 16 GB, 12 threads",
+ "cpuThreads": 12,
+ "inputLog": "bench-seed42-2640t.jsonl",
+ "inputLogSha256": "3e254c95638b3e43c614de854759377b9c6397b550e81fdd276224f95b5a4d67",
+ "seed": 42,
+ "gitCommit": "4748bb0",
+ "notes": "Node v22.23.3; Groth16: 2 warm-ups + 20 samples; PLONK: 1 warm-ups + 3 samples",
+ "nodeVersion": "v22.23.3",
+ "runs": [
+  {
+   "id": "plonk_120",
+   "ok": true,
+   "baseRssMb": 104.9,
+   "loadMs": 3315.9892999999993,
+   "warmupMs": [
+    710520.5718
+   ],
+   "samples": [
+    {
+     "scheme": "plonk",
+     "windowTicks": 120,
+     "constraints": 64308,
+     "sampleNo": 1,
+     "witnessMs": 495.1903999999631,
+     "proveMs": 712149.517,
+     "verifyMs": 13.730900000082329,
+     "proofBytes": 2101,
+     "valid": true,
+     "peakMemMb": 11136.6,
+     "startedAt": 1791807201198,
+     "endedAt": 1791807913875
+    },
+    {
+     "scheme": "plonk",
+     "windowTicks": 120,
+     "constraints": 64308,
+     "sampleNo": 2,
+     "witnessMs": 418.60920000006445,
+     "proveMs": 705587.6384999999,
+     "verifyMs": 14.325600000098348,
+     "proofBytes": 2097,
+     "valid": true,
+     "peakMemMb": 11147.1,
+     "startedAt": 1791807913882,
+     "endedAt": 1791808619922
+    },
+    {
+     "scheme": "plonk",
+     "windowTicks": 120,
+     "constraints": 64308,
+     "sampleNo": 3,
+     "witnessMs": 330.3145000003278,
+     "proveMs": 691865.9992999998,
+     "verifyMs": 17.082599999848753,
+     "proofBytes": 2097,
+     "valid": true,
+     "peakMemMb": 11019,
+     "startedAt": 1791808619929,
+     "endedAt": 1791809312161
+    }
+   ]
+  }
+ ]
+}

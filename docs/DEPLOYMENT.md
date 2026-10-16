@@ -31,6 +31,8 @@ Both players open `http://<laptop-ip>:5173`. Before the demo: disable sleep, plu
 
 ## 3. Docker
 
+> **Single-port production serving is not implemented (future work).** The server does not serve the built client or `/zk` itself (`SERVE_CLIENT` and `@fastify/static` were removed in v1.0.1); the Docker / Caddy design below assumes it and is not usable as-is. The supported setup is the LAN demo (§2).
+
 ### `Dockerfile` (multi-stage)
 ```dockerfile
 FROM node:22-bookworm-slim AS build
@@ -46,7 +48,7 @@ COPY circuits/build circuits/build
 RUN npm run build
 
 FROM node:22-bookworm-slim
-ENV NODE_ENV=production SERVE_CLIENT=true
+ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/server/package.json server/

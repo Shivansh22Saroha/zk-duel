@@ -40,12 +40,12 @@ No UI framework is required: screens are small. If preferred, **Preact 10.x** is
 | Library | Version | Purpose |
 |---|---|---|
 | Fastify | 5.x | REST |
-| `@fastify/helmet`, `@fastify/cors`, `@fastify/rate-limit`, `@fastify/static` | Matching Fastify 5 | Hardening, static `/zk` in prod |
+| `@fastify/helmet`, `@fastify/cors`, `@fastify/rate-limit` | Matching Fastify 5 | Hardening |
 | `ws` | 8.x | WebSocket server (attached to Fastify's HTTP server) |
 | `snarkjs` | 0.7.x | Proof verification in `worker_threads` |
 | `better-sqlite3` | latest major | SQLite driver (synchronous, fast) |
 | `jsonwebtoken` | 9.x | JWT sign/verify |
-| `pino` | 9.x | Structured logging |
+| `pino` (bundled with Fastify, not a direct dependency) | 9.x | Structured logging |
 | `dotenv` | 16.x | Env loading in dev |
 
 ## 5. Circuits (`circuits/`)

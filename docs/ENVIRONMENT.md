@@ -27,7 +27,6 @@ Two env files: `server/.env` (secret, never committed) and `client/.env` (public
 | `PUBLIC_MATCHES` | no | `false` | Let anyone read match summaries |
 | `BENCH_TOKEN` | yes (if bench uploads used) | — | Shared secret for `POST /api/bench/runs` |
 | `LOG_LEVEL` | no | `info` | pino level |
-| `SERVE_CLIENT` | no | `false` | In production, serve the built client + `/zk` from Fastify static |
 
 ### `server/.env.example`
 ```dotenv
@@ -52,7 +51,6 @@ LOG_SNAPSHOTS=false
 PUBLIC_MATCHES=false
 BENCH_TOKEN=change-me
 LOG_LEVEL=info
-SERVE_CLIENT=false
 ```
 Generate secrets: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` (works on Windows without OpenSSL).
 
@@ -116,7 +114,6 @@ None required. Everything runs on one machine. Internet is needed once to downlo
 | WS URL | `ws://localhost:8080/ws` | `ws://<laptop-ip>:8080/ws` | `wss://zkduel.example.com/ws` |
 | `DEV_CHEATS` | `true` | `true` (demo) | `false` |
 | `VITE_DEV_CHEATS` | `true` | `true` | `false` |
-| `SERVE_CLIENT` | `false` | `false` | `true` |
 
 ## 6. Ports & firewall (LAN demo)
 

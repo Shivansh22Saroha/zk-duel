@@ -14,12 +14,10 @@
     "@fastify/cors": "11.3.1",
     "@fastify/helmet": "13.1.2",
     "@fastify/rate-limit": "11.2.1",
-    "@fastify/static": "10.1.5",
     "better-sqlite3": "13.0.3",
     "dotenv": "16.6.1",
     "fastify": "5.12.5",
     "jsonwebtoken": "9.0.3",
-    "pino": "9.14.0",
     "snarkjs": "0.7.6",
     "ws": "8.22.0"
   },

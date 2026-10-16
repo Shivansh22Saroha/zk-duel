@@ -109,6 +109,7 @@ export async function buildApp(cfg: Config, opts: BuildOptions = {}): Promise<Ap
     defaultEnforcement: cfg.DEFAULT_ENFORCEMENT,
     logSnapshots: cfg.LOG_SNAPSHOTS,
     logger: app.log,
+    errorLog: app.log,
     snapshotLogDir: cfg.snapshotLogDir,
     constantsHash: hash,
     proofGraceWindows: cfg.PROOF_GRACE_WINDOWS,

@@ -22,6 +22,8 @@ export interface ManagerOptions {
   logSnapshots: boolean;
   /** Server log for digest gap-fills (public tick numbers only). */
   logger?: GapFillLogger;
+  /** Server log for failures that must not crash the process (match creation, snapshot log). */
+  errorLog?: { error(obj: Record<string, unknown>, msg: string): void };
   snapshotLogDir: string;
   constantsHash: string;
   proofGraceWindows: number;
@@ -181,7 +183,9 @@ export class MatchManager {
         mode: 'private',
         enforcement: r.enforcement,
         roomCode: code,
-      }).finally(() => players.forEach((p) => this.pairing.delete(p)));
+      })
+        .catch((e: unknown) => this.creationFailed(players, e))
+        .finally(() => players.forEach((p) => this.pairing.delete(p)));
     }
     return 'ok';
   }
@@ -198,6 +202,8 @@ export class MatchManager {
           enforcement: this.opts.defaultEnforcement,
           roomCode: null,
         });
+      } catch (e) {
+        this.creationFailed([a, b], e);
       } finally {
         this.pairing.delete(a);
         this.pairing.delete(b);
@@ -267,6 +273,21 @@ export class MatchManager {
     for (const p of players) this.byPlayer.set(p, room);
     room.start();
     return room;
+  }
+
+  /**
+   * createRoom threw (DB error, Poseidon init…): log it and tell both players, instead of an
+   * unhandled rejection that would end the process. Both players are free to queue again.
+   */
+  private creationFailed(players: [string, string], e: unknown): void {
+    this.opts.errorLog?.error({ players, err: String(e).slice(0, 200) }, 'match creation failed');
+    for (const p of players) {
+      this.linkOf(p)?.send({
+        t: 'error',
+        code: 'INTERNAL',
+        message: 'Could not create the match.',
+      });
+    }
   }
 
   private freePlayers(room: MatchRoom): void {

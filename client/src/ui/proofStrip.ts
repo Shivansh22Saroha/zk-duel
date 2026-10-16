@@ -8,7 +8,7 @@ import type { PlayerIndex } from '@zkduel/shared/constants';
 import { isFailedStatus, type ProofClient, type WindowView } from '../zk/proofClient';
 import { h, setText } from './dom';
 
-export const STRIP_CELLS = 10;
+const STRIP_CELLS = 10;
 
 export function cellOf(w: WindowView): { cls: string; symbol: string } {
   if (w.status === 'valid') return { cls: 'valid', symbol: '✓' };

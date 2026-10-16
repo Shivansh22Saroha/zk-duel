@@ -29,4 +29,12 @@ describe('constantsHash', () => {
       'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
     );
   });
+
+  it('is pinned: the client/server handshake value only changes on purpose', async () => {
+    // v1.0.1 (audit S1): moving non-hashed helpers such as MS_PER_TICK into shared/constants.ts must
+    // not change this. A deliberate change to CONSTANTS updates this value and gets a CHANGELOG note.
+    expect(await constantsHash()).toBe(
+      'fab7a75908b90258cc85467df1d854dac3c7855b62017a2401e72d52e35734e0',
+    );
+  });
 });

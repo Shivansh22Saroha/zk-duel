@@ -9,7 +9,7 @@ import type { TickInput } from '@zkduel/shared/sim';
 import type { InputContext, InputSource } from './session';
 
 const SENS_KEY = 'zkd.sensitivity';
-export const DEFAULT_SENSITIVITY = 3; // angle units (0.1°) per mouse pixel
+const DEFAULT_SENSITIVITY = 3; // angle units (0.1°) per mouse pixel
 /** Cap on queued turn so a huge flick doesn't keep turning for seconds. */
 const MAX_PENDING_TURN = 1800;
 

@@ -1,12 +1,12 @@
 {
   "name": "zk-duel",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "1v1 browser shooter with zero-knowledge rule-compliance proofs (CSC301 seminar prototype)",
   "license": "MIT",
   "engines": {
-    "node": ">=22.12 <23",
+    "node": ">=22 <23",
     "npm": ">=10"
   },
   "workspaces": [
@@ -27,7 +27,7 @@
     "test:coverage": "vitest run --project unit --coverage",
     "test:circuits": "vitest run --project circuits",
     "test:int": "vitest run --project integration",
-    "test:e2e": "playwright test",
+    "test:e2e": "npm run e2e:cheats && npm run e2e:audit-reload",
     "circuits:ptau": "npm run ptau --workspace circuits --",
     "circuits:build": "npm run build -w circuits --",
     "circuits:check": "npm run check --workspace circuits",

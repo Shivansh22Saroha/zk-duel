@@ -91,7 +91,7 @@ Load via Google Fonts; fall back to `system-ui` and `ui-monospace`.
 - **Audit banner** at the top while the audit runs: "Auditing… 23/150 windows" (own windows proven / own windows to prove) with a progress bar and the opponent's progress; then the final status `AUDITED CLEAN` (green) / `AUDIT FAILED` (red) / `AUDIT INCOMPLETE` (grey); an `OVERTURNED` stamp when the winner's audit failed, an `UNVERIFIED` stamp (grey) when the winner's audit did not finish (the recorded result stays visible underneath in both cases). Leaving the page during the audit asks "Stop the audit? Remaining windows will be unaudited."
 - Two columns (one per player): window counts per status (valid / failed by kind / committed / unaudited / chain_broken), spot-checks passed / issued, challenge rate r, live detection latency (Phase 4), audit duration, mean & p95 prove ms, mean verify ms, cheats active.
 - Full proof timeline: one cell per window across the match (wraps).
-- Buttons: *Back to lobby*, *Download match log (JSON)*. (Rematch dropped — not in PRD.)
+- Buttons: *Back to lobby*, *Download match log (JSON)* (not implemented in v1.0.x; `VITE_LOG_TICKS` dev builds show *Download tick log (dev)*). (Rematch dropped — not in PRD.)
 
 ### 3.5 Benchmarks (`/bench`)
 - Run selectors: one Chrome run and one Node run (latest of each by default); both appear in every chart (colour = scheme, line style/marker = environment).

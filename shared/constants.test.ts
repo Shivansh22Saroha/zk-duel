@@ -4,9 +4,11 @@ import { CONSTANTS } from './constants';
 
 /**
  * Benchmark parameters (Phase 5): exported for the bench tools but deliberately not game rules,
- * so not hashed into constantsHash (changing them must not invalidate circuit builds).
+ * so not hashed into constantsHash (changing them must not invalidate circuit builds). Plus
+ * values derived from CONSTANTS (v1.0.1).
  */
 const NOT_HASHED = new Set([
+  'MS_PER_TICK',
   'BENCH_SEED',
   'BENCH_SAMPLES',
   'BENCH_WARMUPS',

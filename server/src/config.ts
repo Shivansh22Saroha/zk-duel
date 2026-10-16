@@ -14,7 +14,7 @@ import {
 
 /** Server package root; relative paths in env are resolved against it. */
 export const SERVER_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-export const EXAMPLE_JWT_SECRET = 'change-me-generate-with-openssl-rand-hex-32';
+const EXAMPLE_JWT_SECRET = 'change-me-generate-with-openssl-rand-hex-32';
 
 const bool = z.enum(['true', 'false', '1', '0']).transform((v) => v === 'true' || v === '1');
 
@@ -56,7 +56,6 @@ const envSchema = z.object({
   PUBLIC_MATCHES: bool.default('false'),
   BENCH_TOKEN: z.string().min(1).optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
-  SERVE_CLIENT: bool.default('false'),
 });
 
 export type Env = z.infer<typeof envSchema>;

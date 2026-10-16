@@ -9,6 +9,39 @@ Every entry that changes the circuit must state: new constraint count per varian
 ## [Unreleased]
 _Nothing yet._
 
+## [1.0.1] — 2026-10-16
+Debugging and cleanup pass (`docs/AUDIT_v1.0.1.md`: 40 findings in Phase A, plus 2 found during Phase B). **No change to the circuit, the zkeys, `publicSignalOrder`, Poseidon inputs, bind/digest/commit or any benchmark result** (no `.circom`, circuit script/test, build artefact, `bench/out/` or `bench/RESULTS.md` change — only the `circuits/` and `bench/` `package.json` manifests; `constantsHash` `fab7a759…` and every `circuits/build/*/info.json` byte-identical before and after). Every commit passed typecheck, lint, `npm test` and `npm run test:int` under Node 22.23.3.
+
+### Fixed
+- **Server crash on a failed match creation** (E3, `392bd95`): `tryPair` / `joinPrivateRoom` fired `createRoom` without a rejection handler, so a DB or Poseidon error was an unhandled rejection that ended the process. Now logged (`match creation failed`); both players get `error INTERNAL` and can queue again. Regression test `server/src/match/manager.test.ts`.
+- **Server crash on a snapshot-log write error** (E4, `accc94b`): the `LOG_SNAPSHOTS` write stream had no `'error'` listener. The error is now logged once and snapshot logging is switched off; an uncreatable log directory no longer fails match creation. Tests `server/src/log/snapshotLog.test.ts`, `manager.test.ts`.
+- **Startup hang when a verifier worker dies before it is ready** (E5, `ffc3275`): the pool respawned the failing worker forever and `VerifierPool.ready()` never resolved. Startup now fails fast with `verifier worker failed before it was ready (vkey …)`. Test `server/src/zk/verifierPool.test.ts`.
+- **Dev server exposed the whole repo to the LAN** (X1, `02a9962`): `server.fs.allow: ['..']` served e.g. `server/data/zkduel.db` via `/@fs/` (200). Now only `client/` and `circuits/build` → 403; game, `/zk`, `/bench.html` and fixtures unchanged (checked with `npm run dev` and `npm run dev:lan`).
+- `npm run test:e2e` crashed ("No tests found": no Playwright config/specs) (E2, `fb28603`): now runs `e2e:cheats` then `e2e:audit-reload` (needs `npm run perf:serve`); both PASS.
+- Integration test "audit policy gap" failed on a loaded machine (E1, `1dbf320`): the loser could not prove ~41 audit windows in the 15 s audit window (rate limit ≥ 11 s + ~0.5 s/proof). Test-only: 30 s; assertions unchanged.
+- Favicon 404 on every page load (S8, `854bc80`).
+
+### Removed
+- `SERVE_CLIENT` env var (validated, never read) and the unused `@fastify/static` dependency (D5/U1, `9acfb3b`); single-port production serving is documented as future work. Direct `pino` dependency (U2) — nothing imported it; Fastify's bundled pino still does the logging.
+- `ENV.DEV_CHEATS` (never read) and `export` on 10 module-local values (D2/D4, `9e181ce`).
+
+### Changed
+- Node pinned to 22: `.nvmrc`, `engines.node` `>=22 <23` (`b976475`).
+- `@zkduel/shared` declared in client/server/circuits/bench, `zod` in server (U5, `3ee5653`); lockfile regenerated under Node 22.
+- `MS_PER_TICK` moved to `shared/constants.ts`, outside `CONSTANTS` (not hashed); new test pins `constantsHash` (S1, `ea0c3c3`). Rule-1 note: render/UI tuning values (renderer sizes, banner/refresh timings, ping interval, mouse sensitivity) stay module-local in the client, as before.
+- Versions 1.0.1; `SERVER_VERSION` / `clientVersion` read from `package.json` (S2, `83da3e5`).
+- `client/scripts/*.ts` are now typechecked (`client/tsconfig.scripts.json`); stale comments in `view.ts` / `protocol.ts`; snapshot-log header uses the injected epoch clock (S3–S5, S7, `b29afa5`).
+- `knip.json` with the real entry points: knip reports nothing (S9, `65f6c58`).
+- Unit tests for `BotInput`, `MemoryTickLog`, `TimingStats` (T1, `a63a648`): unit line coverage 55.7 % → 62.4 %.
+- Docs matched to the code (M1–M10, `18a2091`): DEPLOYMENT/ENVIRONMENT build commands, unbuilt routes (`GET /api/matches`, `/api/matches/:id/log`) marked, `bench:node`, migrations 004/005, circomspect gate, CLAUDE.md file count.
+
+### Tests
+`npm test` 366 → 383 passed · `npm run test:int` 27/28 → 28/28 · `npm run test:e2e` broken → PASS · knip, depcheck clean except documented items · `npm audit --omit=dev` 15 low (unchanged: elliptic via circomlibjs).
+
+### Known, not changed (see AUDIT_v1.0.1.md)
+- **LAN demo over plain HTTP cannot start on a second laptop** (E6, found in Phase B): `crypto.subtle` is undefined on a non-secure origin such as `http://192.168.x.x:5173`, so `constantsHash()` throws at boot (also `matchField`, artefact hash check). Not fixed — the same code feeds the proof `bind`. Workaround verified: start Chrome with `--unsafely-treat-insecure-origin-as-secure=http://<laptop-ip>:5173`.
+- `circuits/build/*/info.json` record a stale `constantsHash` (X3): two values, neither the current one, because `CONSTANTS` also holds non-circuit values (rate limits, timeouts) changed after those builds. Nothing reads it at runtime.
+
 ## [1.0.0] — 2026-10-12
 First complete release for the CSC301 seminar: 1v1 browser shooter whose rule compliance is proven per window with zk-SNARKs (commit every window, prove on challenge, full post-match audit), cheat demo, benchmarks. Circuit unchanged in Phases 4.5–6 (constraint counts: groth16_30 16,968 · groth16_60 32,748 · groth16_120 64,308; PLONK 270,648 / 530,058 / 1,097,478 rows); `publicSignalOrder` `[commitOut, bind, digest, commitIn]` unchanged. Tag `v1.0.0`.
 

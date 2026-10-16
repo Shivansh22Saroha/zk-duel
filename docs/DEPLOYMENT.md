@@ -6,18 +6,19 @@ Primary target: **a single laptop on a LAN** for the seminar demo. Optional: a s
 
 ```bash
 npm ci
-npm run circuits:build:all      # all 6 variants (slow: minutes; needs ~2 GB disk, 8 GB RAM recommended)
-npm run build                   # tsc for server/shared, vite build for client
+npm run circuits:build -- --all   # all 6 variants of circuits/build.config.json (slow: minutes; needs ~2 GB disk, 8 GB RAM recommended)
+npm run circuits:build            # only groth16_60 (live play) + groth16_4 (tests)
+npm run build -w client           # vite build (production client)
 ```
 
 Outputs:
 ```
 circuits/build/<scheme>_<N>/{window.wasm, window_final.zkey, verification_key.json, info.json}
 client/dist/                     # static site
-server/dist/                     # compiled server
 ```
+The server is not compiled: it runs from TypeScript with tsx (`npm run start -w server`, or `npm run dev -w server` with watch). There is no `server/dist/` and no root `npm run build`.
 
-Circuit artefacts are **build outputs, not source**: they are not committed. CI builds them and publishes them as a release asset (tarball + SHA-256), so every machine uses byte-identical zkeys — otherwise benchmark results and proofs aren't comparable.
+Circuit artefacts are **build outputs, not source**: they are not committed. Every machine must use byte-identical zkeys — otherwise benchmark results and proofs aren't comparable. Publishing them as a CI release asset (tarball + SHA-256, §5 `circuits.yml`) is planned but **not implemented in v1.0.x**: build once and copy `circuits/build/` to the other machine, then compare the `zkeySha256` in each `info.json`.
 
 ## 2. LAN demo (recommended for the viva)
 
@@ -30,6 +31,8 @@ npm run dev:lan                        & :: server :8080, client :5173 exposed o
 Both players open `http://<laptop-ip>:5173`. Before the demo: disable sleep, plug in power (proving is CPU-heavy and slows on battery), close other heavy apps, and pre-load the zkey once in each browser so it is cached.
 
 ## 3. Docker
+
+> **Single-port production serving is not implemented (future work).** The server does not serve the built client or `/zk` itself (`SERVE_CLIENT` and `@fastify/static` were removed in v1.0.1); the Docker / Caddy design below assumes it and is not usable as-is. The supported setup is the LAN demo (§2).
 
 ### `Dockerfile` (multi-stage)
 ```dockerfile
@@ -46,7 +49,7 @@ COPY circuits/build circuits/build
 RUN npm run build
 
 FROM node:22-bookworm-slim
-ENV NODE_ENV=production SERVE_CLIENT=true
+ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/server/package.json server/
@@ -117,9 +120,11 @@ Caddy handles HTTPS certificates and proxies WebSocket upgrades automatically.
 5. Build test circuit (N=4) → `npm test` → `npm run test:int`
 6. `circomspect` (fail on warnings) and `npm audit --omit=dev --audit-level=high`
 
+> Only `ci.yml` exists in v1.0.x (it also runs the format check and the toolchain check; circuit tests compile N=4 with circom_tester). `circuits.yml` and `release.yml` below are design only, not implemented.
+
 ### `circuits.yml` — on tag `circuits-v*` or manual dispatch
 1. Download ptau, verify SHA-256.
-2. `npm run circuits:build:all`
+2. `npm run circuits:build -- --all`
 3. Generate `info.json` per variant (constraints, publicSignalOrder, zkeySha256).
 4. Upload `circuits-build.tar.gz` + `SHA256SUMS` as a GitHub Release asset.
 

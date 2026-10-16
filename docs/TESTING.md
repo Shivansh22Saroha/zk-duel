@@ -7,7 +7,7 @@ Commands:
 npm test               # unit + circuit tests (Vitest)
 npm run test:circuits  # circuit tests only
 npm run test:int       # server integration tests (real ws, in-memory SQLite)
-npm run test:e2e       # Playwright two-player match
+npm run test:e2e       # browser E2E: e2e:cheats, then e2e:audit-reload (needs npm run perf:serve)
 npm run lint && npm run typecheck
 ```
 
@@ -76,7 +76,7 @@ Compile `main_<N>.circom` with small N (e.g. N=4) for fast tests, plus one full 
 - Random *legal* input sequences → always satisfiable.
 - Random legal sequence with one randomly mutated field → the circuit is satisfiable **iff** `shared/sim.ts` `checkSequence` accepts it (exact agreement); an accepted mutation must change the digest or commitment, **except** a `reloadPress` the rules ignore (W1 fire wins, reload already running, full magazine), which changes no state and is an equivalent witness, not a cheat. (Clarified in Phase 2 after fast-check found such a case.)
 
-**Static analysis:** `circomspect circuits/window.circom` must report no under-constrained signal warnings (CI gate). Also assert `snarkjs r1cs info` constraint count is recorded and does not grow > 10% without a CHANGELOG note.
+**Static analysis:** `npm run circuits:lint` (circomspect `--level WARNING` on the generated `main_4.circom` and `main_60.circom`) must report no findings (CI gate). Running circomspect directly on `circuits/window.circom` also prints a style note (`Window` takes many template parameters), which is not an under-constraint finding. Also assert `snarkjs r1cs info` constraint count is recorded and does not grow > 10% without a CHANGELOG note.
 
 **Public signal order:** a test reads `info.json.publicSignalOrder` and checks the server maps `bind`, `digest`, `commitIn`, `commitOut` to the right indices by verifying one known proof.
 
@@ -112,6 +112,8 @@ Using two `ws` clients driven by scripted input logs and real proofs from the N=
 | Winner closes the tab during the audit | `audit_incomplete`, result `unverified` (not overturned); loser `audited_clean` |
 
 ## 5. End-to-end (Playwright)
+
+`npm run test:e2e` (with `npm run perf:serve` running in another terminal) runs `npm run e2e:cheats` (private rooms, E2E-2, E2E-3, browser frame inspector) and then `npm run e2e:audit-reload` (E2E-6). `npm run perf:match` (E2E-5) stays separate because it is long. These are Playwright scripts run with tsx, not `playwright test` specs.
 
 - Two browser contexts, scripted keyboard/mouse via `page.keyboard`/`page.mouse`, `WINDOW_TICKS=30` variant.
 - **E2E-1:** queue → match → play 20 s → every spot-check ✓, then the audit ends `audited_clean`.

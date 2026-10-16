@@ -27,7 +27,6 @@ Two env files: `server/.env` (secret, never committed) and `client/.env` (public
 | `PUBLIC_MATCHES` | no | `false` | Let anyone read match summaries |
 | `BENCH_TOKEN` | yes (if bench uploads used) | — | Shared secret for `POST /api/bench/runs` |
 | `LOG_LEVEL` | no | `info` | pino level |
-| `SERVE_CLIENT` | no | `false` | In production, serve the built client + `/zk` from Fastify static |
 
 ### `server/.env.example`
 ```dotenv
@@ -52,7 +51,6 @@ LOG_SNAPSHOTS=false
 PUBLIC_MATCHES=false
 BENCH_TOKEN=change-me
 LOG_LEVEL=info
-SERVE_CLIENT=false
 ```
 Generate secrets: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` (works on Windows without OpenSSL).
 
@@ -77,6 +75,8 @@ VITE_SHOW_DEBUG=true
 VITE_LOG_TICKS=true
 ```
 
+`VITE_PERF_AUTOMATION` is not an env-file variable: `vite build --mode perf` (`npm run build:perf -w client`, used by `npm run perf:serve`) defines it as `true` (`client/vite.config.ts`), which keeps the dev-only automation (`?bot=`, `window.__zkd`) in that production build. Plain `vite build` has neither.
+
 ### Tick logs (Phase 2 inputs)
 The server never sees hidden state, so `LOG_SNAPSHOTS=true` server logs (`server/data/logs/<matchId>.jsonl`) contain **public snapshots only** (received values plus `held` fills). Logs with private state are written on the client side only: Node bots (`npm run bots`) write `server/data/logs/clients/<matchId>-p<i>-<name>.jsonl`; browsers with `VITE_LOG_TICKS=true` offer a download. Format: `shared/ticklog.ts`.
 
@@ -100,8 +100,8 @@ In dev, Vite serves `circuits/build/*` at `/zk/*` via a small `server.fs.allow` 
   }
 }
 ```
-The build script picks the smallest power that fits each variant's real constraint count (TECH_STACK §5), downloads/verifies that file if missing, and records `ptauPower`, `ptauFile`, `ptauSha256` in the variant's `info.json`. A `groth16_4` test variant is built by the test setup, not listed here.
-`npm run circuits:build` builds only `ACTIVE_VARIANT` (or the first entry); `circuits:build:all` builds all.
+The build script picks the smallest power that fits each variant's real constraint count (TECH_STACK §5), downloads/verifies that file if missing, and records `ptauPower`, `ptauFile`, `ptauSha256` in the variant's `info.json`. The `groth16_4` test variant is not listed here.
+`npm run circuits:build` builds `groth16_60` (live play) and `groth16_4` (tests) — fixed in `circuits/scripts/build.ts`, independent of `ACTIVE_VARIANT`; `npm run circuits:build -- --all` builds the 6 variants listed here; `-- --n <N> [--scheme plonk]` builds one.
 
 ## 4. External services
 
@@ -116,7 +116,6 @@ None required. Everything runs on one machine. Internet is needed once to downlo
 | WS URL | `ws://localhost:8080/ws` | `ws://<laptop-ip>:8080/ws` | `wss://zkduel.example.com/ws` |
 | `DEV_CHEATS` | `true` | `true` (demo) | `false` |
 | `VITE_DEV_CHEATS` | `true` | `true` | `false` |
-| `SERVE_CLIENT` | `false` | `false` | `true` |
 
 ## 6. Ports & firewall (LAN demo)
 

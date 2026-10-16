@@ -66,6 +66,8 @@ Creates a private room. Request `{ "enforcement": "strict" }` (optional, default
 Response `201 { "roomCode": "K7QX2M", "expiresAt": … }` (expires in 10 min if unused; `409 ALREADY_IN_MATCH` while in a match; 10/min per IP). The creator then sends WS `room_join` with this code, like the second player. One seat is reserved for the creator: a second non-creator gets `ROOM_FULL`; unknown, expired or already-started rooms give `ROOM_NOT_FOUND`. The match starts (mode `private`, the room's enforcement) when both are in.
 
 ### `GET /api/matches?limit=20&before=<ms>` 🔒 (P1 — match history, built after Phase 4)
+> **Not implemented in v1.0.x** (TODO.md P1 still open).
+
 Current player's recent matches.
 ```json
 { "matches": [ { "id": "uuid", "startedAt": 0, "endedAt": 0, "mode": "queue",
@@ -80,6 +82,8 @@ Full match summary: players, rounds, per-player window stats (counts by status, 
 `{ "windows": [ { "roundNo": 1, "windowIndex": 0, "startTick": 0, "status": "valid", "challenged": true, "phase": "live", "proveMs": 410, "verifyMs": 5.8, "proofBytes": 805 } ] }` (`startTick` is round-relative here; `phase` = when the result was decided: `live` (challenge) or `audit`)
 
 ### `GET /api/matches/:id/log` 🔒
+> **Not implemented in v1.0.x** (not in PRD; the results screen has no match-log download).
+
 Downloadable JSON match log (summary + windows + cheat events). No hidden state included.
 
 ### `GET /api/bench/runs`

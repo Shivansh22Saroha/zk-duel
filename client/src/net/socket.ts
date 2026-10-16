@@ -1,6 +1,7 @@
 /** WebSocket connection: hello handshake, validated server messages, RTT pings. */
 import { serverMessage, type ClientFrame, type ServerMessage } from '@zkduel/shared/protocol';
 import { ENV } from '../env';
+import { version as CLIENT_VERSION } from '../../package.json';
 
 const PING_EVERY_MS = 2000;
 
@@ -15,7 +16,8 @@ export class Net {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(ENV.WS_URL);
       this.ws = ws;
-      ws.onopen = () => this.send({ t: 'hello', token, clientVersion: '0.1.0', constantsHash });
+      ws.onopen = () =>
+        this.send({ t: 'hello', token, clientVersion: CLIENT_VERSION, constantsHash });
       ws.onmessage = (ev) => {
         let m: ServerMessage;
         try {

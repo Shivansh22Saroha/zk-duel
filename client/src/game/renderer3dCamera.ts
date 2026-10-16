@@ -11,8 +11,8 @@ import { Vector3 } from 'three';
 import type { PerspectiveCamera } from 'three';
 import { ANGLE_UNITS } from '@zkduel/shared/constants';
 
-export const OVERVIEW_TILT_DEG = 58; // camera pitch below the horizon
-export const EYE_H = 40;
+const OVERVIEW_TILT_DEG = 58; // camera pitch below the horizon
+const EYE_H = 40;
 
 export function radiansOf(angle: number): number {
   return (angle * 2 * Math.PI) / ANGLE_UNITS;

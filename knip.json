@@ -1,0 +1,36 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "ignoreExportsUsedInFile": true,
+  "workspaces": {
+    ".": {
+      "entry": ["vitest.config.ts", "eslint.config.js"]
+    },
+    "shared": {
+      "project": ["**/*.ts"]
+    },
+    "client": {
+      "entry": [
+        "src/main.ts",
+        "src/zk/proofWorker.ts",
+        "src/bench/benchWorker.ts",
+        "src/bench/proveBench.ts",
+        "scripts/*.ts"
+      ],
+      "project": ["src/**/*.ts", "scripts/**/*.ts"]
+    },
+    "server": {
+      "entry": ["src/index.ts", "src/migrate.ts", "src/zk/verifyWorker.mjs", "scripts/*.ts"],
+      "project": ["src/**/*.{ts,mjs}", "scripts/**/*.ts", "test/**/*.{ts,mjs}"]
+    },
+    "circuits": {
+      "entry": ["scripts/*.ts"],
+      "project": ["scripts/**/*.ts", "test/**/*.ts"],
+      "ignoreDependencies": ["circomlib"],
+      "ignoreBinaries": ["circom", "circomspect"]
+    },
+    "bench": {
+      "entry": ["run.ts", "export.ts", "tables.ts"],
+      "project": ["*.ts"]
+    }
+  }
+}

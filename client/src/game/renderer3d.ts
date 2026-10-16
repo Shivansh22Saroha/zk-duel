@@ -66,7 +66,7 @@ interface Tracer {
   bornAt: number;
 }
 
-export class ThreeRenderer implements GameRenderer {
+class ThreeRenderer implements GameRenderer {
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
   private readonly cam3: PerspectiveCamera;

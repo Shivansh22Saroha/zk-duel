@@ -16,7 +16,7 @@ function cssVar(name: string, fallback: string): string {
   return v || fallback;
 }
 
-export class Canvas2DRenderer implements GameRenderer {
+class Canvas2DRenderer implements GameRenderer {
   private readonly ctx: CanvasRenderingContext2D;
   private scale = 1;
   private ox = 0;

@@ -20,13 +20,13 @@ import {
   COUNTDOWN_SECONDS,
   DAMAGE,
   MAX_HP,
+  MS_PER_TICK,
   READY_TIMEOUT_MS,
   RECONNECT_TIMEOUT_MS,
   ROUND_PAUSE_TICKS,
   ROUNDS_TO_WIN,
   SPAWNS,
   STALL_TICKS,
-  TICK_RATE,
   type PlayerIndex,
   type Scheme,
 } from '@zkduel/shared/constants';
@@ -104,7 +104,6 @@ export interface RoomDeps {
 /** Result of offering a snapshot to the room. */
 export type SnapshotVerdict = 'ok' | 'drop' | 'strike_future' | 'strike_late' | 'strike_range';
 
-const MS_PER_TICK = 1000 / TICK_RATE;
 const other = (p: PlayerIndex): PlayerIndex => (p === 0 ? 1 : 0);
 
 export class MatchRoom {
@@ -205,7 +204,7 @@ export class MatchRoom {
       matchField: this.opts.matchField,
       windowTicks: this.opts.windowTicks,
       constantsHash: this.opts.constantsHash,
-      createdAt: Date.now(),
+      createdAt: (this.deps.epoch ?? Date.now)(),
     });
     for (const p of [0, 1] as const) {
       this.send(p, {

@@ -1,7 +1,7 @@
 {
   "name": "@zkduel/circuits",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "ptau": "tsx scripts/ptau.ts",
@@ -13,6 +13,7 @@
     "lint": "tsx scripts/gen-main.ts 4 && tsx scripts/gen-main.ts 60 && circomspect --level WARNING -L ../node_modules main_4.circom main_60.circom"
   },
   "dependencies": {
+    "@zkduel/shared": "*",
     "circomlib": "2.0.5",
     "snarkjs": "0.7.6"
   },

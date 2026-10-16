@@ -15,7 +15,11 @@ beforeAll(async () => {
     ACTIVE_VARIANT: VARIANT,
     LOG_SNAPSHOTS: 'false',
     DEV_CHEATS: 'true',
-    AUDIT_TIMEOUT_MIN: '0.25', // 15 s
+    // 30 s. The "audit policy gap" test needs the loser to prove all ~41 of its audit windows
+    // before the audit closes: at the 4 proofs/s rate limit that alone takes >= 11 s, and on a
+    // loaded laptop Node proving at N=4 runs ~0.5 s per window (~21 s), so 15 s was too tight
+    // (audit E1: the loser ended audit_incomplete instead of audited_clean).
+    AUDIT_TIMEOUT_MIN: '0.5',
   });
 }, 60_000);
 afterAll(() => srv?.stop(), 60_000);

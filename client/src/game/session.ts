@@ -6,7 +6,7 @@
  * Only `input_snapshot {tick, x, y, angle, fired}` ever leaves the session per tick; hidden
  * state goes exclusively to the optional local TickLogSink.
  */
-import { MAX_HP, STALL_TICKS, TICK_RATE, type PlayerIndex } from '@zkduel/shared/constants';
+import { MAX_HP, MS_PER_TICK, STALL_TICKS, type PlayerIndex } from '@zkduel/shared/constants';
 import type { CheatName, ClientFrame, ServerMessage } from '@zkduel/shared/protocol';
 import {
   holdTick,
@@ -19,8 +19,6 @@ import {
   type TickRecord,
 } from '@zkduel/shared/sim';
 import type { TickLogLine } from '@zkduel/shared/ticklog';
-
-export const MS_PER_TICK = 1000 / TICK_RATE;
 
 type MatchFound = Extract<ServerMessage, { t: 'match_found' }>;
 type MatchEnd = Extract<ServerMessage, { t: 'match_end' }>;

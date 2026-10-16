@@ -6,7 +6,8 @@
  *
  * Every exported constant must also appear in `CONSTANTS` below: that object is what
  * `/api/circuit/info` returns and what `constantsHash` is computed over
- * (shared/constants.test.ts enforces this).
+ * (shared/constants.test.ts enforces this). Exceptions, listed after `CONSTANTS`: benchmark
+ * parameters and values derived from it (e.g. MS_PER_TICK), which are not hashed.
  */
 
 // ---------------------------------------------------------------- simulation
@@ -178,6 +179,12 @@ export const CONSTANTS = {
   ROOM_EXPIRY_MS,
   PROOF_FAILED_REASON_MAX,
 } as const;
+
+// ---------------------------------------------------------------- derived (not hashed)
+// Computed from the constants above, so deliberately NOT in CONSTANTS: listing them would change
+// constantsHash without changing any rule.
+/** Wall-clock milliseconds per simulation tick (client fixed step, server tick clock). */
+export const MS_PER_TICK = 1000 / TICK_RATE;
 
 // ---------------------------------------------------------------- benchmarks (Phase 5)
 // Benchmark parameters, not game rules: deliberately NOT in CONSTANTS, so they are not hashed

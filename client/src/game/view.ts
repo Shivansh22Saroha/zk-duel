@@ -4,8 +4,8 @@
  *
  *   sim / input / net  →  GameSession  →  FrameBuilder.build(now)  →  GameRenderer.draw(frame)
  *
- * A renderer must not import the sim, the session, input or networking. Swapping the
- * Canvas 2D renderer for a Three.js one (TODO Phase 6) means writing another GameRenderer.
+ * A renderer must not import the sim, the session, input or networking. Two exist: the Canvas 2D
+ * renderer (renderer.ts, `?renderer=2d`) and the Three.js one (renderer3d.ts, the default).
  */
 import { ARENA_H, ARENA_W, type PlayerIndex } from '@zkduel/shared/constants';
 import type { ServerMessage } from '@zkduel/shared/protocol';

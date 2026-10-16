@@ -99,8 +99,8 @@ export const cheatName = z.enum([
   'infinite_ammo',
 ]);
 /**
- * DB end_reason values plus 'forfeit' (voluntary `forfeit` message).
- * NOTE: 'forfeit' is not yet in DATABASE_SCHEMA `matches.end_reason` — flagged for decision.
+ * DB `matches.end_reason` values; 'forfeit' = the voluntary `forfeit` message (DATABASE_SCHEMA §2,
+ * migration 001).
  */
 export const endReason = z.enum(['rounds', 'forfeit_proof', 'disconnect', 'abort', 'forfeit']);
 export const wsErrorCode = z.enum([

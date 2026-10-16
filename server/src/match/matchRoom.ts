@@ -204,7 +204,7 @@ export class MatchRoom {
       matchField: this.opts.matchField,
       windowTicks: this.opts.windowTicks,
       constantsHash: this.opts.constantsHash,
-      createdAt: Date.now(),
+      createdAt: (this.deps.epoch ?? Date.now)(),
     });
     for (const p of [0, 1] as const) {
       this.send(p, {

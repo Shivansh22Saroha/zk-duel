@@ -1,4 +1,5 @@
 /** Builds the Fastify app + WS gateway + match manager + fixed-step loop. */
+import { readFileSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -19,7 +20,12 @@ import { Gateway } from './ws/gateway';
 import { loadVariant } from './zk/variant';
 import { VerifierPool } from './zk/verifierPool';
 
-const SERVER_VERSION = '0.1.0';
+/** server/package.json version (sent in `welcome`; informational — compatibility is constantsHash). */
+const SERVER_VERSION = (
+  JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+    version: string;
+  }
+).version;
 
 export interface AppHandle {
   app: FastifyInstance;

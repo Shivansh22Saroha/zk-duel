@@ -84,7 +84,11 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: 5173,
     strictPort: true,
-    fs: { allow: ['..'] },
+    // `/@fs/` serves only these folders (dev:lan exposes the dev server to the LAN). Modules the
+    // client imports (../shared, the hoisted node_modules) are still served — Vite allows files in
+    // its module graph — and /zk + fixtures go through the middleware above. Was ['..'] (whole
+    // repo, e.g. server/data/zkduel.db) before v1.0.1.
+    fs: { allow: [join(ROOT, 'client'), BUILD_DIR] },
   },
   preview: { port: 5173, strictPort: true },
   build: { target: 'es2022', sourcemap: true },

@@ -174,7 +174,7 @@ Dashboard: `http://localhost:5173/bench` (default selection "best run per varian
 | `npm run circuits:prove-log -- --log <file> --n 60` | Prove + verify every window of a client tick log offline |
 | `npm run circuits:mutate-log -- --log <in> --out <out> --cheat speed\|rapid\|ammo` | Make a cheating copy of a tick log |
 | `npm run circuits:lint` | circomspect on the generated main circuits |
-| `npm run test:e2e` | Playwright two-player match |
+| `npm run test:e2e` | Browser E2E: `e2e:cheats` then `e2e:audit-reload` (needs `npm run perf:serve`) |
 | `npm run bench:node` / `bench:browser` / `bench:export` | Benchmarks (see "Run benchmarks") |
 | `npm run db:migrate` | Apply SQL migrations |
 

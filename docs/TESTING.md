@@ -7,7 +7,7 @@ Commands:
 npm test               # unit + circuit tests (Vitest)
 npm run test:circuits  # circuit tests only
 npm run test:int       # server integration tests (real ws, in-memory SQLite)
-npm run test:e2e       # Playwright two-player match
+npm run test:e2e       # browser E2E: e2e:cheats, then e2e:audit-reload (needs npm run perf:serve)
 npm run lint && npm run typecheck
 ```
 
@@ -112,6 +112,8 @@ Using two `ws` clients driven by scripted input logs and real proofs from the N=
 | Winner closes the tab during the audit | `audit_incomplete`, result `unverified` (not overturned); loser `audited_clean` |
 
 ## 5. End-to-end (Playwright)
+
+`npm run test:e2e` (with `npm run perf:serve` running in another terminal) runs `npm run e2e:cheats` (private rooms, E2E-2, E2E-3, browser frame inspector) and then `npm run e2e:audit-reload` (E2E-6). `npm run perf:match` (E2E-5) stays separate because it is long. These are Playwright scripts run with tsx, not `playwright test` specs.
 
 - Two browser contexts, scripted keyboard/mouse via `page.keyboard`/`page.mouse`, `WINDOW_TICKS=30` variant.
 - **E2E-1:** queue → match → play 20 s → every spot-check ✓, then the audit ends `audited_clean`.

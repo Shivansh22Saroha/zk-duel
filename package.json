@@ -27,7 +27,7 @@
     "test:coverage": "vitest run --project unit --coverage",
     "test:circuits": "vitest run --project circuits",
     "test:int": "vitest run --project integration",
-    "test:e2e": "playwright test",
+    "test:e2e": "npm run e2e:cheats && npm run e2e:audit-reload",
     "circuits:ptau": "npm run ptau --workspace circuits --",
     "circuits:build": "npm run build -w circuits --",
     "circuits:check": "npm run check --workspace circuits",

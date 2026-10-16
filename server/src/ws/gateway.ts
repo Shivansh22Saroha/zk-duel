@@ -23,7 +23,7 @@ import { AuthError, type Auth } from '../auth/jwt';
 import type { MatchManager } from '../match/manager';
 import type { PlayerLink } from '../match/matchRoom';
 
-export const CLOSE = {
+const CLOSE = {
   INVALID: 4400,
   AUTH: 4401,
   REPLACED: 4409,

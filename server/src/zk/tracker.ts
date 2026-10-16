@@ -144,7 +144,7 @@ interface Challenge {
 }
 
 const FAILURES: ReadonlySet<ProofStatus> = new Set(FAILURE_STATUSES);
-export const isFailure = (s: ProofStatus | null): boolean => s !== null && FAILURES.has(s);
+const isFailure = (s: ProofStatus | null): boolean => s !== null && FAILURES.has(s);
 
 const keyOf = (p: number, r: number, k: number): string => `${p}:${r}:${k}`;
 

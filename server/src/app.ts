@@ -19,7 +19,7 @@ import { Gateway } from './ws/gateway';
 import { loadVariant } from './zk/variant';
 import { VerifierPool } from './zk/verifierPool';
 
-export const SERVER_VERSION = '0.1.0';
+const SERVER_VERSION = '0.1.0';
 
 export interface AppHandle {
   app: FastifyInstance;

@@ -76,7 +76,7 @@ Compile `main_<N>.circom` with small N (e.g. N=4) for fast tests, plus one full 
 - Random *legal* input sequences → always satisfiable.
 - Random legal sequence with one randomly mutated field → the circuit is satisfiable **iff** `shared/sim.ts` `checkSequence` accepts it (exact agreement); an accepted mutation must change the digest or commitment, **except** a `reloadPress` the rules ignore (W1 fire wins, reload already running, full magazine), which changes no state and is an equivalent witness, not a cheat. (Clarified in Phase 2 after fast-check found such a case.)
 
-**Static analysis:** `circomspect circuits/window.circom` must report no under-constrained signal warnings (CI gate). Also assert `snarkjs r1cs info` constraint count is recorded and does not grow > 10% without a CHANGELOG note.
+**Static analysis:** `npm run circuits:lint` (circomspect `--level WARNING` on the generated `main_4.circom` and `main_60.circom`) must report no findings (CI gate). Running circomspect directly on `circuits/window.circom` also prints a style note (`Window` takes many template parameters), which is not an under-constraint finding. Also assert `snarkjs r1cs info` constraint count is recorded and does not grow > 10% without a CHANGELOG note.
 
 **Public signal order:** a test reads `info.json.publicSignalOrder` and checks the server maps `bind`, `digest`, `commitIn`, `commitOut` to the right indices by verifying one known proof.
 

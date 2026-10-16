@@ -1,6 +1,6 @@
 # CLAUDE.md — ZK-Duel
 
-1v1 browser shooter with zk-SNARK rule-compliance proofs (CSC301 seminar). Specs live in `docs/` (14 files) plus the root `README.md`. Spec fixes agreed before Phase 0 are listed in `docs/CHANGELOG.md` → "Spec fixes (pre-Phase 0)" — e.g. weapon table W1–W5, round-relative ticks, `unprovable`/`chain_broken` statuses. **Read the relevant spec before touching an area**; `docs/PRD.md` is the scope authority, `docs/TODO.md` is the work order.
+1v1 browser shooter with zk-SNARK rule-compliance proofs (CSC301 seminar). Specs live in `docs/` (15 files, incl. the v1.0.1 audit) plus the root `README.md`. Spec fixes agreed before Phase 0 are listed in `docs/CHANGELOG.md` → "Spec fixes (pre-Phase 0)" — e.g. weapon table W1–W5, round-relative ticks, `unprovable`/`chain_broken` statuses. **Read the relevant spec before touching an area**; `docs/PRD.md` is the scope authority, `docs/TODO.md` is the work order.
 
 ## Hard rules
 

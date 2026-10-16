@@ -145,7 +145,7 @@ A row is written when a window ends and is first decided (`committed`, `missing_
 Index: `idx_cheat_match (match_id)`. Built in migration 004.
 
 ### `detection_runs` (Phase 4, migration 004)
-One row per detection-experiment match (`npm run exp:detect`, `npm run exp:browser`): `environment` (node \| browser), `cheat`, `window_ticks`, `m_nominal` (windows the cheat was on), `m_effective` (cheater windows with ≥ 1 rule violation — ground truth from the cheater's own tick log), `windows`, `challenges`, `challenge_rate` (r), `predicted_live` (1 − (1 − r)^m_effective), `caught_live`, `latency_windows`, `latency_ms`, `caught_audit`, `final_status`, `cheater_status`, `device_label`, `notes` (anomalies). Exported to `bench/out/detection.csv`. Used to compute detection latency = first non-valid window − activation window.
+One row per detection-experiment match (`npm run exp:detect`, `npm run exp:browser`): `id`, `created_at`, `match_id`, `environment` (node \| browser), `cheat`, `window_ticks`, `m_nominal` (windows the cheat was on), `m_effective` (cheater windows with ≥ 1 rule violation — ground truth from the cheater's own tick log), `windows`, `challenges`, `challenge_rate` (r), `predicted_live` (1 − (1 − r)^m_effective), `caught_live`, `latency_windows`, `latency_ms`, `caught_audit`, `final_status`, `cheater_status`, `device_label`, `notes` (anomalies). Exported to `bench/out/detection.csv`. Used to compute detection latency = first non-valid window − activation window.
 
 ### `benchmark_runs`
 | Column | Type | Constraints |
@@ -222,7 +222,7 @@ CREATE TABLE proof_windows (
 -- remaining tables follow §2 exactly
 ```
 
-Migrations as built: `001_init` (Phase 1 tables), `002_proofs` (Phase 3: `proof_windows`, the `matches` audit columns and the `match_players` metric columns), `003_player_audit` (`match_players.audit_status`).
+Migrations as built: `001_init` (Phase 1 tables), `002_proofs` (Phase 3: `proof_windows`, the `matches` audit columns and the `match_players` metric columns), `003_player_audit` (`match_players.audit_status`), `004_phase4` (`matches.result_verdict`, `cheat_events`, `detection_runs`, detection-latency / `decided_at` columns), `005_bench` (`benchmark_runs`, `benchmark_results`).
 
 ## 4. Retention
 

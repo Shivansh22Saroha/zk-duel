@@ -69,13 +69,13 @@ Each flow lists the steps, what the system does, and the failure branches.
 2. Shows winner, score, per-player proof stats, full window timeline, cheat events, research metrics.
 3. While the audit runs: "Auditing… 23/150 windows"; the client keeps proving in the worker and the timeline fills in live. When the server sends `audit_end`: `AUDITED CLEAN` / `AUDIT FAILED` / `AUDIT INCOMPLETE`, plus `OVERTURNED` if the winner failed.
    - ✕ Player leaves before the audit ends → confirm dialog; remaining windows become `unaudited` → `audit_incomplete`.
-4. **Download match log** → `GET /api/matches/:id/log`.
+4. **Download match log** → `GET /api/matches/:id/log` — *not implemented in v1.0.x* (dev builds with `VITE_LOG_TICKS=true` offer "Download tick log (dev)" instead).
 5. **Back to lobby** → Landing. (Rematch was dropped — not in PRD.)
 
 ## Flow 7 — Benchmark run (researcher)
 
 **CLI (Node):**
-1. `npm run bench -- --log bench/logs/rec_01.jsonl --samples 20`.
+1. `npm run bench:node` (all built benchmark variants; `-- --variants groth16_60,plonk_30 --samples 5` to narrow, `-- --upload` to POST the run). The input log is the deterministic one from `BENCH_SEED` (`bench/logs/`), not a recorded match.
 2. Script replays the log through `shared/sim.ts`, builds inputs for each variant (groth16/plonk × 30/60/120), proves and verifies each 20 times, prints a summary table.
 3. Uploads to `POST /api/bench/runs` with `X-Bench-Token`; writes `bench/out/results.csv`.
 

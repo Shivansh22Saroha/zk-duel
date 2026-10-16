@@ -17,15 +17,29 @@ export const NULL_LOG: SnapshotLog = {
   close: () => Promise.resolve(),
 };
 
-export function openSnapshotLog(dir: string, matchId: string): SnapshotLog & { path: string } {
+/**
+ * A write error (disk full, permissions…) must not crash the server: `onError` is called once,
+ * and from then on this log drops its lines (the match itself is unaffected).
+ */
+export function openSnapshotLog(
+  dir: string,
+  matchId: string,
+  onError: (e: Error) => void,
+): SnapshotLog & { path: string } {
   mkdirSync(dir, { recursive: true });
   const path = join(dir, `${matchId}.jsonl`);
   const stream: WriteStream = createWriteStream(path, { flags: 'a' });
+  let failed = false;
+  stream.on('error', (e) => {
+    if (failed) return;
+    failed = true;
+    onError(e);
+  });
   return {
     path,
     write: (line) => {
-      stream.write(JSON.stringify(line) + '\n');
+      if (!failed) stream.write(JSON.stringify(line) + '\n');
     },
-    close: () => new Promise((res) => stream.end(res)),
+    close: () => (failed ? Promise.resolve() : new Promise((res) => stream.end(res))),
   };
 }

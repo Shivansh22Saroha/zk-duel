@@ -9,7 +9,7 @@ import {
 import { matchField } from '@zkduel/shared/matchField';
 import { initialCommit } from '@zkduel/shared/poseidon';
 import type { Repo } from '../db/repo';
-import { NULL_LOG, openSnapshotLog } from '../log/snapshotLog';
+import { NULL_LOG, openSnapshotLog, type SnapshotLog } from '../log/snapshotLog';
 import type { GapFillLogger } from './matchRoom';
 import type { VariantInfo } from '../zk/variant';
 import type { Verifier } from '../zk/verifierPool';
@@ -56,12 +56,35 @@ export class MatchManager {
   /** Player → the room they are playing in (removed at match_end). */
   private readonly byPlayer = new Map<string, MatchRoom>();
   private readonly pairing = new Set<string>();
+  /** LOG_SNAPSHOTS, switched off after the first log write error (logged once). */
+  private logSnapshots: boolean;
 
   constructor(
     private readonly repo: Repo,
     private readonly linkOf: (playerId: string) => PlayerLink | null,
     private readonly opts: ManagerOptions,
-  ) {}
+  ) {
+    this.logSnapshots = opts.logSnapshots;
+  }
+
+  /** This match's snapshot log; a log that cannot be written disables snapshot logging. */
+  private snapshotLog(matchId: string): SnapshotLog {
+    if (!this.logSnapshots) return NULL_LOG;
+    const off = (e: unknown): void => {
+      if (!this.logSnapshots) return;
+      this.logSnapshots = false;
+      this.opts.errorLog?.error(
+        { matchId, err: String(e).slice(0, 200) },
+        'snapshot log write failed; LOG_SNAPSHOTS disabled',
+      );
+    };
+    try {
+      return openSnapshotLog(this.opts.snapshotLogDir, matchId, off);
+    } catch (e) {
+      off(e);
+      return NULL_LOG;
+    }
+  }
 
   /** Matches being played (not counting finished matches whose audit is still open). */
   get liveCount(): number {
@@ -261,7 +284,7 @@ export class MatchManager {
       }) as MatchRoom['seats'],
       {
         repo: this.repo,
-        log: this.opts.logSnapshots ? openSnapshotLog(this.opts.snapshotLogDir, id) : NULL_LOG,
+        log: this.snapshotLog(id),
         ...(this.opts.logger ? { logger: this.opts.logger } : {}),
         verifier: this.opts.verifier,
         now: this.opts.now,

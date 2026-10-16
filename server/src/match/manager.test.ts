@@ -1,4 +1,7 @@
-/** MatchManager failure paths (no sockets): a failed match creation must not crash the server. */
+/** MatchManager failure paths (no sockets): match creation and snapshot-log errors must not crash the server. */
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { poseidonReady } from '@zkduel/shared/poseidon';
 import type { ServerMessage } from '@zkduel/shared/protocol';
@@ -30,13 +33,11 @@ class FailingRepo extends Repo {
   }
 }
 
-function setup() {
-  const repo = new FailingRepo(openDb(':memory:'));
-  for (const id of ['a', 'b']) repo.createPlayer(id, `${id}_player`);
-  const inbox = new Map<string, ServerMessage[]>([
-    ['a', []],
-    ['b', []],
-  ]);
+function setup(o: { repo?: Repo; snapshotLogDir?: string } = {}) {
+  const repo = o.repo ?? new FailingRepo(openDb(':memory:'));
+  const ids = ['a', 'b', 'c', 'd'];
+  for (const id of ids) repo.createPlayer(id, `${id}_player`);
+  const inbox = new Map<string, ServerMessage[]>(ids.map((id) => [id, []]));
   const links = new Map<string, PlayerLink>(
     [...inbox].map(([id, box]) => [id, { send: (m: ServerMessage) => box.push(m) }]),
   );
@@ -45,9 +46,9 @@ function setup() {
     scheme: 'groth16',
     windowTicks: 60,
     defaultEnforcement: 'observe',
-    logSnapshots: false,
+    logSnapshots: o.snapshotLogDir !== undefined,
     errorLog: { error: (obj, msg) => errors.push({ obj, msg }) },
-    snapshotLogDir: '',
+    snapshotLogDir: o.snapshotLogDir ?? '',
     constantsHash: 'h',
     proofGraceWindows: 2,
     variant: FAKE_VARIANT,
@@ -92,6 +93,27 @@ describe('match creation failure (audit E3)', () => {
     for (const id of ['a', 'b']) {
       expect(inbox.get(id)?.at(-1)).toMatchObject({ t: 'error', code: 'INTERNAL' });
       expect(manager.isBusy(id)).toBe(false);
+    }
+  });
+});
+
+describe('snapshot log failure (audit E4)', () => {
+  it('a log that cannot be opened is logged once, disables LOG_SNAPSHOTS, and the matches still start', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'zkd-mgr-'));
+    const notADir = join(dir, 'logs');
+    writeFileSync(notADir, ''); // a file where the log directory should be → mkdirSync fails
+    try {
+      const { manager, errors } = setup({
+        repo: new Repo(openDb(':memory:')),
+        snapshotLogDir: notADir,
+      });
+      for (const id of ['a', 'b', 'c', 'd']) manager.joinQueue(id);
+      await settle();
+      expect(manager.rooms.size).toBe(2);
+      expect(errors).toHaveLength(1);
+      expect(errors[0]?.msg).toBe('snapshot log write failed; LOG_SNAPSHOTS disabled');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 });

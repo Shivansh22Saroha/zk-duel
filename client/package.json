@@ -11,6 +11,7 @@
     "build:perf": "vite build --mode perf"
   },
   "dependencies": {
+    "@zkduel/shared": "*",
     "chart.js": "4.5.1",
     "snarkjs": "0.7.6",
     "three": "0.186.1"

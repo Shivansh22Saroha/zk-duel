@@ -8,6 +8,7 @@
     "run": "tsx run.ts"
   },
   "dependencies": {
+    "@zkduel/shared": "*",
     "snarkjs": "0.7.6"
   }
 }

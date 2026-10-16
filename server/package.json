@@ -14,12 +14,14 @@
     "@fastify/cors": "11.3.1",
     "@fastify/helmet": "13.1.2",
     "@fastify/rate-limit": "11.2.1",
+    "@zkduel/shared": "*",
     "better-sqlite3": "13.0.3",
     "dotenv": "16.6.1",
     "fastify": "5.12.5",
     "jsonwebtoken": "9.0.3",
     "snarkjs": "0.7.6",
-    "ws": "8.22.0"
+    "ws": "8.22.0",
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@types/better-sqlite3": "9.6.0",

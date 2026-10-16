@@ -46,6 +46,12 @@ export class VerifierPool implements Verifier {
   private readonly queue: Job[] = [];
   private nextId = 1;
   private closed = false;
+  /** True once ready() resolved: from then on a dying worker is replaced. */
+  private started = false;
+  /** A worker died before reporting ready during startup (bad vkey, snarkjs load error…). */
+  private startupError: Error | null = null;
+  /** Wakes a pending ready() when a worker becomes ready or startup fails. */
+  private onStartupChange: (() => void) | null = null;
 
   constructor(
     private readonly vkeyPath: string,
@@ -56,23 +62,30 @@ export class VerifierPool implements Verifier {
     for (let i = 0; i < size; i++) this.slots.push(this.spawn());
   }
 
-  /** Resolves once every worker has loaded its vkey and warmed up. */
+  /**
+   * Resolves once every worker has loaded its vkey and warmed up. Rejects (and closes the pool)
+   * as soon as a worker dies before it is ready, so a broken setup fails startup instead of
+   * respawning workers forever.
+   */
   async ready(): Promise<void> {
-    await Promise.all(
-      this.slots.map(
-        (s) =>
-          new Promise<void>((res) => {
-            if (s.ready) return res();
-            const on = (m: { ready?: boolean }) => {
-              if (m.ready) {
-                s.worker.off('message', on);
-                res();
-              }
-            };
-            s.worker.on('message', on);
-          }),
-      ),
-    );
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const check = (): boolean => {
+          if (this.startupError) reject(this.startupError);
+          else if (this.slots.every((s) => s.ready)) resolve();
+          else return false;
+          return true;
+        };
+        if (check()) return;
+        this.onStartupChange = () => {
+          if (check()) this.onStartupChange = null;
+        };
+      });
+    } catch (e) {
+      await this.close();
+      throw e;
+    }
+    this.started = true;
   }
 
   verify(publicSignals: string[], proof: unknown): Promise<VerifyOutcome> {
@@ -112,6 +125,7 @@ export class VerifierPool implements Verifier {
       (m: { ready?: boolean; id?: number; ok?: boolean; ms?: number; error?: string | null }) => {
         if (m.ready) {
           slot.ready = true;
+          this.onStartupChange?.();
           return this.dispatch();
         }
         const job = slot.job;
@@ -124,10 +138,23 @@ export class VerifierPool implements Verifier {
         this.dispatch();
       },
     );
-    worker.on('error', () => this.replace(slot, 'worker error'));
+    worker.on('error', (e) => this.lost(slot, 'worker error', e.message));
     // a worker that dies without an 'error' event must not leave its job pending forever
-    worker.on('exit', () => this.replace(slot, 'worker exited'));
+    worker.on('exit', (code) => this.lost(slot, 'worker exited', `exit code ${code}`));
     return slot;
+  }
+
+  /** A worker errored or exited: fail startup if it never got ready, else replace it. */
+  private lost(slot: Slot, error: string, detail: string): void {
+    if (!this.started && !slot.ready) {
+      if (this.closed) return;
+      this.startupError ??= new Error(
+        `verifier worker failed before it was ready (vkey ${this.vkeyPath}): ${detail}`,
+      );
+      this.onStartupChange?.();
+      return;
+    }
+    this.replace(slot, error);
   }
 
   private replace(slot: Slot, error: string): void {

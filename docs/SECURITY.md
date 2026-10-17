@@ -43,7 +43,7 @@ ZK-Duel is a research prototype run on localhost or a LAN for demos and benchmar
 - Production: HTTPS + WSS only (TLS terminated at Caddy, see DEPLOYMENT.md). HSTS enabled.
 - WS `Origin` header must match `ALLOWED_ORIGINS`; otherwise reject the upgrade.
 - CORS: allow only `ALLOWED_ORIGINS`.
-- Headers via `@fastify/helmet`: CSP `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' wss:; img-src 'self' data:; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com`. (`wasm-unsafe-eval` is required for the circuit WASM.)
+- Headers via `@fastify/helmet`: CSP `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' wss:; img-src 'self' data:; style-src 'self'; font-src 'self'`. (`wasm-unsafe-eval` is required for the circuit WASM.)
 - Rate limits: REST via `@fastify/rate-limit`; WS limits per API_SPEC.md §4.
 - Message size cap: `maxPayload: 65536` on the ws server.
 - No secrets in the client bundle. Only `VITE_*` variables are exposed, and none are secret.

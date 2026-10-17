@@ -1,7 +1,7 @@
 {
   "name": "zk-duel",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "description": "1v1 browser shooter with zero-knowledge rule-compliance proofs (CSC301 seminar prototype)",
   "license": "MIT",
@@ -42,6 +42,9 @@
     "perf:prove": "tsx client/scripts/perf-prove.ts",
     "perf:match": "tsx client/scripts/perf-match.ts",
     "perf:serve": "npm run build:perf -w client && concurrently -k -n server,client -c blue,magenta \"npm run start -w server\" \"npm run preview -w client\"",
+    "demo": "node scripts/demo.mjs",
+    "demo:reset": "tsx server/scripts/demo-reset.ts",
+    "demo:rehearse": "tsx client/scripts/demo-rehearse.ts",
     "e2e:audit-reload": "tsx client/scripts/e2e-audit-reload.ts",
     "exp:detect": "tsx server/scripts/exp-detect.ts",
     "e2e:cheats": "tsx client/scripts/e2e-cheats.ts",
@@ -49,6 +52,7 @@
     "bench:node": "tsx bench/run.ts",
     "bench:browser": "tsx client/scripts/bench-browser.ts",
     "screenshots": "tsx client/scripts/screenshots.ts",
+    "offline:check": "tsx client/scripts/offline-check.ts",
     "bench:export": "tsx bench/export.ts"
   },
   "devDependencies": {

@@ -3,7 +3,7 @@
   "ignoreExportsUsedInFile": true,
   "workspaces": {
     ".": {
-      "entry": ["vitest.config.ts", "eslint.config.js"]
+      "entry": ["vitest.config.ts", "eslint.config.js", "scripts/*.mjs"]
     },
     "shared": {
       "project": ["**/*.ts"]

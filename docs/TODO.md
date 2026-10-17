@@ -88,9 +88,9 @@ Design changed before coding (CHANGELOG "Phase 3 design change"): commit every w
 - [x] **Exit check:** CSV + charts ready for the report
 
 ## Phase 6 — Write-up & polish (Week 8) — P0
-- [ ] Results section for the seminar report: tables, charts, detection-latency stats
-- [ ] Limitations section (smooth-aim / input provenance, single-party phase-2 setup, no walls in circuit)
-- [ ] Update final PPT with live-demo screenshots and benchmark charts
+- [x] Results section for the seminar report: tables, charts, detection-latency stats (`docs/REPORT.md` §1)
+- [x] Limitations section (smooth-aim / input provenance, single-party phase-2 setup, no walls in circuit) (`docs/REPORT.md` §2)
+- [ ] Update final PPT with live-demo screenshots and benchmark charts — skipped for now (owner, 2026-10-17)
 - [x] Demo checklist (TESTING.md §9) run twice (2026-10-12: first run found the rate-limit bug; re-run after the fix all pass — CHANGELOG Phase 6)
 - [x] 3D renderer (Three.js), 2D rules unchanged — done early as Phase 4.5
 - [x] CHANGELOG entry for v1.0.0

@@ -7,7 +7,10 @@ Every entry that changes the circuit must state: new constraint count per varian
 ---
 
 ## [Unreleased]
-_Nothing yet._
+### Phase 6 — report sections — 2026-10-17
+- **Added** `docs/REPORT.md`: Results (circuit size, Groth16/PLONK tables, detection outcome, live catch rate vs prediction, detection latency, playability while proving) and Limitations (L1–L10) for the seminar report, with the source of every number. Detection stats use `bench/out/detection.csv` rows 1–135 only. Live latency over all 118 live catches (Node + browser): median 4.5 s, p95 8.6 s, max 10.6 s; the Node-only figures (114) match Phase 4.
+- **Fixed** `bench/RESULTS.md`: the Chrome plonk_60 memory peak is 15.1 GiB (15,492 MiB), not 15.5 GiB.
+- PPT update skipped for now (owner).
 
 ## [1.0.1] — 2026-10-16
 Debugging and cleanup pass (`docs/AUDIT_v1.0.1.md`: 40 findings in Phase A, plus 2 found during Phase B). **No change to the circuit, the zkeys, `publicSignalOrder`, Poseidon inputs, bind/digest/commit or any benchmark result** (no `.circom`, circuit script/test, build artefact, `bench/out/` or `bench/RESULTS.md` change — only the `circuits/` and `bench/` `package.json` manifests; `constantsHash` `fab7a759…` and every `circuits/build/*/info.json` byte-identical before and after). Every commit passed typecheck, lint, `npm test` and `npm run test:int` under Node 22.23.3.

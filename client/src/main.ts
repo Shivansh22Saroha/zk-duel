@@ -3,6 +3,10 @@
  * Flow 1 (USER_FLOWS): landing → guest auth → WS hello → queue (proving key preloads) → match →
  * results (+ post-match audit). Flow 5: auto-reconnect with resume.
  */
+// Self-hosted fonts (bundled by Vite): the game must work without internet (viva room, LAN).
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/jetbrains-mono/500.css';
 import './styles.css';
 import { RECONNECT_BACKOFF_MS, RECONNECT_TIMEOUT_MS } from '@zkduel/shared/constants';
 import { constantsHash } from '@zkduel/shared/canonical';

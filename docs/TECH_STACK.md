@@ -31,7 +31,7 @@ Versions are the **major.minor lines to target**. At project setup, install the 
 | `snarkjs` | 0.7.x | `groth16.fullProve` / `plonk.fullProve` inside a Web Worker |
 | `three` | 0.186.1 (+ `@types/three` 0.186.0) | 3D renderer (Phase 4.5): a second `GameRenderer` behind the renderer seam; loaded lazily; presentation only |
 | `chart.js` | 4.x | Benchmark charts |
-| Fonts | Inter, JetBrains Mono (Google Fonts) | |
+| Fonts | Inter, JetBrains Mono (self-hosted: `@fontsource/inter` 5.3.0, `@fontsource/jetbrains-mono` 5.3.0; no Google Fonts, works offline) | |
 
 No UI framework is required: screens are small. If preferred, **Preact 10.x** is allowed for screens/HUD only — never inside the game loop.
 

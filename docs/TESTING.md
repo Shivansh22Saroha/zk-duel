@@ -153,3 +153,4 @@ Non-blocking / manual: Playwright E2E (needs built circuits), full N=60/120 buil
 - [ ] Smooth-aim stays ✓ and the explanation is ready
 - [ ] Benchmark dashboard shows the latest run with the real-time reference lines
 - [ ] Frame inspector green (no hidden state in any WS frame); the downloadable dev tick log (`VITE_LOG_TICKS`) contains the player's own hidden state by design and never leaves the browser
+- [ ] Works offline: `npm run offline:check` (bot match, results, /bench with all non-local traffic blocked) and `npm run demo:rehearse` (the docs/DEMO.md script, timed) both print only PASS — needs `npm run demo` running

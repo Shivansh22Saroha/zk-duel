@@ -3,7 +3,7 @@
  * browser demo (client/scripts/exp-browser.ts): from the cheater's own client tick log (ground
  * truth: which windows really break a rule) and the server's window results, one detection_runs row.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { DB } from '../src/db/index';
 import { FAILURE_STATUSES } from '@zkduel/shared/protocol';
@@ -157,12 +157,26 @@ export function insertRun(db: DB, x: DetectionRow): void {
   );
 }
 
-/** bench/out/detection.csv — every row of detection_runs. */
+/**
+ * bench/out/detection.csv — every row of detection_runs. Refuses to overwrite a CSV that has more
+ * rows than the DB (e.g. after `npm run demo:reset` the live DB has no detection runs; they are in
+ * the backup — pass its path to detection-report.ts).
+ */
 export function exportCsv(db: DB, path: string): number {
   const rows = db.prepare('SELECT * FROM detection_runs ORDER BY id').all() as Record<
     string,
     unknown
   >[];
+  const existing = existsSync(path)
+    ? readFileSync(path, 'utf8')
+        .split('\n')
+        .filter((l) => l.trim()).length - 1
+    : 0;
+  if (existing > rows.length)
+    throw new Error(
+      `${path} has ${existing} rows but this DB only ${rows.length} — not overwriting it. ` +
+        'Use the DB that holds the experiment (e.g. a server/data/backup-*.db from demo:reset).',
+    );
   const cols = [
     'id',
     'created_at',

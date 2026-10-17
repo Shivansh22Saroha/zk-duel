@@ -33,7 +33,7 @@ Status is never shown by color alone: committed = hollow cell (`--border` outlin
 | Body | Inter, 400 | 14–15 px |
 | Numbers, HUD, timings | JetBrains Mono, 500 | 13–24 px, `tabular-nums` |
 
-Load via Google Fonts; fall back to `system-ui` and `ui-monospace`.
+Self-hosted (bundled from `@fontsource`, no external request, works offline); fall back to `system-ui` and `ui-monospace`.
 
 ### Spacing & shape
 4 px base unit (4, 8, 12, 16, 24, 32). Radius 6 px on panels, 4 px on buttons, 2 px on proof cells. No drop shadows except the modal (one soft shadow).

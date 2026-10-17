@@ -7,6 +7,52 @@ Every entry that changes the circuit must state: new constraint count per varian
 ---
 
 ## [Unreleased]
+_Nothing yet._
+
+## [1.0.2] — 2026-10-17
+Viva demo readiness and README polish. **No change to the circuit, its constants, the zkeys, `publicSignalOrder`, Poseidon inputs, bind/digest/commit, `bench/out/` or `bench/RESULTS.md`** (nothing under `circuits/` changed except the version in `circuits/package.json`). Also contains the Phase 6 report sections below, which were committed to main after v1.0.1.
+
+### Offline check (findings before the fix)
+- **Static scan** of `client/` and `server/` for `http://` / `https://`. The only runtime network dependency was **Google Fonts**: `client/index.html` loaded an Inter + JetBrains Mono stylesheet and had two preconnects, and the server CSP allowed fonts.googleapis.com / fonts.gstatic.com. Every other URL is a library comment or licence string in the bundle, localhost, or a dev-script default.
+- **Live test** (`npm run offline:check`: Chrome with every non-loopback request aborted plus a dead proxy, against the `perf:serve` build). The bot match, spot-checks, audit (`audited_clean`), results page and `/bench` all **worked**. The only failure was the blocked font stylesheet: 1 blocked URL and one `ERR_INTERNET_DISCONNECTED` console error per page, with a silent fallback to the system font.
+- Wi-Fi was not switched off, because that would cut the agent session; the block was done in the browser.
+
+### Fixed
+- Fonts are now self-hosted: `@fontsource/inter` 5.3.0 (400, 600) and `@fontsource/jetbrains-mono` 5.3.0 (500), bundled by Vite with all unicode subsets and `unicode-range`, as Google served them.
+  - Google Fonts links removed; CSP is now `style-src 'self'; font-src 'self'` (SECURITY.md, TECH_STACK.md and UI_UX_SPEC.md updated).
+  - After the fix: 0 blocked requests, 0 errors, Inter loaded.
+- `server/scripts/detection.ts` `exportCsv` now refuses to overwrite `bench/out/detection.csv` with fewer rows than it already has. After `demo:reset` the live DB has no detection runs, so `detection-report.ts` would otherwise have written an empty CSV.
+
+### Added
+- `npm run demo` (`scripts/demo.mjs`):
+  - checks Node 22.x, `server/.env`, the ACTIVE_VARIANT artefacts and that ports 8080/5173 are free, each with the exact fix;
+  - rebuilds the client (`--mode perf`) only when `client/dist` is older than its sources (marker `client/dist/.demo-build.json`);
+  - starts the server + `vite preview` with `DEV_CHEATS=true` and `DEFAULT_ENFORCEMENT=strict`, then prints the player, bot, private-room and `/bench` URLs. Ready in 5–8 s, including a rebuild.
+- `npm run demo:reset` (`server/scripts/demo-reset.ts`):
+  - refuses while the server runs;
+  - backs up with `VACUUM INTO server/data/backup-<local date-time>.db` (never overwrites a backup), then checks integrity and row counts;
+  - creates a fresh DB and copies the benchmark runs back, so `/bench` keeps its charts. Never touches `bench/out/`.
+- `npm run offline:check` and `npm run demo:rehearse` (Playwright; both need `npm run demo`), plus a TESTING.md §9 item.
+- `docs/DEMO.md`: one-page viva runbook (preparation, a 5-minute script with clicks, keys and rehearsal timings, and fixes).
+- `LICENSE` (MIT, as `package.json` and the README already stated).
+
+### Changed
+- `README.md` rewritten for the public repo:
+  - description, two screenshots, key results (numbers only from bench/RESULTS.md and docs/REPORT.md), quick start with `npm run demo`, structure, docs index, limitations and licence;
+  - setup, benchmarks and the scripts table kept in collapsed sections;
+  - the "build order for a coding AI" section dropped (it is in CLAUDE.md).
+- Versions 1.0.2.
+
+### Demo rehearsal (`npm run demo:rehearse`, two runs, AC, one laptop, bots in both windows)
+- Honest match: live 4.3–4.6 s after Find Match, first ✓ ≈ 8 s, `AUDITED CLEAN` at 20–38 s.
+- Strict private room: live 4.3–4.5 s, forfeit banner 1.9–4.4 s after Speedhack, `AUDIT FAILED` 12–17 s after room creation.
+- `/bench`: 0.5 s.
+
+### Secrets check
+- No `.env` file (other than the two `.env.example` files), key, DB or zkey file is tracked or was ever committed.
+- The real `JWT_SECRET` / `BENCH_TOKEN` values occur in no tracked file, in no commit of the history (`git log -S`) and not in `client/dist`.
+- No token or private-key patterns. The only secret-like values in the repo are the example placeholders and a test-only secret.
+
 ### Phase 6 — report sections — 2026-10-17
 - **Added** `docs/REPORT.md`: Results (circuit size, Groth16/PLONK tables, detection outcome, live catch rate vs prediction, detection latency, playability while proving) and Limitations (L1–L10) for the seminar report, with the source of every number. Detection stats use `bench/out/detection.csv` rows 1–135 only. Live latency over all 118 live catches (Node + browser): median 4.5 s, p95 8.6 s, max 10.6 s; the Node-only figures (114) match Phase 4.
 - **Fixed** `bench/RESULTS.md`: the Chrome plonk_60 memory peak is 15.1 GiB (15,492 MiB), not 15.5 GiB.

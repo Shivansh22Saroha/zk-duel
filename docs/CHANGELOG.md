@@ -7,7 +7,8 @@ Every entry that changes the circuit must state: new constraint count per varian
 ---
 
 ## [Unreleased]
-_Nothing yet._
+### Added
+- `cheat-demo.mjs`: `--cheat-b <name> --on-window-b <k> --off-window-b <k>` makes player B a second cheater (`cheater_B`) with its own drawer watcher, screenshots and detection time. `run.json` also stores `ctB` and a public per-tick `trace` (`[round, tick, x0, y0, fired0, x1, y1, fired1]`) from the `state` frames, which shows whether a cheat actually broke a rule in a window. Harness only; no game, circuit or Phase 4 data change.
 
 ## [1.0.3] — 2026-10-23
 Server logs persisted to file, cheat demo harness and the 2026-10-23 demo cheat-test evidence. **No change to the circuit, its constants, the zkeys, `publicSignalOrder`, the Phase 4 detection data (`bench/out/detection.csv`, `detection_runs`) or `bench/RESULTS.md`.**

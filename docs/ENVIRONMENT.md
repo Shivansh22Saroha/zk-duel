@@ -26,7 +26,7 @@ Two env files: `server/.env` (secret, never committed) and `client/.env` (public
 | `LOG_SNAPSHOTS` | no | `false` | Write snapshot JSONL logs of what the server received (public only — see "Tick logs" below) |
 | `PUBLIC_MATCHES` | no | `false` | Let anyone read match summaries |
 | `BENCH_TOKEN` | yes (if bench uploads used) | — | Shared secret for `POST /api/bench/runs` |
-| `LOG_LEVEL` | no | `info` | pino level |
+| `LOG_LEVEL` | no | `info` | pino level. Logs go to stdout and are appended to `logs/server-<YYYY-MM-DD>.log` next to the DB (default `server/data/logs/`; date taken at boot) |
 
 ### `server/.env.example`
 ```dotenv

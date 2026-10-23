@@ -1,7 +1,7 @@
 /**
  * Server configuration from environment (docs/ENVIRONMENT.md §1), validated with zod at boot.
  */
-import { dirname, isAbsolute, resolve } from 'node:path';
+import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import {
@@ -67,6 +67,14 @@ export interface Config extends Env {
   dbPath: string;
   artefactDir: string;
   snapshotLogDir: string;
+  /** Server log file, `<logs>/server-<local date at boot>.log`; written alongside stdout. */
+  logFile: string;
+}
+
+/** Local calendar date as YYYY-MM-DD. */
+function localDate(d: Date): string {
+  const pad = (n: number): string => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 function abs(p: string): string {
@@ -89,13 +97,15 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
   }
   const [scheme, n] = e.ACTIVE_VARIANT.split('_') as [Config['scheme'], string];
   const dbPath = abs(e.DB_PATH);
+  const logDir =
+    dbPath === ':memory:' ? resolve(SERVER_ROOT, 'data/logs') : resolve(dirname(dbPath), 'logs');
   return {
     ...e,
     scheme,
     windowTicks: Number(n),
     dbPath,
     artefactDir: abs(e.ZK_ARTEFACT_DIR),
-    snapshotLogDir:
-      dbPath === ':memory:' ? resolve(SERVER_ROOT, 'data/logs') : resolve(dirname(dbPath), 'logs'),
+    snapshotLogDir: logDir,
+    logFile: join(logDir, `server-${localDate(new Date())}.log`),
   };
 }

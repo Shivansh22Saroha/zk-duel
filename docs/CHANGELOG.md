@@ -7,7 +7,8 @@ Every entry that changes the circuit must state: new constraint count per varian
 ---
 
 ## [Unreleased]
-_Nothing yet._
+### Changed
+- Server logs are now also appended to `server/data/logs/server-<YYYY-MM-DD>.log` (date taken at boot), so they survive a restart; stdout is unchanged. Uses pino's built-in `pino/file` transport, no new dependency. `LOG_LEVEL=silent` (tests) writes no file.
 
 ## [1.0.2] — 2026-10-17
 Viva demo readiness and README polish. **No change to the circuit, its constants, the zkeys, `publicSignalOrder`, Poseidon inputs, bind/digest/commit, `bench/out/` or `bench/RESULTS.md`** (nothing under `circuits/` changed except the version in `circuits/package.json`). Also contains the Phase 6 report sections below, which were committed to main after v1.0.1.

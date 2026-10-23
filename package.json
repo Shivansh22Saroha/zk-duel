@@ -1,7 +1,7 @@
 {
   "name": "zk-duel",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "module",
   "description": "1v1 browser shooter with zero-knowledge rule-compliance proofs (CSC301 seminar prototype)",
   "license": "MIT",

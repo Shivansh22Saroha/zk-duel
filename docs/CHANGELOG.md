@@ -7,6 +7,11 @@ Every entry that changes the circuit must state: new constraint count per varian
 ---
 
 ## [Unreleased]
+_Nothing yet._
+
+## [1.0.3] — 2026-10-23
+Server logs persisted to file, cheat demo harness and the 2026-10-23 demo cheat-test evidence. **No change to the circuit, its constants, the zkeys, `publicSignalOrder`, the Phase 4 detection data (`bench/out/detection.csv`, `detection_runs`) or `bench/RESULTS.md`.**
+
 ### Added
 - `npm run cheat:demo -- --mode observe|strict --cheat speedhack|rapid_fire|infinite_ammo|snap_aim` (`bench/scripts/cheat-demo.mjs`): live Chrome demo, cheater_A vs honest_B in a private room. The honest player never forfeits by default (`--honest-stop-after` is opt-in); the bots never hit, so a `--max-seconds` cap (default 150) makes the *cheater* forfeit if the match is still running.
 - Evidence of the 2026-10-23 demo cheat test in `bench/out/screenshots/cheat-test-2026-10-23/` (README, screenshots, raw harness and server logs). Demo runs only: `bench/out/detection.csv`, `detection_runs` and `bench/RESULTS.md` are unchanged.

@@ -1,0 +1,25 @@
+[run2 0.9s] room R4Y27F strict
+[run2 4.6s] match live e0bb2f30-f008-4ed4-aeb9-cf49b813c255 enforcement strict cheater_A = p0
+[run2 18.5s] screenshot C:\Users\Admin\Documents\Zkp_Game\bench\out\screenshots\cheat-test-2026-10-23\run2-cheater-hud-during-cheat.png
+[run2 18.6s] screenshot C:\Users\Admin\Documents\Zkp_Game\bench\out\screenshots\cheat-test-2026-10-23\run2-cheater-proof-strip-during-cheat.png
+[run2 18.6s] screenshot C:\Users\Admin\Documents\Zkp_Game\bench\out\screenshots\cheat-test-2026-10-23\run2-honest-view-during-cheat.png
+[run2 20.0s] [cheater_A console.error] ERROR:  4 Error in template WeaponStep_174 line: 43
+Error in template Window_175 line: 105
+
+[run2 20.3s] screenshot C:\Users\Admin\Documents\Zkp_Game\bench\out\screenshots\cheat-test-2026-10-23\run2-cheater-hud-first-detection.png
+[run2 20.3s] screenshot C:\Users\Admin\Documents\Zkp_Game\bench\out\screenshots\cheat-test-2026-10-23\run2-cheater-proof-strip-first-detection.png
+[run2 20.3s] match ended {"t":"match_end","winnerIndex":1,"reason":"forfeit_proof","score":[0,0],"resultsUrl":"/match/e0bb2f30-f008-4ed4-aeb9-cf49b813c255/results","auditTimeoutMs":3600000} cheat {"on":{"at":1792729651444,"tick":599,"round":1,"checked":true},"off":null,"detect":{"at":1792729657167,"tick":942,"round":1,"spot":{"passed":6,"decided":7,"pending":0}}}
+[run2 20.3s] cheater forfeit banner: Spot-check failed: unprovable — round 1, window 10 (cheater_A). Match forfeited.
+[run2 20.4s] screenshot C:\Users\Admin\Documents\Zkp_Game\bench\out\screenshots\cheat-test-2026-10-23\run2-cheater-forfeit-banner.png
+[run2 20.4s] honest forfeit banner: Spot-check failed: unprovable — round 1, window 10 (cheater_A). Match forfeited.
+[run2 20.5s] screenshot C:\Users\Admin\Documents\Zkp_Game\bench\out\screenshots\cheat-test-2026-10-23\run2-honest-forfeit-banner.png
+[run2 28.5s] [cheater_A console.error] ERROR:  4 Error in template WeaponStep_174 line: 43
+Error in template Window_175 line: 105
+
+[run2 30.9s] [cheater_A console.error] ERROR:  4 Error in template WeaponStep_174 line: 43
+Error in template Window_175 line: 105
+
+[run2 36.8s] audit done (clients)
+[run2 38.3s] screenshot results cheater AUDIT FAILED http://localhost:5173/match/e0bb2f30-f008-4ed4-aeb9-cf49b813c255/results?bot=611&manual=1&acc=1800&miss=300
+[run2 39.9s] screenshot results honest AUDIT FAILED http://localhost:5173/match/e0bb2f30-f008-4ed4-aeb9-cf49b813c255/results?bot=612&manual=1&acc=1800&miss=300&stopAfter=150
+[run2 39.9s] RUN DONE -> C:\Users\Admin\AppData\Local\Temp\claude\C--Users-Admin-Documents-Zkp-Game\6ac8eb4f-134c-47ed-97a8-b0778c1bbc91\scratchpad\run2.json

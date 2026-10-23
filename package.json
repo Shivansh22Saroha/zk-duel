@@ -53,7 +53,8 @@
     "bench:browser": "tsx client/scripts/bench-browser.ts",
     "screenshots": "tsx client/scripts/screenshots.ts",
     "offline:check": "tsx client/scripts/offline-check.ts",
-    "bench:export": "tsx bench/export.ts"
+    "bench:export": "tsx bench/export.ts",
+    "cheat:demo": "node bench/scripts/cheat-demo.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

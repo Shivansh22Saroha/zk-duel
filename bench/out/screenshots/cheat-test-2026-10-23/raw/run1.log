@@ -1,0 +1,38 @@
+[run1 1.2s] room V2SY2D observe
+[run1 5.1s] match live e07fd55e-138e-4626-bce1-a8d51f970256 enforcement observe cheater_A = p0
+[run1 13.1s] [cheater_A console.error] ERROR:  4 Error in template InRange_169 line: 26
+Error in template SpeedCheck_170 line: 14
+Error in template Window_175 line: 88
+
+[run1 13.3s] screenshot C:\Users\Admin\Documents\Zkp_Game\bench\out\screenshots\cheat-test-2026-10-23\run1-cheater-hud-first-detection.png
+[run1 13.4s] screenshot C:\Users\Admin\Documents\Zkp_Game\bench\out\screenshots\cheat-test-2026-10-23\run1-cheater-proof-strip-first-detection.png
+[run1 13.8s] screenshot C:\Users\Admin\Documents\Zkp_Game\bench\out\screenshots\cheat-test-2026-10-23\run1-cheater-hud-during-cheat.png
+[run1 13.8s] screenshot C:\Users\Admin\Documents\Zkp_Game\bench\out\screenshots\cheat-test-2026-10-23\run1-cheater-proof-strip-during-cheat.png
+[run1 13.9s] screenshot C:\Users\Admin\Documents\Zkp_Game\bench\out\screenshots\cheat-test-2026-10-23\run1-honest-view-during-cheat.png
+[run1 16.1s] [cheater_A console.error] ERROR:  4 Error in template InRange_169 line: 26
+Error in template SpeedCheck_170 line: 14
+Error in template Window_175 line: 88
+
+[run1 16.3s] [cheater_A console.error] ERROR:  4 Error in template InRange_169 line: 26
+Error in template SpeedCheck_170 line: 14
+Error in template Window_175 line: 88
+
+[run1 16.6s] [cheater_A console.error] ERROR:  4 Error in template InRange_169 line: 26
+Error in template SpeedCheck_170 line: 14
+Error in template Window_175 line: 88
+
+[run1 17.0s] [cheater_A console.error] ERROR:  4 Error in template Num2Bits_164 line: 38
+Error in template InRange_169 line: 16
+Error in template SpeedCheck_170 line: 14
+Error in template Window_175 line: 88
+
+[run1 61.4s] match ended {"t":"match_end","winnerIndex":0,"reason":"forfeit","score":[0,0],"resultsUrl":"/match/e07fd55e-138e-4626-bce1-a8d51f970256/results","auditTimeoutMs":3600000} cheat {"on":{"at":1792729491011,"tick":299,"round":1,"checked":true},"off":{"at":1792729497012,"tick":659,"round":1,"checked":false},"detect":{"at":1792729494393,"tick":501,"round":1,"spot":{"passed":3,"decided":4,"pending":0}}}
+[run1 62.6s] [cheater_A console.error] ERROR:  4 Error in template Num2Bits_164 line: 38
+Error in template InRange_169 line: 16
+Error in template SpeedCheck_170 line: 14
+Error in template Window_175 line: 88
+
+[run1 121.8s] audit done (clients)
+[run1 123.4s] screenshot results cheater AUDIT FAILED http://localhost:5173/match/e07fd55e-138e-4626-bce1-a8d51f970256/results?bot=511&manual=1&acc=1800&miss=300
+[run1 124.9s] screenshot results honest AUDIT FAILED http://localhost:5173/match/e07fd55e-138e-4626-bce1-a8d51f970256/results?bot=512&manual=1&acc=1800&miss=300&stopAfter=60
+[run1 125.0s] RUN DONE -> C:\Users\Admin\AppData\Local\Temp\claude\C--Users-Admin-Documents-Zkp-Game\6ac8eb4f-134c-47ed-97a8-b0778c1bbc91\scratchpad\run1.json

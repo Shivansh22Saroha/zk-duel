@@ -1,0 +1,2949 @@
+{
+  "run": 2,
+  "cfg": {
+    "enf": "strict",
+    "cheat": "rapid_fire",
+    "onTick": 600,
+    "offTick": null,
+    "stopB": 150,
+    "seeds": [
+      611,
+      612
+    ]
+  },
+  "code": "R4Y27F",
+  "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+  "enforcement": "strict",
+  "cheaterIndex": 0,
+  "result": {
+    "t": "match_end",
+    "winnerIndex": 1,
+    "reason": "forfeit_proof",
+    "score": [
+      0,
+      0
+    ],
+    "resultsUrl": "/match/e0bb2f30-f008-4ed4-aeb9-cf49b813c255/results",
+    "auditTimeoutMs": 3600000
+  },
+  "ct": {
+    "on": {
+      "at": 1792729651444,
+      "tick": 599,
+      "round": 1,
+      "checked": true
+    },
+    "off": null,
+    "detect": {
+      "at": 1792729657167,
+      "tick": 942,
+      "round": 1,
+      "spot": {
+        "passed": 6,
+        "decided": 7,
+        "pending": 0
+      }
+    }
+  },
+  "verdicts": [
+    "AUDIT FAILED",
+    "AUDIT FAILED"
+  ],
+  "resultsUrl": "http://localhost:5173/match/e0bb2f30-f008-4ed4-aeb9-cf49b813c255/results",
+  "spots": [
+    {
+      "passed": 6,
+      "decided": 7,
+      "pending": 0
+    },
+    {
+      "passed": 7,
+      "decided": 7,
+      "pending": 0
+    }
+  ],
+  "summary": {
+    "id": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+    "mode": "private",
+    "enforcement": "strict",
+    "scheme": "groth16",
+    "windowTicks": 60,
+    "status": "finished",
+    "winnerIndex": 1,
+    "endReason": "forfeit_proof",
+    "startedAt": 1792729638045,
+    "endedAt": 1792729657166,
+    "totalTicks": 943,
+    "auditStatus": "audited_failed",
+    "overturned": false,
+    "resultVerdict": "verified",
+    "auditEndedAt": 1792729673729,
+    "players": [
+      {
+        "playerIndex": 0,
+        "displayName": "cheater_A",
+        "roundsWon": 0,
+        "hits": 0,
+        "shots": 67,
+        "windows": 15,
+        "windowsCommitted": 15,
+        "challenges": 7,
+        "challengesPassed": 6,
+        "challengeRate": 0.4666666666666667,
+        "detectionLatencyWindows": 0,
+        "auditMs": 12928,
+        "auditStatus": "audited_failed",
+        "detectionLatencyMs": 5721,
+        "proofs": {
+          "byStatus": {
+            "valid": 12,
+            "unprovable": 3
+          },
+          "failed": 3,
+          "proveMsMean": 2103.3333333333335,
+          "proveMsP95": 2413,
+          "verifyMsMean": 12.472458333339697
+        }
+      },
+      {
+        "playerIndex": 1,
+        "displayName": "honest_B",
+        "roundsWon": 0,
+        "hits": 0,
+        "shots": 46,
+        "windows": 15,
+        "windowsCommitted": 15,
+        "challenges": 7,
+        "challengesPassed": 7,
+        "challengeRate": 0.4666666666666667,
+        "detectionLatencyWindows": null,
+        "auditMs": 16561,
+        "auditStatus": "audited_clean",
+        "detectionLatencyMs": null,
+        "proofs": {
+          "byStatus": {
+            "valid": 15
+          },
+          "failed": 0,
+          "proveMsMean": 1929.4,
+          "proveMsP95": 2371,
+          "verifyMsMean": 35.448799999999274
+        }
+      }
+    ],
+    "cheatEvents": [
+      {
+        "playerIndex": 0,
+        "cheat": "rapid_fire",
+        "enabled": true,
+        "roundNo": 1,
+        "tick": 600,
+        "windowIndex": 10,
+        "createdAt": 1792729651444
+      }
+    ],
+    "rounds": [
+      {
+        "roundNo": 1,
+        "startTick": 0,
+        "endTick": null,
+        "winnerIndex": null
+      }
+    ],
+    "you": 0
+  },
+  "windows": [
+    {
+      "playerIndex": 0,
+      "roundNo": 1,
+      "windowIndex": 0,
+      "startTick": 0,
+      "status": "valid",
+      "challenged": true,
+      "phase": "live",
+      "proveMs": 2195,
+      "verifyMs": 12.74930000002496,
+      "proofBytes": 723
+    },
+    {
+      "playerIndex": 0,
+      "roundNo": 1,
+      "windowIndex": 1,
+      "startTick": 60,
+      "status": "valid",
+      "challenged": true,
+      "phase": "live",
+      "proveMs": 2198,
+      "verifyMs": 12.525099999998929,
+      "proofBytes": 723
+    },
+    {
+      "playerIndex": 0,
+      "roundNo": 1,
+      "windowIndex": 2,
+      "startTick": 120,
+      "status": "valid",
+      "challenged": true,
+      "phase": "live",
+      "proveMs": 2274,
+      "verifyMs": 16.250800000008894,
+      "proofBytes": 722
+    },
+    {
+      "playerIndex": 0,
+      "roundNo": 1,
+      "windowIndex": 3,
+      "startTick": 180,
+      "status": "valid",
+      "challenged": true,
+      "phase": "live",
+      "proveMs": 2264,
+      "verifyMs": 16.89790000001085,
+      "proofBytes": 722
+    },
+    {
+      "playerIndex": 0,
+      "roundNo": 1,
+      "windowIndex": 4,
+      "startTick": 240,
+      "status": "valid",
+      "challenged": true,
+      "phase": "live",
+      "proveMs": 2413,
+      "verifyMs": 10.98519999999553,
+      "proofBytes": 725
+    },
+    {
+      "playerIndex": 0,
+      "roundNo": 1,
+      "windowIndex": 5,
+      "startTick": 300,
+      "status": "valid",
+      "challenged": true,
+      "phase": "live",
+      "proveMs": 2161,
+      "verifyMs": 17.078999999997905,
+      "proofBytes": 717
+    },
+    {
+      "playerIndex": 0,
+      "roundNo": 1,
+      "windowIndex": 6,
+      "startTick": 360,
+      "status": "valid",
+      "challenged": false,
+      "phase": "audit",
+      "proveMs": 2160,
+      "verifyMs": 11.39100000000326,
+      "proofBytes": 727
+    },
+    {
+      "playerIndex": 0,
+      "roundNo": 1,
+      "windowIndex": 7,
+      "startTick": 420,
+      "status": "valid",
+      "challenged": false,
+      "phase": "audit",
+      "proveMs": 1899,
+      "verifyMs": 9.683099999994738,
+      "proofBytes": 721
+    },
+    {
+      "playerIndex": 0,
+      "roundNo": 1,
+      "windowIndex": 8,
+      "startTick": 480,
+      "status": "valid",
+      "challenged": false,
+      "phase": "audit",
+      "proveMs": 1948,
+      "verifyMs": 10.599600000015926,
+      "proofBytes": 725
+    },
+    {
+      "playerIndex": 0,
+      "roundNo": 1,
+      "windowIndex": 9,
+      "startTick": 540,
+      "status": "valid",
+      "challenged": false,
+      "phase": "audit",
+      "proveMs": 1875,
+      "verifyMs": 10.07870000001276,
+      "proofBytes": 721
+    },
+    {
+      "playerIndex": 0,
+      "roundNo": 1,
+      "windowIndex": 10,
+      "startTick": 600,
+      "status": "unprovable",
+      "challenged": true,
+      "phase": "live",
+      "proveMs": null,
+      "verifyMs": null,
+      "proofBytes": null
+    },
+    {
+      "playerIndex": 0,
+      "roundNo": 1,
+      "windowIndex": 11,
+      "startTick": 660,
+      "status": "unprovable",
+      "challenged": false,
+      "phase": "audit",
+      "proveMs": null,
+      "verifyMs": null,
+      "proofBytes": null
+    },
+    {
+      "playerIndex": 0,
+      "roundNo": 1,
+      "windowIndex": 12,
+      "startTick": 720,
+      "status": "valid",
+      "challenged": false,
+      "phase": "audit",
+      "proveMs": 1954,
+      "verifyMs": 9.055200000002515,
+      "proofBytes": 722
+    },
+    {
+      "playerIndex": 0,
+      "roundNo": 1,
+      "windowIndex": 13,
+      "startTick": 780,
+      "status": "unprovable",
+      "challenged": false,
+      "phase": "audit",
+      "proveMs": null,
+      "verifyMs": null,
+      "proofBytes": null
+    },
+    {
+      "playerIndex": 0,
+      "roundNo": 1,
+      "windowIndex": 14,
+      "startTick": 840,
+      "status": "valid",
+      "challenged": false,
+      "phase": "audit",
+      "proveMs": 1899,
+      "verifyMs": 12.374600000010105,
+      "proofBytes": 722
+    },
+    {
+      "playerIndex": 1,
+      "roundNo": 1,
+      "windowIndex": 0,
+      "startTick": 0,
+      "status": "valid",
+      "challenged": true,
+      "phase": "live",
+      "proveMs": 2198,
+      "verifyMs": 12.851499999989755,
+      "proofBytes": 719
+    },
+    {
+      "playerIndex": 1,
+      "roundNo": 1,
+      "windowIndex": 1,
+      "startTick": 60,
+      "status": "valid",
+      "challenged": true,
+      "phase": "live",
+      "proveMs": 2255,
+      "verifyMs": 12.828000000008615,
+      "proofBytes": 722
+    },
+    {
+      "playerIndex": 1,
+      "roundNo": 1,
+      "windowIndex": 2,
+      "startTick": 120,
+      "status": "valid",
+      "challenged": true,
+      "phase": "live",
+      "proveMs": 2097,
+      "verifyMs": 76.50930000000517,
+      "proofBytes": 722
+    },
+    {
+      "playerIndex": 1,
+      "roundNo": 1,
+      "windowIndex": 3,
+      "startTick": 180,
+      "status": "valid",
+      "challenged": true,
+      "phase": "live",
+      "proveMs": 2237,
+      "verifyMs": 82.71359999998822,
+      "proofBytes": 723
+    },
+    {
+      "playerIndex": 1,
+      "roundNo": 1,
+      "windowIndex": 4,
+      "startTick": 240,
+      "status": "valid",
+      "challenged": false,
+      "phase": "audit",
+      "proveMs": 1788,
+      "verifyMs": 58.657700000010664,
+      "proofBytes": 724
+    },
+    {
+      "playerIndex": 1,
+      "roundNo": 1,
+      "windowIndex": 5,
+      "startTick": 300,
+      "status": "valid",
+      "challenged": false,
+      "phase": "audit",
+      "proveMs": 1923,
+      "verifyMs": 69.61130000001867,
+      "proofBytes": 724
+    },
+    {
+      "playerIndex": 1,
+      "roundNo": 1,
+      "windowIndex": 6,
+      "startTick": 360,
+      "status": "valid",
+      "challenged": false,
+      "phase": "audit",
+      "proveMs": 1776,
+      "verifyMs": 40.61799999998766,
+      "proofBytes": 727
+    },
+    {
+      "playerIndex": 1,
+      "roundNo": 1,
+      "windowIndex": 7,
+      "startTick": 420,
+      "status": "valid",
+      "challenged": true,
+      "phase": "live",
+      "proveMs": 2104,
+      "verifyMs": 53.00649999998859,
+      "proofBytes": 724
+    },
+    {
+      "playerIndex": 1,
+      "roundNo": 1,
+      "windowIndex": 8,
+      "startTick": 480,
+      "status": "valid",
+      "challenged": false,
+      "phase": "audit",
+      "proveMs": 1648,
+      "verifyMs": 11.112700000026962,
+      "proofBytes": 723
+    },
+    {
+      "playerIndex": 1,
+      "roundNo": 1,
+      "windowIndex": 9,
+      "startTick": 540,
+      "status": "valid",
+      "challenged": true,
+      "phase": "live",
+      "proveMs": 2371,
+      "verifyMs": 34.118699999991804,
+      "proofBytes": 722
+    },
+    {
+      "playerIndex": 1,
+      "roundNo": 1,
+      "windowIndex": 10,
+      "startTick": 600,
+      "status": "valid",
+      "challenged": true,
+      "phase": "audit",
+      "proveMs": 2040,
+      "verifyMs": 39.04279999999562,
+      "proofBytes": 724
+    },
+    {
+      "playerIndex": 1,
+      "roundNo": 1,
+      "windowIndex": 11,
+      "startTick": 660,
+      "status": "valid",
+      "challenged": false,
+      "phase": "audit",
+      "proveMs": 1936,
+      "verifyMs": 11.621599999984028,
+      "proofBytes": 724
+    },
+    {
+      "playerIndex": 1,
+      "roundNo": 1,
+      "windowIndex": 12,
+      "startTick": 720,
+      "status": "valid",
+      "challenged": false,
+      "phase": "audit",
+      "proveMs": 1908,
+      "verifyMs": 11.863299999997253,
+      "proofBytes": 727
+    },
+    {
+      "playerIndex": 1,
+      "roundNo": 1,
+      "windowIndex": 13,
+      "startTick": 780,
+      "status": "valid",
+      "challenged": false,
+      "phase": "audit",
+      "proveMs": 1350,
+      "verifyMs": 7.8514999999897555,
+      "proofBytes": 722
+    },
+    {
+      "playerIndex": 1,
+      "roundNo": 1,
+      "windowIndex": 14,
+      "startTick": 840,
+      "status": "valid",
+      "challenged": false,
+      "phase": "audit",
+      "proveMs": 1310,
+      "verifyMs": 9.325500000006286,
+      "proofBytes": 724
+    }
+  ],
+  "recv": [
+    {
+      "at": 1792729637882,
+      "who": "cheater_A",
+      "t": "welcome",
+      "msg": {
+        "t": "welcome",
+        "playerId": "5ba13d09-1802-455e-9c59-b2d373ccdee3",
+        "serverVersion": "1.0.2"
+      }
+    },
+    {
+      "at": 1792729638044,
+      "who": "honest_B",
+      "t": "welcome",
+      "msg": {
+        "t": "welcome",
+        "playerId": "ae684c25-a2b5-4a8c-b9b4-d22b8b0c82a5",
+        "serverVersion": "1.0.2"
+      }
+    },
+    {
+      "at": 1792729638063,
+      "who": "honest_B",
+      "t": "match_found",
+      "msg": {
+        "t": "match_found",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "matchField": "99605913381610899191136582054638327163962742949049115651061004591537934101",
+        "playerIndex": 1,
+        "opponentName": "cheater_A",
+        "scheme": "groth16",
+        "windowTicks": 60,
+        "enforcement": "strict",
+        "spawns": [
+          {
+            "x": 150,
+            "y": 300,
+            "angle": 0
+          },
+          {
+            "x": 850,
+            "y": 300,
+            "angle": 1800
+          }
+        ],
+        "initialCommit": "1883056001826952225776646085158626168378291192782807548225392006949404645097",
+        "prevSnapshot": [
+          850,
+          300,
+          1800,
+          0
+        ],
+        "variant": "groth16_60"
+      }
+    },
+    {
+      "at": 1792729638126,
+      "who": "cheater_A",
+      "t": "match_found",
+      "msg": {
+        "t": "match_found",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "matchField": "99605913381610899191136582054638327163962742949049115651061004591537934101",
+        "playerIndex": 0,
+        "opponentName": "honest_B",
+        "scheme": "groth16",
+        "windowTicks": 60,
+        "enforcement": "strict",
+        "spawns": [
+          {
+            "x": 150,
+            "y": 300,
+            "angle": 0
+          },
+          {
+            "x": 850,
+            "y": 300,
+            "angle": 1800
+          }
+        ],
+        "initialCommit": "1883056001826952225776646085158626168378291192782807548225392006949404645097",
+        "prevSnapshot": [
+          150,
+          300,
+          0,
+          0
+        ],
+        "variant": "groth16_60"
+      }
+    },
+    {
+      "at": 1792729638451,
+      "who": "cheater_A",
+      "t": "countdown",
+      "msg": {
+        "t": "countdown",
+        "secondsLeft": 3
+      }
+    },
+    {
+      "at": 1792729638452,
+      "who": "honest_B",
+      "t": "countdown",
+      "msg": {
+        "t": "countdown",
+        "secondsLeft": 3
+      }
+    },
+    {
+      "at": 1792729639465,
+      "who": "honest_B",
+      "t": "countdown",
+      "msg": {
+        "t": "countdown",
+        "secondsLeft": 2
+      }
+    },
+    {
+      "at": 1792729639465,
+      "who": "cheater_A",
+      "t": "countdown",
+      "msg": {
+        "t": "countdown",
+        "secondsLeft": 2
+      }
+    },
+    {
+      "at": 1792729640500,
+      "who": "cheater_A",
+      "t": "countdown",
+      "msg": {
+        "t": "countdown",
+        "secondsLeft": 1
+      }
+    },
+    {
+      "at": 1792729640500,
+      "who": "honest_B",
+      "t": "countdown",
+      "msg": {
+        "t": "countdown",
+        "secondsLeft": 1
+      }
+    },
+    {
+      "at": 1792729641458,
+      "who": "cheater_A",
+      "t": "start",
+      "msg": {
+        "t": "start",
+        "roundNo": 1,
+        "startTick": 0,
+        "serverTime": 1792729641457
+      }
+    },
+    {
+      "at": 1792729641458,
+      "who": "honest_B",
+      "t": "start",
+      "msg": {
+        "t": "start",
+        "roundNo": 1,
+        "startTick": 0,
+        "serverTime": 1792729641457
+      }
+    },
+    {
+      "at": 1792729642564,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 0,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729642565,
+      "who": "cheater_A",
+      "t": "opponent_status",
+      "msg": {
+        "t": "opponent_status",
+        "status": "stalled"
+      }
+    },
+    {
+      "at": 1792729642567,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 0,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729642572,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 0,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729642572,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 0,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729642572,
+      "who": "honest_B",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 0,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729642572,
+      "who": "cheater_A",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 0,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729642572,
+      "who": "cheater_A",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 0,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729642573,
+      "who": "honest_B",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 0,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729642646,
+      "who": "cheater_A",
+      "t": "opponent_status",
+      "msg": {
+        "t": "opponent_status",
+        "status": "connected"
+      }
+    },
+    {
+      "at": 1792729643448,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 1,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729643448,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 1,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729643449,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 1,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729643449,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 1,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729644445,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 2,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729644451,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 2,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729644451,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 2,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729644451,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 2,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729644891,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 0,
+        "status": "valid",
+        "verifyMs": 12.74930000002496,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729644891,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 0,
+        "status": "valid",
+        "verifyMs": 12.74930000002496,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729644902,
+      "who": "honest_B",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 2,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729644902,
+      "who": "cheater_A",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 2,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729644906,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 0,
+        "status": "valid",
+        "verifyMs": 12.851499999989755,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729644906,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 0,
+        "status": "valid",
+        "verifyMs": 12.851499999989755,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729644907,
+      "who": "cheater_A",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 1,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729644907,
+      "who": "honest_B",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 1,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729645446,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 3,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729645446,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 3,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729645451,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 3,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729645451,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 3,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729646447,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 4,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729646447,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 4,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729646447,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 4,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729646447,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 4,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729647275,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 1,
+        "status": "valid",
+        "verifyMs": 12.828000000008615,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729647275,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 1,
+        "status": "valid",
+        "verifyMs": 12.828000000008615,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729647278,
+      "who": "cheater_A",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 2,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729647278,
+      "who": "honest_B",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 2,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729647287,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 2,
+        "status": "valid",
+        "verifyMs": 16.250800000008894,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729647287,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 2,
+        "status": "valid",
+        "verifyMs": 16.250800000008894,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729647298,
+      "who": "cheater_A",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 1,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729647304,
+      "who": "honest_B",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 1,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729647448,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 5,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729647448,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 5,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729647449,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 5,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729647449,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 5,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729648458,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 6,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729648459,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 6,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729648459,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 6,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729648459,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 6,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729649446,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 7,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729649446,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 7,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729649458,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 7,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729649458,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 7,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729649591,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 2,
+        "status": "valid",
+        "verifyMs": 76.50930000000517,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729649591,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 2,
+        "status": "valid",
+        "verifyMs": 76.50930000000517,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729649591,
+      "who": "cheater_A",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 3,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729649591,
+      "who": "honest_B",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 3,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729649653,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 1,
+        "status": "valid",
+        "verifyMs": 12.525099999998929,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729649653,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 1,
+        "status": "valid",
+        "verifyMs": 12.525099999998929,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729649662,
+      "who": "honest_B",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 3,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729649662,
+      "who": "cheater_A",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 3,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729650446,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 8,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729650446,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 8,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729650446,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 8,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729650446,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 8,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729651446,
+      "who": "cheater_A",
+      "t": "cheat_flag",
+      "msg": {
+        "t": "cheat_flag",
+        "playerIndex": 0,
+        "cheat": "rapid_fire",
+        "enabled": true
+      }
+    },
+    {
+      "at": 1792729651446,
+      "who": "honest_B",
+      "t": "cheat_flag",
+      "msg": {
+        "t": "cheat_flag",
+        "playerIndex": 0,
+        "cheat": "rapid_fire",
+        "enabled": true
+      }
+    },
+    {
+      "at": 1792729651446,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 9,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729651446,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 9,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729651447,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 9,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729651447,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 9,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729652054,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 3,
+        "status": "valid",
+        "verifyMs": 82.71359999998822,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729652054,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 3,
+        "status": "valid",
+        "verifyMs": 82.71359999998822,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729652058,
+      "who": "cheater_A",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 9,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729652058,
+      "who": "honest_B",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 9,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729652076,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 3,
+        "status": "valid",
+        "verifyMs": 16.89790000001085,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729652076,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 3,
+        "status": "valid",
+        "verifyMs": 16.89790000001085,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729652076,
+      "who": "honest_B",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 4,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729652076,
+      "who": "cheater_A",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 4,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729652457,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 10,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729652457,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 10,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729652457,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 10,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729652457,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 10,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729653446,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 11,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729653446,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 11,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729653446,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 11,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729653447,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 11,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729654452,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 12,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729654452,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 12,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729654452,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 12,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729654452,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 12,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729654598,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 9,
+        "status": "valid",
+        "verifyMs": 34.118699999991804,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729654598,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 9,
+        "status": "valid",
+        "verifyMs": 34.118699999991804,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729654606,
+      "who": "cheater_A",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 7,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729654606,
+      "who": "honest_B",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 7,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729654634,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 4,
+        "status": "valid",
+        "verifyMs": 10.98519999999553,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729654640,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 4,
+        "status": "valid",
+        "verifyMs": 10.98519999999553,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729654644,
+      "who": "honest_B",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 5,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729654645,
+      "who": "cheater_A",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 5,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729655452,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 13,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729655453,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 13,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729655454,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 13,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729655454,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 13,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729656451,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 14,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729656451,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 14,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729656451,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 14,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729656452,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 14,
+        "status": "committed",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729656880,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 7,
+        "status": "valid",
+        "verifyMs": 53.00649999998859,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729656881,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 7,
+        "status": "valid",
+        "verifyMs": 53.00649999998859,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729656890,
+      "who": "cheater_A",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 10,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729656890,
+      "who": "honest_B",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 10,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729656911,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 5,
+        "status": "valid",
+        "verifyMs": 17.078999999997905,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729656911,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 5,
+        "status": "valid",
+        "verifyMs": 17.078999999997905,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729656911,
+      "who": "honest_B",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 10,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729656912,
+      "who": "cheater_A",
+      "t": "challenge",
+      "msg": {
+        "t": "challenge",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 10,
+        "deadlineMs": 15000
+      }
+    },
+    {
+      "at": 1792729657167,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 10,
+        "status": "unprovable",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729657167,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 10,
+        "status": "unprovable",
+        "verifyMs": null,
+        "phase": "live"
+      }
+    },
+    {
+      "at": 1792729657169,
+      "who": "honest_B",
+      "t": "match_end",
+      "msg": {
+        "t": "match_end",
+        "winnerIndex": 1,
+        "reason": "forfeit_proof",
+        "score": [
+          0,
+          0
+        ],
+        "resultsUrl": "/match/e0bb2f30-f008-4ed4-aeb9-cf49b813c255/results",
+        "auditTimeoutMs": 3600000
+      }
+    },
+    {
+      "at": 1792729657169,
+      "who": "cheater_A",
+      "t": "match_end",
+      "msg": {
+        "t": "match_end",
+        "winnerIndex": 1,
+        "reason": "forfeit_proof",
+        "score": [
+          0,
+          0
+        ],
+        "resultsUrl": "/match/e0bb2f30-f008-4ed4-aeb9-cf49b813c255/results",
+        "auditTimeoutMs": 3600000
+      }
+    },
+    {
+      "at": 1792729659123,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 10,
+        "status": "valid",
+        "verifyMs": 39.04279999999562,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729659123,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 10,
+        "status": "valid",
+        "verifyMs": 39.04279999999562,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729659493,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 6,
+        "status": "valid",
+        "verifyMs": 11.39100000000326,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729659493,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 6,
+        "status": "valid",
+        "verifyMs": 11.39100000000326,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729661129,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 4,
+        "status": "valid",
+        "verifyMs": 58.657700000010664,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729661129,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 4,
+        "status": "valid",
+        "verifyMs": 58.657700000010664,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729661481,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 7,
+        "status": "valid",
+        "verifyMs": 9.683099999994738,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729661481,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 7,
+        "status": "valid",
+        "verifyMs": 9.683099999994738,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729663176,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 5,
+        "status": "valid",
+        "verifyMs": 69.61130000001867,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729663176,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 5,
+        "status": "valid",
+        "verifyMs": 69.61130000001867,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729663511,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 8,
+        "status": "valid",
+        "verifyMs": 10.599600000015926,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729663511,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 8,
+        "status": "valid",
+        "verifyMs": 10.599600000015926,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729665123,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 6,
+        "status": "valid",
+        "verifyMs": 40.61799999998766,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729665123,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 6,
+        "status": "valid",
+        "verifyMs": 40.61799999998766,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729665468,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 9,
+        "status": "valid",
+        "verifyMs": 10.07870000001276,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729665468,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 9,
+        "status": "valid",
+        "verifyMs": 10.07870000001276,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729665728,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 11,
+        "status": "unprovable",
+        "verifyMs": null,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729665729,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 11,
+        "status": "unprovable",
+        "verifyMs": null,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729666841,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 8,
+        "status": "valid",
+        "verifyMs": 11.112700000026962,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729666845,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 8,
+        "status": "valid",
+        "verifyMs": 11.112700000026962,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729667779,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 12,
+        "status": "valid",
+        "verifyMs": 9.055200000002515,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729667779,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 12,
+        "status": "valid",
+        "verifyMs": 9.055200000002515,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729668050,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 13,
+        "status": "unprovable",
+        "verifyMs": null,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729668051,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 13,
+        "status": "unprovable",
+        "verifyMs": null,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729668872,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 11,
+        "status": "valid",
+        "verifyMs": 11.621599999984028,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729668872,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 11,
+        "status": "valid",
+        "verifyMs": 11.621599999984028,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729670099,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 14,
+        "status": "valid",
+        "verifyMs": 12.374600000010105,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729670100,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 0,
+        "roundNo": 1,
+        "windowIndex": 14,
+        "status": "valid",
+        "verifyMs": 12.374600000010105,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729670890,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 12,
+        "status": "valid",
+        "verifyMs": 11.863299999997253,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729670890,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 12,
+        "status": "valid",
+        "verifyMs": 11.863299999997253,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729672332,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 13,
+        "status": "valid",
+        "verifyMs": 7.8514999999897555,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729672332,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 13,
+        "status": "valid",
+        "verifyMs": 7.8514999999897555,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729673729,
+      "who": "honest_B",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 14,
+        "status": "valid",
+        "verifyMs": 9.325500000006286,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729673730,
+      "who": "cheater_A",
+      "t": "proof_result",
+      "msg": {
+        "t": "proof_result",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "playerIndex": 1,
+        "roundNo": 1,
+        "windowIndex": 14,
+        "status": "valid",
+        "verifyMs": 9.325500000006286,
+        "phase": "audit"
+      }
+    },
+    {
+      "at": 1792729673731,
+      "who": "honest_B",
+      "t": "audit_end",
+      "msg": {
+        "t": "audit_end",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "auditStatus": "audited_failed",
+        "overturned": false,
+        "resultVerdict": "verified",
+        "players": [
+          {
+            "valid": 12,
+            "failed": 3,
+            "unaudited": 0,
+            "chainBroken": 0,
+            "auditStatus": "audited_failed"
+          },
+          {
+            "valid": 15,
+            "failed": 0,
+            "unaudited": 0,
+            "chainBroken": 0,
+            "auditStatus": "audited_clean"
+          }
+        ]
+      }
+    },
+    {
+      "at": 1792729673731,
+      "who": "cheater_A",
+      "t": "audit_end",
+      "msg": {
+        "t": "audit_end",
+        "matchId": "e0bb2f30-f008-4ed4-aeb9-cf49b813c255",
+        "auditStatus": "audited_failed",
+        "overturned": false,
+        "resultVerdict": "verified",
+        "players": [
+          {
+            "valid": 12,
+            "failed": 3,
+            "unaudited": 0,
+            "chainBroken": 0,
+            "auditStatus": "audited_failed"
+          },
+          {
+            "valid": 15,
+            "failed": 0,
+            "unaudited": 0,
+            "chainBroken": 0,
+            "auditStatus": "audited_clean"
+          }
+        ]
+      }
+    }
+  ]
+}

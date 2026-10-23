@@ -62,7 +62,23 @@ export async function buildApp(cfg: Config, opts: BuildOptions = {}): Promise<Ap
   await verifier.ready();
 
   const app = Fastify({
-    logger: cfg.LOG_LEVEL === 'silent' ? false : { level: cfg.LOG_LEVEL },
+    // stdout plus an appended daily file, both via pino's built-in `pino/file` transport
+    logger:
+      cfg.LOG_LEVEL === 'silent'
+        ? false
+        : {
+            level: cfg.LOG_LEVEL,
+            transport: {
+              targets: [
+                { target: 'pino/file', level: cfg.LOG_LEVEL, options: { destination: 1 } },
+                {
+                  target: 'pino/file',
+                  level: cfg.LOG_LEVEL,
+                  options: { destination: cfg.logFile, mkdir: true },
+                },
+              ],
+            },
+          },
     bodyLimit: 1_048_576,
   });
 

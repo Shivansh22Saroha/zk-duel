@@ -20,6 +20,7 @@ circuits/build/**/*_0000.zkey
 
 # runtime data
 server/data/
+server/data/logs/
 *.db
 *.db-journal
 *.db-wal
